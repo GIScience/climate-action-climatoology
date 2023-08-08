@@ -51,7 +51,7 @@ class PlatformPlugin:
             self.storage.save_all(artifacts)
 
             self.__publish_notification(command.correlation_uuid, ReportCommandStatus.COMPLETED)
-        except ValueError as ve:
+        except ValueError:
             self.__publish_notification(command.correlation_uuid, ReportCommandStatus.FAILED)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from semver import Version
@@ -14,7 +15,7 @@ def test_operator_info():
                 'terms of enforcing similar capabilities '
                 'between Climate Action event components',
         methodology='This is a test base',
-        sources_bib=Path('base/test.bib').absolute()
+        sources_bib=Path(f'{os.path.dirname(__file__)}/test.bib')
     )
     assert description.version == '3.1.0'
     assert description.sources['test2023']['ENTRYTYPE'] == 'article'
