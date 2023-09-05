@@ -30,11 +30,11 @@ info_schema = marshmallow_dataclass.class_schema(Info)()
 
 class ArtifactModality(Enum):
     """Available artifact types."""
-    TEXT = 1
-    TABLE = 2
-    MAP_LAYER = 3
-    IMAGE = 4
-    URL = 5
+    TEXT = 'TEXT'
+    TABLE = 'TABLE'
+    MAP_LAYER = 'MAP_LAYER'
+    IMAGE = 'IMAGE'
+    URL = 'URL'
 
 
 @dataclass
