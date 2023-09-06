@@ -2,10 +2,11 @@ import json
 import uuid
 
 import pika
+from pika import PlainCredentials
 
 from climatoology.base.event import info_command_schema, InfoCommand
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672, credentials=PlainCredentials('quest', 'quest')))
 channel = connection.channel()
 result = channel.queue_declare(queue='', exclusive=True)
 callback_queue = result.method.queue

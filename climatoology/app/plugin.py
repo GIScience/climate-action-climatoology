@@ -2,6 +2,7 @@ import json
 from uuid import UUID
 
 from pika import BlockingConnection, BasicProperties
+from pydantic import ValidationError
 
 from climatoology.base.event import report_command_schema, ReportCommand, report_command_result_schema, \
     ReportCommandResult, ReportCommandStatus, info_command_schema, InfoCommand
@@ -47,11 +48,11 @@ class PlatformPlugin:
         self.__publish_notification(command.correlation_uuid, ReportCommandStatus.IN_PROGRESS)
 
         try:
-            artifacts = self.operator.report(command.params)
+            artifacts = self.operator.report_unsafe(command.params)
             self.storage.save_all(artifacts)
 
             self.__publish_notification(command.correlation_uuid, ReportCommandStatus.COMPLETED)
-        except ValueError:
+        except ValueError | ValidationError:
             self.__publish_notification(command.correlation_uuid, ReportCommandStatus.FAILED)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)

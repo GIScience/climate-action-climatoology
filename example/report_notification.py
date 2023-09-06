@@ -1,6 +1,7 @@
 import pika
+from pika import PlainCredentials
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672, credentials=PlainCredentials('quest', 'quest')))
 channel = connection.channel()
 channel.exchange_declare(exchange='notify', exchange_type='fanout')
 
