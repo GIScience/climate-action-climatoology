@@ -1,3 +1,4 @@
+import json
 import uuid
 from abc import abstractmethod, ABC
 from pathlib import Path
@@ -6,7 +7,7 @@ from uuid import UUID
 
 from minio import Minio
 
-from climatoology.base.operator import Artifact, ArtifactModality
+from climatoology.base.operator import ArtifactModality, Artifact
 
 
 class Storage(ABC):
@@ -65,9 +66,13 @@ class MinioStorage(Storage):
                                 object_name=f'{artifact.correlation_uuid}/{store_uuid}',
                                 file_path=str(artifact.file_path),
                                 metadata={
-                                    'Correlation-UUID': artifact.correlation_uuid,
+                                    'Name': artifact.name,
+                                    'Modality': artifact.modality.name,
                                     'Original-Filename': str(artifact.file_path.name),
-                                    'Modality': artifact.modality.name
+                                    'Summary': artifact.summary,
+                                    'Description': artifact.description,
+                                    'Correlation-UUID': artifact.correlation_uuid,
+                                    'Parameters': json.dumps(artifact.parameters),
                                 })
         return store_uuid
 
@@ -77,11 +82,25 @@ class MinioStorage(Storage):
     def fetch_all(self, correlation_uuid: UUID, target_dir: Path) -> List[Artifact]:
         artifacts = []
 
-        objects = self.client.list_objects(bucket_name=self.__bucket, prefix=str(correlation_uuid), recursive=True, include_user_meta=True)
+        objects = self.client.list_objects(bucket_name=self.__bucket,
+                                           prefix=str(correlation_uuid),
+                                           recursive=True,
+                                           include_user_meta=True)
         for obj in objects:
-            file_path = target_dir / obj.metadata['X-Amz-Meta-Original-Filename']
+            name = obj.metadata['X-Amz-Meta-Name']
             modality = ArtifactModality(obj.metadata['X-Amz-Meta-Modality'])
+            file_path = target_dir / obj.metadata['X-Amz-Meta-Original-Filename']
+            summary = obj.metadata['X-Amz-Meta-Summary']
+            description = obj.metadata['X-Amz-Meta-Description']
+            parameters = json.loads(obj.metadata['X-Amz-Meta-Parameters'])
             self.client.fget_object(bucket_name=self.__bucket, object_name=obj.object_name, file_path=file_path)
-            artifacts.append(Artifact(correlation_uuid, modality, file_path))
+            plugin_artifact = Artifact(name=name,
+                                             modality=modality,
+                                             file_path=file_path,
+                                             summary=summary,
+                                             description=description,
+                                             correlation_uuid=correlation_uuid,
+                                             parameters=parameters)
+            artifacts.append(plugin_artifact)
 
         return artifacts
