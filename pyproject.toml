@@ -1,36 +1,37 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[project]
+[tool.poetry]
 name = "climatoology"
-version = "0.0.1"
-authors = [
-  { name="Maciej Adamiak", email="maciej.adamiak@heigit.org" },
-  { name="Moritz Schott", email="moritz.schott@heigit.org" },
-]
+version = "1.0"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins."
+authors = [
+  "Maciej Adamiak <maciej.adamiak@heigit.org>",
+  "Moritz Schott <moritz.schott@heigit.org>"
+]
 readme = "README.md"
-requires-python = ">=3.11"
+repository = "https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-  'pandas==2.0.3',
-  'rasterio==1.3.8',
-  'bibtexparser==1.4.0',
-  'biblib==0.1.3',
-  'marshmallow-dataclass==8.5.14',
-  'minio==7.1.15',
-  'numpy==1.25.2',
-  'pika==1.3.2',
-  'requests==2.31.0',
-  'semver==3.0.1',
-  'tifffile==2023.7.18',
-  'tqdm==4.65.0',
-]
 
-[project.urls]
-"Homepage" = "https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology"
-"Bug Tracker" = "https://gitlab.gistools.geog.uni-heidelberg.de/dashboard/issues"
+[tool.poetry.dependencies]
+python = "~3.11.5"
+pika = "^1.3.2"
+pydantic = "^2.3.0"
+marshmallow-dataclass = "^8.5.14"
+bibtexparser = "^1.4.0"
+semver = "^3.0.1"
+minio = "^7.1.16"
+rasterio = "^1.3.8"
+tqdm = "^4.66.1"
+requests = "^2.31.0"
+pillow = "^10.0.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.1"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
