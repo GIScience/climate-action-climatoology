@@ -9,12 +9,7 @@ from climatoology.base.operator import ArtifactModality, Artifact
 from climatoology.store.object_store import MinioStorage
 
 
-@pytest.fixture()
-def general_uuid():
-    return uuid.uuid4()
-
-
-@pytest.fixture()
+@pytest.fixture
 def mocked_client():
     with patch('climatoology.store.object_store.Minio') as minio_client:
         minio_storage = MinioStorage(host='minio.test.org',
@@ -26,17 +21,6 @@ def mocked_client():
         yield {'minio_storage': minio_storage, 'minio_client': minio_client}
 
 
-@pytest.fixture()
-def default_artifact(general_uuid):
-    return Artifact(name='test_name',
-                    modality=ArtifactModality.MAP_LAYER,
-                    file_path=Path('/tmp/test_file.tiff'),
-                    summary='Test summary',
-                    description='Test description',
-                    correlation_uuid=general_uuid,
-                    parameters={'test param key': 'test param val'})
-
-
 def test_minio_save(mocked_client, general_uuid, default_artifact):
     store_uuid = mocked_client['minio_storage'].save(default_artifact)
 
@@ -46,7 +30,7 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
                                                           secure=True)
     mocked_client['minio_client']().fput_object.assert_called_once_with(bucket_name='test_bucket',
                                                                         object_name=f'{general_uuid}/{store_uuid}',
-                                                                        file_path='/tmp/test_file.tiff',
+                                                                        file_path='test_file.tiff',
                                                                         metadata={
                                                                             'Name': 'test_name',
                                                                             'Modality': 'MAP_LAYER',
@@ -54,7 +38,8 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
                                                                             'Summary': 'Test summary',
                                                                             'Description': 'Test description',
                                                                             'Correlation-UUID': general_uuid,
-                                                                            'Parameters': '{"test param key": "test param val"}',
+                                                                            'Store-UUID': store_uuid,
+                                                                            'Params': '{"test param key": "test param val"}'
                                                                         })
 
 
@@ -66,31 +51,37 @@ def test_minio_save_all(mocked_client, general_uuid, default_artifact):
                                       summary='A test',
                                       description='A test file',
                                       correlation_uuid=second_correlation_uuid,
-                                      parameters={})
+                                      params={})
     mocked_client['minio_storage'].save_all([default_artifact, second_plugin_artifact])
     assert mocked_client['minio_client']().fput_object.call_count == 2
 
 
-def test_minio_fetch_all(mocked_client, general_uuid, default_artifact):
-    store_uuid = uuid.uuid4()
+def test_minio_list_all(mocked_client, general_uuid, default_artifact):
     return_mock = minio.datatypes.Object(bucket_name='test_bucket',
-                                         object_name=f'{general_uuid}/{store_uuid}',
+                                         object_name=f'{general_uuid}/{general_uuid}',
                                          metadata={
                                              'X-Amz-Meta-Name': 'test_name',
                                              'X-Amz-Meta-Modality': 'MAP_LAYER',
                                              'X-Amz-Meta-Original-Filename': 'test_file.tiff',
                                              'X-Amz-Meta-Summary': 'Test summary',
                                              'X-Amz-Meta-Description': 'Test description',
-                                             'X-Amz-Meta-Parameters': '{"test param key": "test param val"}'
+                                             'X-Amz-Meta-Store-Uuid': str(general_uuid),
+                                             'X-Amz-Meta-Params': '{"test param key": "test param val"}'
                                          })
     mocked_client['minio_client']().list_objects.return_value = iter([return_mock])
 
-    result = mocked_client['minio_storage'].fetch_all(general_uuid, Path('/tmp'))
+    result = mocked_client['minio_storage'].list_all(general_uuid)
     assert result == [default_artifact]
 
     mocked_client['minio_client']().list_objects.assert_called_once_with(bucket_name='test_bucket',
                                                                          prefix=str(general_uuid),
-                                                                         recursive=True, include_user_meta=True)
+                                                                         recursive=True,
+                                                                         include_user_meta=True)
+
+
+def test_minio_fetch(mocked_client, general_uuid):
+    store_uuid = uuid.uuid4()
+    _result = mocked_client['minio_storage'].fetch(general_uuid, store_uuid, Path('test_file.tiff'))
     mocked_client['minio_client']().fget_object.assert_called_once_with(bucket_name='test_bucket',
                                                                         object_name=f'{general_uuid}/{store_uuid}',
                                                                         file_path=Path('/tmp') / 'test_file.tiff')

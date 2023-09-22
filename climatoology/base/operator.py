@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
@@ -9,8 +9,7 @@ from uuid import UUID
 from PIL import Image
 
 import bibtexparser
-import marshmallow_dataclass
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, Extra
 from semver import Version
 
 
@@ -20,59 +19,64 @@ class Concern(Enum):
     """Green house gas emissions."""
 
 
-@dataclass
-class Info:
+class Info(BaseModel):
+    """A dataclass to provide the basic information about an operator/ a plugin.
 
-    def __init__(self,
-                 name: str,
-                 icon: Path,
-                 version: Version,
-                 concerns: List[Concern],
-                 purpose: str,
-                 methodology: str,
-                 sources_bib: Optional[Path] = None):
-        """A dataclass to provide the basic information about an operator/ a plugin.
+    :param name: A short and concise name that can be used in the UI
+    :param icon: An image or icon that can be used in the UI. Make sure the file is committed to the repository,
+    and you have all rights to use it.
+    :param version: The plugin version. You can start at 0.0.1 for your first try and then got 1.0.0 for your first
+    release, increasing as you update the code.
+    :param concerns: A set of keywords that can be used to group multiple plugins.
+    :param purpose: What will this operator accomplish?
+    :param methodology: How does the operator achieve its goal?
+    :param sources: A list of sources that were used in the process or are related. Self-citations are welcome
+    and even preferred!
+    :param operator_schema: Do not set! It will be overridden by the plugin with the schematic description of the parameters
+    necessary to initiate a computation.
+    """
+    name: str
+    icon: str
+    version: str
+    concerns: List[Concern]
+    purpose: str
+    methodology: str
+    sources: Optional[dict] = None
+    operator_schema: Optional[dict] = None
 
-        :param name: A short and concise name that can be used in the UI
-        :param icon: An image or icon that can be used in the UI. Make sure the file is committed to the repository,
-        and you have all rights to use it.
-        :param version: The plugin version. You can start at 0.0.1 for your first try and then got 1.0.0 for your first
-        release, increasing as you update the code.
-        :param concerns: A set of keywords that can be used to group multiple plugins.
-        :param purpose: What will this operator accomplish?
-        :param methodology: How does the operator achieve its goal?
-        :param sources_bib: A list of sources that were used in the process or are related. Self-citations are welcome
-        and even preferred!
-        """
-        self.name: str = name
-        self.icon: str = _convert_icon(icon)
-        self.concern: List[str] = [concern.value for concern in concerns]
-        self.version: str = str(version)
-        self.purpose: str = purpose
-        self.methodology: str = methodology
-        self.sources = {}
+    @field_validator('version', mode='before')
+    @classmethod
+    def _convert_version(cls, version: Any) -> str:
+        assert isinstance(version, Version)
+        return str(version)
 
-        if sources_bib is not None:
-            with open(sources_bib, mode='r') as file:
-                self.sources: dict = bibtexparser.load(file).get_entry_dict()
+    @classmethod
+    def _verify_icon(cls, icon: Path) -> None:
+        image = Image.open(icon)
+        image.verify()
 
+    @field_validator('icon', mode='before')
+    @classmethod
+    def _convert_icon(cls, icon: Any) -> str:
+        assert isinstance(icon, Path)
+        Info._verify_icon(icon)
+        image = Image.open(icon)
+        image.thumbnail((500, 500))
+        buffered = BytesIO()
+        image.save(buffered, format='JPEG')
+        buffered.seek(0)
+        data_url = base64.b64encode(buffered.getvalue()).decode('UTF-8')
+        return f'data:image/jpeg;base64,{data_url}'
 
-def _convert_icon(icon: Path) -> str:
-    _verify_icon(icon)
-    image = Image.open(icon)
-    image.thumbnail((500, 500))
-    buffered = BytesIO()
-    image.save(buffered, format='JPEG')
-    data_url = base64.b64encode(buffered.getvalue()).decode('UTF-8')
-    return f'data:image/jpeg;base64,{data_url}'
+    @field_validator('sources', mode='before')
+    @classmethod
+    def _covert_bib(cls, sources: Any) -> dict:
+        assert isinstance(sources, Path)
+        with open(sources, mode='r') as file:
+            return bibtexparser.load(file).get_entry_dict()
 
-
-def _verify_icon(icon: Path) -> None:
-    image = Image.open(icon)
-    image.verify()
-
-
-info_schema = marshmallow_dataclass.class_schema(Info)()
+    class Config:
+        extra = Extra.forbid
 
 
 class ArtifactModality(Enum):
@@ -90,8 +94,7 @@ class ArtifactModality(Enum):
     """A string that points to a public website in the form of https://dns.end/path . Use .txt files for storage."""
 
 
-@dataclass
-class Artifact:
+class Artifact(BaseModel):
     """A result generated by an Operator."""
     name: str
     """A short name for the artifact that could be used as an alias."""
@@ -105,9 +108,11 @@ class Artifact:
     description: str
     """A long description of the generated output that may help users better understand the artifact."""
     correlation_uuid: Optional[UUID] = None
-    """The correlation UUID for this call. Will be automatically set by the plugin."""
-    parameters: Optional[dict] = None
-    """The parameters for this call. Will be automatically set ba the plugin"""
+    """Do not set! The correlation UUID for this call. Will be automatically set by the plugin."""
+    params: Optional[dict] = None
+    """Do not set! The parameters for this call. Will be automatically set by the plugin."""
+    store_uuid: Optional[UUID] = None
+    """Do not set! This is the pointer to the file in the artifactory store. Will be automatically set."""
 
 
 T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
@@ -142,6 +147,16 @@ class Operator(ABC, Generic[T_co]):
                 cls._model = type_arg
                 return
 
+    @final
+    def info_enriched(self) -> Info:
+        """Describe the operators' purpose, functionality, methodology and sources.
+
+        :return: operator info
+        """
+        info = self.info()
+        info.operator_schema = self._model.model_json_schema()
+        return info
+
     @abstractmethod
     def info(self) -> Info:
         """Describe the operators' purpose, functionality, methodology and sources.
@@ -151,20 +166,20 @@ class Operator(ABC, Generic[T_co]):
         pass
 
     @final
-    def report_unsafe(self, params: Dict) -> List[Artifact]:
+    def compute_unsafe(self, params: Dict) -> List[Artifact]:
         """
         Translated the incoming parameters to a declared pydantic model,
-        validates input and runs the report procedure.
+        validates input and runs the compute procedure.
 
         :param params:
         :return:
         """
 
         validate_params = self._model(**params)
-        return self.report(validate_params)
+        return self.compute(validate_params)
 
     @abstractmethod
-    def report(self, params: T_co) -> List[Artifact]:
+    def compute(self, params: T_co) -> List[Artifact]:
         """Generate an operator-specific report.
 
         A report is made up of a set of artifacts that can be displayed by a client.

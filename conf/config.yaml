@@ -1,0 +1,15 @@
+store:
+  host: ${oc.env:MINIO_HOST}
+  port: ${oc.env:MINIO_PORT}
+  access_key: ${oc.env:MINIO_ACCESS_KEY}
+  secret_key: ${oc.env:MINIO_SECRET_KEY}
+  bucket: ${oc.env:MINIO_BUCKET,api-gateway}
+  secure: ${oc.env:MINIO_SECURE,False}
+  file_cache: ${oc.env:FILE_CACHE,/tmp}
+
+broker:
+  host: ${oc.env:RABBITMQ_HOST}
+  port: ${oc.env:RABBITMQ_PORT}
+  api_url: ${oc.env:RABBITMQ_API_URL}
+  user: ${oc.env:RABBITMQ_USER}
+  password: ${oc.env:RABBITMQ_PASSWORD}

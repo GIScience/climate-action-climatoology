@@ -1,33 +1,29 @@
-from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Optional
 from uuid import UUID
 
-import marshmallow_dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class InfoCommand:
+class InfoCommand(BaseModel):
     correlation_uuid: UUID
 
 
-class ReportCommandStatus(Enum):
-    IN_PROGRESS = 1
-    COMPLETED = 2
-    FAILED = 3
+class ComputeCommandStatus(Enum):
+    SCHEDULED = 'scheduled'
+    IN_PROGRESS = 'in-progress'
+    COMPLETED = 'completed'
+    FAILED = 'failed'
 
 
-@dataclass
-class ReportCommandResult:
+class ComputeCommandResult(BaseModel):
     correlation_uuid: UUID
-    status: ReportCommandStatus
+    status: ComputeCommandStatus
+    message: Optional[str] = None
+    timestamp: datetime
 
 
-@dataclass
-class ReportCommand:
+class ComputeCommand(BaseModel):
     correlation_uuid: UUID
     params: dict
-
-
-info_command_schema = marshmallow_dataclass.class_schema(InfoCommand)()
-report_command_result_schema = marshmallow_dataclass.class_schema(ReportCommandResult)()
-report_command_schema = marshmallow_dataclass.class_schema(ReportCommand)()

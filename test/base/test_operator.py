@@ -1,31 +1,15 @@
-import os
-from pathlib import Path
 from typing import List
 
 import pytest
 from pydantic import BaseModel, ValidationError
-from semver import Version
 
-from climatoology.base.operator import Info, Operator, Artifact, Concern
+from climatoology.base.operator import Info, Operator, Artifact
 
 
-def test_operator_info():
-    description = Info(
-        name='test_plugin',
-        icon=Path('resources/test_icon.jpeg'),
-        version=Version.parse('3.1.0'),
-        concerns=[Concern.GHG_EMISSION],
-        purpose='The purpose of this base is to '
-                'present basic library properties in '
-                'terms of enforcing similar capabilities '
-                'between Climate Action event components',
-        methodology='This is a test base',
-        sources_bib=Path(f'{os.path.dirname(__file__)}/test.bib')
-    )
-
-    assert description.version == '3.1.0'
-    assert description.sources['test2023']['ENTRYTYPE'] == 'article'
-    assert description.icon == ('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDB'
+def test_operator_info(default_info):
+    assert default_info.version == '3.1.0'
+    assert default_info.sources['test2023']['ENTRYTYPE'] == 'article'
+    assert default_info.icon == ('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDB'
                                  'kSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjI'
                                  'yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEB'
                                  'AxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRB'
@@ -48,11 +32,11 @@ def test_operator_typing():
         def info(self) -> Info:
             pass
 
-        def report(self, params: TestModel) -> List[Artifact]:
+        def compute(self, params: TestModel) -> List[Artifact]:
             pass
 
     operator = TestOperator()
-    operator.report_unsafe({'id': 1234, 'name': 'test'})
+    operator.compute_unsafe({'id': 1234, 'name': 'test'})
 
     with pytest.raises(ValidationError):
-        operator.report_unsafe({'id': 'ID:1234', 'name': 'test'})
+        operator.compute_unsafe({'id': 'ID:1234', 'name': 'test'})

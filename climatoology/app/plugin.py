@@ -1,13 +1,12 @@
 import json
-import uuid
-from uuid import UUID
+import time
 
-from pika import BlockingConnection, BasicProperties
+from pika import BasicProperties
 from pydantic import ValidationError
 
-from climatoology.base.event import report_command_schema, ReportCommand, report_command_result_schema, \
-    ReportCommandResult, ReportCommandStatus, info_command_schema, InfoCommand
+from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
 from climatoology.base.operator import Operator, Artifact
+from climatoology.broker.message_broker import Broker
 from climatoology.store.object_store import Storage
 
 
@@ -21,57 +20,65 @@ class PlatformPlugin:
     def __init__(self,
                  operator: Operator,
                  storage: Storage,
-                 broker: BlockingConnection,
-                 notification_queue='notify'):
+                 broker: Broker):
         self.operator = operator
         self.storage = storage
         self.broker = broker
 
         name = operator.info().name.lower()
-        self.report_queue = f'{name}_report'
-        self.info_queue = f'{name}_info'
-        self.notification_queue = notification_queue
 
-        self.channel = self.broker.channel()
+        self.compute_queue = broker.get_compute_queue(plugin_name=name)
+        self.info_queue = broker.get_info_queue(plugin_name=name)
+        self.notification_queue = broker.get_status_queue()
+
+        self.channel = self.broker.get_channel()
+
         self.channel.basic_qos(prefetch_count=1)
 
-        self.channel.queue_declare(queue=self.report_queue, durable=True)
+        self.channel.queue_declare(queue=self.compute_queue, durable=True)
         self.channel.exchange_declare(self.notification_queue, exchange_type='fanout')
         self.channel.queue_declare(queue=self.info_queue)
 
-    def __publish_notification(self, correlation_id: UUID, status: ReportCommandStatus):
-        body = report_command_result_schema.dump(ReportCommandResult(correlation_id, status))
-        body = json.dumps(body).encode()
-        self.channel.basic_publish(exchange=self.notification_queue, routing_key='', body=body)
-
-    def __report_callback(self, ch, method, _, body):
-        command: ReportCommand = report_command_schema.load(json.loads(body))
-        self.__publish_notification(command.correlation_uuid, ReportCommandStatus.IN_PROGRESS)
+    def __compute_callback(self, ch, method, _, body):
+        command = ComputeCommand.model_validate_json(body)
+        self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                          status=ComputeCommandStatus.IN_PROGRESS)
 
         try:
-            artifacts = self.operator.report_unsafe(command.params)
-            plugin_artifacts = [Artifact(correlation_uuid=uuid.uuid4(), parameters=command.params, **artifact) for artifact in artifacts]
+            tic = time.perf_counter()
+
+            artifacts = self.operator.compute_unsafe(command.params)
+            plugin_artifacts = [Artifact(correlation_uuid=command.correlation_uuid,
+                                         params=command.params,
+                                         **artifact.model_dump(exclude={'correlation_uuid', 'params'}))
+                                for artifact in artifacts]
             self.storage.save_all(plugin_artifacts)
 
-            self.__publish_notification(command.correlation_uuid, ReportCommandStatus.COMPLETED)
-        except ValueError | ValidationError:
-            self.__publish_notification(command.correlation_uuid, ReportCommandStatus.FAILED)
+            toc = time.perf_counter()
+
+            self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                              status=ComputeCommandStatus.COMPLETED,
+                                              message=f'Took {toc - tic:0.4f} seconds')
+        except ValueError | ValidationError as e:
+            self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                              status=ComputeCommandStatus.FAILED,
+                                              message=str(e))
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def __info_callback(self, ch, method, props, in_body):
-        command: InfoCommand = info_command_schema.load(json.loads(in_body))
+        command: InfoCommand = InfoCommand.model_validate_json(in_body)
 
-        out_body = self.operator.info().__dict__
+        out_body = self.operator.info_enriched().__dict__
         out_body = json.dumps(out_body).encode()
 
         ch.basic_publish(exchange='',
                          routing_key=props.reply_to,
-                         properties=BasicProperties(correlation_id=str(command.correlation_uuid)),
+                         properties=BasicProperties(correlation_uuid=str(command.correlation_uuid)),
                          body=out_body)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
     def run(self):
-        self.channel.basic_consume(queue=self.report_queue, on_message_callback=self.__report_callback)
+        self.channel.basic_consume(queue=self.compute_queue, on_message_callback=self.__compute_callback)
         self.channel.basic_consume(queue=self.info_queue, on_message_callback=self.__info_callback)
         self.channel.start_consuming()

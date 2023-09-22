@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from io import BytesIO
 from typing import Tuple, List, ContextManager
 
