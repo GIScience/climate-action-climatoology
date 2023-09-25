@@ -146,6 +146,7 @@ class Operator(ABC, Generic[T_co]):
             if not isinstance(type_arg, TypeVar):
                 cls._model = type_arg
                 return
+        assert cls._model, 'Could not initialise the compute input type model. Did you properly subtype your operator?'
 
     @final
     def info_enriched(self) -> Info:

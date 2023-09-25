@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -21,7 +22,7 @@ class InfoCallbackHolder(BaseModel):
     info_return: Optional[Info] = None
 
     def on_response(self, _ch, _method, props, body):
-        if self.correlation_uuid == props.correlation_id:
+        if self.correlation_uuid == UUID(props.correlation_id):
             response = json.loads(body)
             self.info_return = Info.model_construct(**response)
 
@@ -35,15 +36,16 @@ class Broker(ABC):
         self._status_queue = status_queue
         self._info_suffix = info_suffix
         self._compute_suffix = compute_suffix
+        self._seperator = '_'
 
     def get_status_queue(self):
         return self._status_queue
 
     def get_compute_queue(self, plugin_name: str):
-        return f'{plugin_name}_{self._compute_suffix}'
+        return f'{plugin_name.lower()}{self._seperator}{self._compute_suffix}'
 
     def get_info_queue(self, plugin_name: str):
-        return f'{plugin_name}_{self._info_suffix}'
+        return f'{plugin_name.lower()}{self._seperator}{self._info_suffix}'
 
     @abstractmethod
     def get_channel(self):
@@ -67,7 +69,6 @@ class RabbitMQ(Broker):
     def __init__(self,
                  host: str,
                  port: int):
-
         super().__init__()
         self.amqp_connection = BlockingConnection(ConnectionParameters(host=host,
                                                                        port=port))
@@ -94,15 +95,7 @@ class RabbitMQ(Broker):
 
         info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
 
-        class CallbackHolder:
-            info_return: Info = None
-
-            def on_response(self, ch, method, props, body):
-                if str(info_command_body.correlation_uuid) == props.correlation_id:
-                    response = json.loads(body)
-                    self.info_return = Info.model_construct(**response)
-
-        callback_holder = CallbackHolder()
+        callback_holder = InfoCallbackHolder(correlation_uuid=info_call_corr_uuid)
         channel.basic_consume(
             queue=callback_queue,
             on_message_callback=callback_holder.on_response,
@@ -148,11 +141,19 @@ class ManagedRabbitMQ(RabbitMQ, ManagedBroker):
 
     def _get_active_plugins(self) -> List[str]:
         plugins = []
-        for queue in self.api_connection.queue.list(name=f'.*{self._info_suffix}$', use_regex=True):
-            plugins.append(queue['name'].removesuffix(self._info_suffix))
+        for queue in self.api_connection.queue.list(name=f'.*{self._seperator}{self._info_suffix}$', use_regex=True):
+            plugins.append(queue['name'].removesuffix(f'{self._seperator}{self._info_suffix}'))
         return plugins
 
     @cached(cache=TTLCache(maxsize=1, ttl=60))
     def list_plugins(self) -> List[Info]:
         plugins = self._get_active_plugins()
-        return [self.request_info(plugin) for plugin in plugins]
+        plugin_list = []
+        for plugin in plugins:
+            try:
+                plugin_list.append(self.request_info(plugin))
+            except InfoNotReceivedException:
+                logging.warning(f'Plugin {plugin} has an open channel but could not be reached.')
+                continue
+
+        return plugin_list

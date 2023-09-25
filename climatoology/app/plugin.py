@@ -1,4 +1,3 @@
-import json
 import time
 
 from pika import BasicProperties
@@ -25,7 +24,7 @@ class PlatformPlugin:
         self.storage = storage
         self.broker = broker
 
-        name = operator.info().name.lower()
+        name = operator.info().name
 
         self.compute_queue = broker.get_compute_queue(plugin_name=name)
         self.info_queue = broker.get_info_queue(plugin_name=name)
@@ -59,7 +58,7 @@ class PlatformPlugin:
             self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                               status=ComputeCommandStatus.COMPLETED,
                                               message=f'Took {toc - tic:0.4f} seconds')
-        except ValueError | ValidationError as e:
+        except (ValueError, ValidationError) as e:
             self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                               status=ComputeCommandStatus.FAILED,
                                               message=str(e))
@@ -69,12 +68,11 @@ class PlatformPlugin:
     def __info_callback(self, ch, method, props, in_body):
         command: InfoCommand = InfoCommand.model_validate_json(in_body)
 
-        out_body = self.operator.info_enriched().__dict__
-        out_body = json.dumps(out_body).encode()
+        out_body = self.operator.info_enriched().model_dump_json().encode()
 
         ch.basic_publish(exchange='',
                          routing_key=props.reply_to,
-                         properties=BasicProperties(correlation_uuid=str(command.correlation_uuid)),
+                         properties=BasicProperties(correlation_id=str(command.correlation_uuid)),
                          body=out_body)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
