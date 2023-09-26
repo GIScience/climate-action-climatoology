@@ -1,14 +1,16 @@
+import base64
+import shutil
+import tempfile
 from abc import ABC, abstractmethod
-
+from dataclasses import dataclass
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
 from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final
-import base64
 from uuid import UUID
-from PIL import Image
 
 import bibtexparser
+from PIL import Image
 from pydantic import BaseModel, field_validator, Extra
 from semver import Version
 
@@ -118,6 +120,24 @@ class Artifact(BaseModel):
 T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
 
 
+@dataclass
+class ComputationResources:
+    correlation_uuid: UUID
+    computation_dir: Path
+
+
+class ComputationScope:
+    def __init__(self, correlation_uuid: UUID):
+        self.resources = ComputationResources(computation_dir=Path(tempfile.mkdtemp(prefix=str(correlation_uuid))),
+                                              correlation_uuid=correlation_uuid)
+
+    def __enter__(self):
+        return self.resources
+
+    def __exit__(self, *args):
+        shutil.rmtree(self.resources.computation_dir)
+
+
 class Operator(ABC, Generic[T_co]):
     """Climate Action indicator logic.
 
@@ -167,25 +187,27 @@ class Operator(ABC, Generic[T_co]):
         pass
 
     @final
-    def compute_unsafe(self, params: Dict) -> List[Artifact]:
+    def compute_unsafe(self, resources: ComputationResources, params: Dict) -> List[Artifact]:
         """
         Translated the incoming parameters to a declared pydantic model,
         validates input and runs the compute procedure.
 
-        :param params:
+        :param resources: computation ephemeral resources
+        :param params: computation configuration parameters
         :return:
         """
 
         validate_params = self._model(**params)
-        return self.compute(validate_params)
+        return self.compute(resources, validate_params)
 
     @abstractmethod
-    def compute(self, params: T_co) -> List[Artifact]:
+    def compute(self, resources: ComputationResources, params: T_co) -> List[Artifact]:
         """Generate an operator-specific report.
 
         A report is made up of a set of artifacts that can be displayed by a client.
 
-        :param params: report creation parameters in the form of the declared pydantic module
+        :param resources: computation ephemeral resources
+        :param params: computation parameters in the form of the declared pydantic module
         :return: list of artifacts (files) produced by the operator
         """
         pass

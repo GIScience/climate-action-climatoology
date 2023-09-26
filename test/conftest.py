@@ -1,10 +1,12 @@
 import uuid
 from pathlib import Path
+from typing import List
 
 import pytest
+from pydantic import BaseModel
 from semver import Version
 
-from climatoology.base.operator import Info, Concern, Artifact, ArtifactModality
+from climatoology.base.operator import Info, Concern, Artifact, ArtifactModality, Operator, ComputationResources
 
 
 @pytest.fixture
@@ -38,3 +40,20 @@ def default_artifact(general_uuid):
                     correlation_uuid=general_uuid,
                     params={'test param key': 'test param val'},
                     store_uuid=general_uuid)
+
+
+@pytest.fixture
+def default_operator():
+    class TestModel(BaseModel):
+        id: int
+        name: str
+
+    class TestOperator(Operator[TestModel]):
+
+        def info(self) -> Info:
+            pass
+
+        def compute(self, resources: ComputationResources, params: TestModel) -> List[Artifact]:
+            pass
+
+    yield TestOperator()

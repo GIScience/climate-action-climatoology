@@ -1,9 +1,10 @@
+import uuid
 from typing import List
 
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from climatoology.base.operator import Info, Operator, Artifact
+from climatoology.base.operator import Info, Operator, Artifact, ComputationResources, ComputationScope
 
 
 def test_operator_info(default_info):
@@ -22,21 +23,18 @@ def test_operator_info(default_info):
                                  'APwDwa5ubi5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z')
 
 
-def test_operator_typing():
-    class TestModel(BaseModel):
-        id: int
-        name: str
+def test_operator_typing(default_operator):
+    with ComputationScope(uuid.uuid4()) as resources:
+        default_operator.compute_unsafe(resources, {'id': 1234, 'name': 'test'})
 
-    class TestOperator(Operator[TestModel]):
+        with pytest.raises(ValidationError):
+            default_operator.compute_unsafe(resources, {'id': 'ID:1234', 'name': 'test'})
 
-        def info(self) -> Info:
-            pass
 
-        def compute(self, params: TestModel) -> List[Artifact]:
-            pass
+def test_operator_scope():
+    correlation_uuid = uuid.uuid4()
+    with ComputationScope(correlation_uuid) as resources:
+        assert resources.correlation_uuid == correlation_uuid
+        assert resources.computation_dir.exists()
 
-    operator = TestOperator()
-    operator.compute_unsafe({'id': 1234, 'name': 'test'})
-
-    with pytest.raises(ValidationError):
-        operator.compute_unsafe({'id': 'ID:1234', 'name': 'test'})
+    assert not resources.computation_dir.exists()

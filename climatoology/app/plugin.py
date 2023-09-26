@@ -4,7 +4,7 @@ from pika import BasicProperties
 from pydantic import ValidationError
 
 from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
-from climatoology.base.operator import Operator, Artifact
+from climatoology.base.operator import Operator, Artifact, ComputationScope
 from climatoology.broker.message_broker import Broker
 from climatoology.store.object_store import Storage
 
@@ -46,12 +46,13 @@ class PlatformPlugin:
         try:
             tic = time.perf_counter()
 
-            artifacts = self.operator.compute_unsafe(command.params)
-            plugin_artifacts = [Artifact(correlation_uuid=command.correlation_uuid,
-                                         params=command.params,
-                                         **artifact.model_dump(exclude={'correlation_uuid', 'params'}))
-                                for artifact in artifacts]
-            self.storage.save_all(plugin_artifacts)
+            with ComputationScope(command.correlation_uuid) as resources:
+                artifacts = self.operator.compute_unsafe(resources, command.params)
+                plugin_artifacts = [Artifact(correlation_uuid=command.correlation_uuid,
+                                             params=command.params,
+                                             **artifact.model_dump(exclude={'correlation_uuid', 'params'}))
+                                    for artifact in artifacts]
+                self.storage.save_all(plugin_artifacts)
 
             toc = time.perf_counter()
 
