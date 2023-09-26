@@ -39,7 +39,7 @@ def default_artifact(general_uuid):
                     description='Test description',
                     correlation_uuid=general_uuid,
                     params={'test param key': 'test param val'},
-                    store_uuid=general_uuid)
+                    store_id=f'{general_uuid}_test_file.tiff')
 
 
 @pytest.fixture

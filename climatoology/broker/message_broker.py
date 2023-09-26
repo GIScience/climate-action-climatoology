@@ -12,6 +12,7 @@ from pika import ConnectionParameters, BasicProperties, BlockingConnection
 from pika.adapters.blocking_connection import BlockingChannel
 from pydantic import BaseModel
 
+import climatoology
 from climatoology.base.event import InfoCommand, ComputeCommand, ComputeCommandStatus, ComputeCommandResult
 from climatoology.base.operator import Info
 from climatoology.utility.exception import InfoNotReceivedException
@@ -107,10 +108,16 @@ class RabbitMQ(Broker):
                               body=info_command_body.model_dump_json().encode())
         self.amqp_connection.process_data_events(time_limit=ttl)
 
-        if not callback_holder.info_return:
+        info_return = callback_holder.info_return
+
+        if not info_return:
             raise InfoNotReceivedException(f'The info request ({info_call_corr_uuid}) did not respond within the time '
                                            f'limit of {ttl} seconds.')
-        return callback_holder.info_return
+        assert info_return.library_version == climatoology.__version__, \
+            (f'Refusing to register plugin {plugin_name} for library version mismatch. '
+             f'Local: {climatoology.__version__}, Plugin: {info_return.version}')
+
+        return info_return
 
     def send_compute(self, plugin_name: str, params: dict, correlation_uuid: UUID) -> None:
         self.get_channel().queue_declare(queue=self.get_compute_queue(plugin_name), passive=True)
@@ -152,8 +159,13 @@ class ManagedRabbitMQ(RabbitMQ, ManagedBroker):
         for plugin in plugins:
             try:
                 plugin_list.append(self.request_info(plugin))
-            except InfoNotReceivedException:
-                logging.warning(f'Plugin {plugin} has an open channel but could not be reached.')
+            except InfoNotReceivedException as e:
+                logging.warning(f'Plugin {plugin} has an open channel but could not be reached.',
+                                exc_info=e)
+                continue
+            except AssertionError as e:
+                logging.warning(f'Version mismatch for plugin {plugin}',
+                                exc_info=e)
                 continue
 
         return plugin_list

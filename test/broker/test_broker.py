@@ -42,6 +42,6 @@ def test_info_callback(default_info, general_uuid):
     info_callback_holder = InfoCallbackHolder(correlation_uuid=general_uuid)
     info_callback_holder.on_response(None,
                                      None,
-                                     BasicProperties(correlation_id=general_uuid),
+                                     BasicProperties(correlation_id=str(general_uuid)),
                                      default_info.model_dump_json())
     assert info_callback_holder.info_return.model_dump_json() == default_info.model_dump_json()

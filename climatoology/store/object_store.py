@@ -13,11 +13,11 @@ from climatoology.base.operator import ArtifactModality, Artifact
 class Storage(ABC):
 
     @staticmethod
-    def generate_object_name(correlation_uuid: UUID, store_uuid: UUID) -> str:
-        return f'{correlation_uuid}/{store_uuid}'
+    def generate_object_name(correlation_uuid: UUID, store_id: str) -> str:
+        return f'{correlation_uuid}/{store_id}'
 
     @abstractmethod
-    def save(self, artifact: Artifact) -> UUID:
+    def save(self, artifact: Artifact) -> str:
         """Save a single artifact in the object store.
 
         :param artifact: Operators' report creation process result
@@ -26,7 +26,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def save_all(self, artifacts: List[Artifact]) -> List[UUID]:
+    def save_all(self, artifacts: List[Artifact]) -> List[str]:
         """Save multiple artifacts in the object store.
 
         :param artifacts: Operators' report creation process results
@@ -44,16 +44,14 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def fetch(self, correlation_uuid: UUID, store_uuid: UUID, file_name: Path = None) -> Optional[Path]:
+    def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
         """Fetch an object from the store.
 
         This will download an element to the file cache of the broker using file_name. If the element does not exist
-        under the given correlation_uuid/store_uuid path, None is returned.
+        under the given correlation_uuid/store_id path, None is returned.
 
         :param correlation_uuid: The folder of the element in the store
-        :param store_uuid: The element name
-        :param file_name: The name of the file should be downloaded to. If None it will be the store_uuid without file
-        extension
+        :param store_id: The element name
         :return: The path to the file or None
         """
         pass
@@ -86,11 +84,11 @@ class MinioStorage(Storage):
         self.__bucket = bucket
         self.__file_cache = file_cache
 
-    def save(self, artifact: Artifact) -> UUID:
-        store_uuid = uuid.uuid4()
+    def save(self, artifact: Artifact) -> str:
+        store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
 
         self.client.fput_object(bucket_name=self.__bucket,
-                                object_name=Storage.generate_object_name(artifact.correlation_uuid, store_uuid),
+                                object_name=Storage.generate_object_name(artifact.correlation_uuid, store_id),
                                 file_path=str(artifact.file_path),
                                 metadata={
                                     'Name': artifact.name,
@@ -99,12 +97,12 @@ class MinioStorage(Storage):
                                     'Summary': artifact.summary,
                                     'Description': artifact.description,
                                     'Correlation-UUID': artifact.correlation_uuid,
-                                    'Store-UUID': store_uuid,
+                                    'Store-ID': store_id,
                                     'Params': json.dumps(artifact.params),
                                 })
-        return store_uuid
+        return store_id
 
-    def save_all(self, artifacts: List[Artifact]) -> List[UUID]:
+    def save_all(self, artifacts: List[Artifact]) -> List[str]:
         return [self.save(artifact) for artifact in artifacts]
 
     def list_all(self, correlation_uuid: UUID) -> List[Artifact]:
@@ -121,7 +119,7 @@ class MinioStorage(Storage):
             summary = obj.metadata['X-Amz-Meta-Summary']
             description = obj.metadata['X-Amz-Meta-Description']
             params = json.loads(obj.metadata['X-Amz-Meta-Params'])
-            store_uuid = UUID(obj.metadata['X-Amz-Meta-Store-Uuid'])
+            store_id = obj.metadata['X-Amz-Meta-Store-Id']
             plugin_artifact = Artifact(name=name,
                                        modality=modality,
                                        file_path=file_path,
@@ -129,18 +127,17 @@ class MinioStorage(Storage):
                                        description=description,
                                        correlation_uuid=correlation_uuid,
                                        params=params,
-                                       store_uuid=store_uuid)
+                                       store_id=store_id)
             artifacts.append(plugin_artifact)
 
         return artifacts
 
-    def fetch(self, correlation_uuid: UUID, store_uuid: UUID, file_name: Path = None) -> Optional[Path]:
-        file_name = str(store_uuid) if not file_name else file_name
-        file_path = self.__file_cache / file_name
+    def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
+        file_path = self.__file_cache/store_id
         try:
             self.client.fget_object(bucket_name=self.__bucket,
                                     object_name=Storage.generate_object_name(correlation_uuid=correlation_uuid,
-                                                                             store_uuid=store_uuid),
+                                                                             store_id=store_id),
                                     file_path=file_path)
         except S3Error as e:
             if e.code == 'NoSuchKey':

@@ -14,6 +14,8 @@ from PIL import Image
 from pydantic import BaseModel, field_validator, Extra
 from semver import Version
 
+import climatoology
+
 
 class Concern(Enum):
     """A general topic of climate action."""
@@ -36,6 +38,7 @@ class Info(BaseModel):
     and even preferred!
     :param operator_schema: Do not set! It will be overridden by the plugin with the schematic description of the parameters
     necessary to initiate a computation.
+    :param library_version: Do not set!
     """
     name: str
     icon: str
@@ -45,6 +48,7 @@ class Info(BaseModel):
     methodology: str
     sources: Optional[dict] = None
     operator_schema: Optional[dict] = None
+    library_version: str = climatoology.__version__
 
     @field_validator('version', mode='before')
     @classmethod
@@ -113,7 +117,7 @@ class Artifact(BaseModel):
     """Do not set! The correlation UUID for this call. Will be automatically set by the plugin."""
     params: Optional[dict] = None
     """Do not set! The parameters for this call. Will be automatically set by the plugin."""
-    store_uuid: Optional[UUID] = None
+    store_id: Optional[str] = None
     """Do not set! This is the pointer to the file in the artifactory store. Will be automatically set."""
 
 

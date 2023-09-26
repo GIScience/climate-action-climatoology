@@ -32,7 +32,7 @@ async def configure_dependencies(app: FastAPI):
                                      secret_key=cfg.store.secret_key,
                                      secure=cfg.store.secure == 'True',
                                      bucket=cfg.store.bucket,
-                                     file_cache=cfg.store.file_cache)
+                                     file_cache=Path(cfg.store.file_cache))
     app.state.broker = ManagedRabbitMQ(host=cfg.broker.host,
                                        port=cfg.broker.port,
                                        api_url=cfg.broker.api_url,
@@ -108,6 +108,9 @@ def get_plugin(name: str) -> Info:
         return app.state.broker.request_info(plugin_name=name)
     except InfoNotReceivedException as e:
         raise HTTPException(status_code=404, detail=f'Plugin {name} does not exist.') from e
+    except AssertionError as e:
+        raise HTTPException(status_code=500,
+                            detail=f'Plugin {name} is not in a correct state (version mismatch).') from e
 
 
 @plugin.post(path='/{name}',
@@ -159,17 +162,15 @@ def list_artifacts(correlation_uuid: UUID) -> List[Artifact]:
     return app.state.storage.list_all(correlation_uuid=correlation_uuid)
 
 
-@store.get(path='/{correlation_uuid}/{store_uuid}',
+@store.get(path='/{correlation_uuid}/{store_id}',
            summary='Download a specific file.',
-           description='The store uuid can be parsed from the listing endpoint.'
-                       'It is advised to also provide the filename in order to get a proper file type.')
-def fetch_artifact(correlation_uuid: UUID, store_uuid: UUID, file_name: Path = None) -> FileResponse:
+           description='The store_id can be parsed from the listing endpoint.')
+def fetch_artifact(correlation_uuid: UUID, store_id: str) -> FileResponse:
     file_path = app.state.storage.fetch(correlation_uuid=correlation_uuid,
-                                        store_uuid=store_uuid,
-                                        file_name=file_name)
+                                        store_id=store_id)
 
-    if not file_path and file_name.is_file():
-        raise HTTPException(status_code=404, detail=f'The requested element {correlation_uuid}/{store_uuid} does '
+    if not file_path and file_path.is_file():
+        raise HTTPException(status_code=404, detail=f'The requested element {correlation_uuid}/{store_id} does '
                                                     'not exist!')
     return FileResponse(path=file_path)
 
@@ -183,4 +184,5 @@ if __name__ == '__main__':
     uvicorn.run(app,
                 host='0.0.0.0',
                 port=int(os.getenv('API_GATEWAY_API_PORT', 8000)),
+                root_path=os.getenv('ROOT_PATH', '/'),
                 log_config=f'{config_dir}/logging/app/logging.yaml')
