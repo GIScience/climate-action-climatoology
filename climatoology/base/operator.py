@@ -18,9 +18,12 @@ import climatoology
 
 
 class Concern(Enum):
-    """A general topic of climate action."""
-    GHG_EMISSION = 'ghg_emission'
-    """Green house gas emissions."""
+    """Keywords that group plugins by topic."""
+    CLIMATE_ACTION__GHG_EMISSION = 'ghg_emission'
+    CLIMATE_ACTION__MITIGATION = 'mitigation'
+    CLIMATE_ACTION__ADAPTION = 'adaption'
+
+    SUSTAINABILITY__WASTE = 'waste'
 
 
 class Info(BaseModel):

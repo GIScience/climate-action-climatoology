@@ -20,7 +20,7 @@ def default_info() -> Info:
         name='test_plugin',
         icon=Path(__file__).parent / 'resources/test_icon.jpeg',
         version=Version.parse('3.1.0'),
-        concerns=[Concern.GHG_EMISSION],
+        concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
         purpose='The purpose of this base is to '
                 'present basic library properties in '
                 'terms of enforcing similar capabilities '
