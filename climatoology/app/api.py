@@ -1,24 +1,31 @@
+import asyncio
+import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 from uuid import UUID
 
 import hydra
 import uvicorn
+from aio_pika import ExchangeType
+from aiormq import ChannelClosed, ChannelNotFoundEntity
+from cache import AsyncTTL
 from fastapi import APIRouter, FastAPI, WebSocket, HTTPException, WebSocketException
 from fastapi.responses import FileResponse
 from hydra import compose
-from pika.exceptions import ChannelClosedByBroker
+from asyncio.exceptions import TimeoutError
 
 from climatoology.base.event import ComputeCommandStatus, ComputeCommandResult
 from climatoology.base.operator import Info, Artifact
-from climatoology.broker.message_broker import ManagedRabbitMQ
+from climatoology.broker.message_broker import AsyncRabbitMQ, RabbitMQManagementAPI
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.exception import InfoNotReceivedException
 
 config_dir = os.getenv('API_GATEWAY_APP_CONFIG_DIR', str(Path('conf').absolute()))
+
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -33,11 +40,16 @@ async def configure_dependencies(app: FastAPI):
                                      secure=cfg.store.secure == 'True',
                                      bucket=cfg.store.bucket,
                                      file_cache=Path(cfg.store.file_cache))
-    app.state.broker = ManagedRabbitMQ(host=cfg.broker.host,
-                                       port=cfg.broker.port,
-                                       api_url=cfg.broker.api_url,
-                                       user=cfg.broker.user,
-                                       password=cfg.broker.password)
+    app.state.broker = AsyncRabbitMQ(host=cfg.broker.host,
+                                     port=cfg.broker.port,
+                                     user=cfg.broker.user,
+                                     password=cfg.broker.password)
+
+    await app.state.broker.async_init()
+
+    app.state.broker_management_api = RabbitMQManagementAPI(api_url=cfg.broker.api_url,
+                                                            user=cfg.broker.user,
+                                                            password=cfg.broker.password)
     yield
 
 
@@ -95,17 +107,38 @@ def is_ok() -> dict:
     return {'status': 'ok'}
 
 
+@AsyncTTL(time_to_live=60, maxsize=1)
+async def list_plugins(plugin_names: Tuple) -> List[Info]:
+    plugin_list = []
+    for plugin_name in plugin_names:
+        try:
+            plugin = await app.state.broker.request_info(plugin_name)
+            plugin_list.append(plugin)
+        except InfoNotReceivedException as e:
+            log.warning(f'Plugin {plugin_name} has an open channel but could not be reached.',
+                        exc_info=e)
+            continue
+        except AssertionError as e:
+            log.warning(f'Version mismatch for plugin {plugin_name}',
+                        exc_info=e)
+            continue
+
+    return plugin_list
+
+
 @plugin.get(path='/',
             summary='List all currently available plugins.')
-def plugins() -> List[Info]:
-    return app.state.broker.list_plugins()
+async def plugins() -> List[Info]:
+    plugin_names = app.state.broker_management_api.get_active_plugins()
+    plugin_names.sort()
+    return await list_plugins(tuple(plugin_names))
 
 
 @plugin.get(path='/{name}',
             summary='Get information on a specific plugin or check its online status.')
-def get_plugin(name: str) -> Info:
+async def get_plugin(name: str) -> Info:
     try:
-        return app.state.broker.request_info(plugin_name=name)
+        return await app.state.broker.request_info(plugin_name=name)
     except InfoNotReceivedException as e:
         raise HTTPException(status_code=404, detail=f'Plugin {name} does not exist.') from e
     except AssertionError as e:
@@ -117,40 +150,43 @@ def get_plugin(name: str) -> Info:
              summary='Schedule a computation task on a plugin.',
              description='The parameters depend on the chosen plugin. '
                          'Their input schema can be requested from the /plugin GET methods.')
-def plugin_compute(name: str, params: dict) -> UUID:
+async def plugin_compute(name: str, params: dict) -> UUID:
     correlation_uuid = uuid.uuid4()
     try:
-        app.state.broker.send_compute(name, params, correlation_uuid)
-    except ChannelClosedByBroker as e:
-        if e.reply_code == 404:
-            app.state.broker.publish_status_update(correlation_uuid=correlation_uuid,
-                                                   status=ComputeCommandStatus.FAILED)
-            raise HTTPException(status_code=404, detail='The plugin is not online.') from e
-        raise HTTPException from e
-    app.state.broker.publish_status_update(correlation_uuid=correlation_uuid,
-                                           status=ComputeCommandStatus.SCHEDULED)
+        await app.state.broker.send_compute(name, params, correlation_uuid)
+    except ChannelNotFoundEntity as e:
+        await app.state.broker.publish_status_update(correlation_uuid=correlation_uuid,
+                                                     status=ComputeCommandStatus.FAILED)
+        raise HTTPException(status_code=404, detail='The plugin is not online.') from e
+    await app.state.broker.publish_status_update(correlation_uuid=correlation_uuid,
+                                                 status=ComputeCommandStatus.SCHEDULED)
     return correlation_uuid
 
 
 @computation.websocket(path='/')
 async def subscribe_compute_status(websocket: WebSocket, correlation_uuid: UUID = None) -> None:
-    channel = app.state.broker.get_channel()
-    await websocket.accept()
+    async with app.state.broker.channel_pool.acquire() as channel:
+        await websocket.accept()
 
-    async def subscribe_callback(ch, method, properties, body):
-        status = ComputeCommandResult.model_validate_json(body.decode())
-        if not correlation_uuid or status.correlation_uuid == correlation_uuid:
-            await websocket.send_json(status.model_dump_json())
+        async def subscribe_callback(message):
+            status = ComputeCommandResult.model_validate_json(message.body.decode())
+            if not correlation_uuid or status.correlation_uuid == correlation_uuid:
+                await websocket.send_json(status.model_dump_json())
 
-    try:
-        channel.basic_consume(queue=app.state.broker.get_status_queue(),
-                              on_message_callback=subscribe_callback,
-                              consumer_tag='WebSocket for compute events',
-                              auto_ack=True)
+        try:
+            exchange = await channel.declare_exchange(app.state.broker.get_status_exchange(), ExchangeType.FANOUT)
+            queue = await channel.declare_queue(exclusive=True)
+            await queue.bind(exchange)
 
-        channel.start_consuming()
-    except ChannelClosedByBroker as e:
-        raise WebSocketException(code=1003) from e
+            await queue.consume(subscribe_callback)
+
+            while True:
+                await asyncio.wait_for(websocket.receive_bytes(), timeout=10.0)
+
+        except ChannelClosed as e:
+            raise WebSocketException(code=1003) from e
+        except TimeoutError as e:
+            raise WebSocketException(code=1003) from e
 
 
 @store.get(path='/{correlation_uuid}',

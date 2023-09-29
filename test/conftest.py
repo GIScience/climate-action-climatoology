@@ -18,7 +18,7 @@ def general_uuid():
 def default_info() -> Info:
     return Info(
         name='test_plugin',
-        icon=Path('resources/test_icon.jpeg'),
+        icon=Path(__file__).parent / 'resources/test_icon.jpeg',
         version=Version.parse('3.1.0'),
         concerns=[Concern.GHG_EMISSION],
         purpose='The purpose of this base is to '
@@ -26,7 +26,7 @@ def default_info() -> Info:
                 'terms of enforcing similar capabilities '
                 'between Climate Action event components',
         methodology='This is a test base',
-        sources=Path('resources/test.bib')
+        sources=Path(__file__).parent / 'resources/test.bib'
     )
 
 
@@ -34,7 +34,7 @@ def default_info() -> Info:
 def default_artifact(general_uuid):
     return Artifact(name='test_name',
                     modality=ArtifactModality.MAP_LAYER,
-                    file_path=Path('test_file.tiff'),
+                    file_path=Path(__file__).parent / 'test_file.tiff',
                     summary='Test summary',
                     description='Test description',
                     correlation_uuid=general_uuid,

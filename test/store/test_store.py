@@ -30,11 +30,11 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
                                                           secure=True)
     mocked_client['minio_client']().fput_object.assert_called_once_with(bucket_name='test_bucket',
                                                                         object_name=f'{general_uuid}/{store_id}',
-                                                                        file_path='test_file.tiff',
+                                                                        file_path=str(default_artifact.file_path),
                                                                         metadata={
                                                                             'Name': 'test_name',
                                                                             'Modality': 'MAP_LAYER',
-                                                                            'Original-Filename': 'test_file.tiff',
+                                                                            'Original-Filename': default_artifact.file_path.name,
                                                                             'Summary': 'Test summary',
                                                                             'Description': 'Test description',
                                                                             'Correlation-UUID': general_uuid,
@@ -62,7 +62,7 @@ def test_minio_list_all(mocked_client, general_uuid, default_artifact):
                                          metadata={
                                              'X-Amz-Meta-Name': 'test_name',
                                              'X-Amz-Meta-Modality': 'MAP_LAYER',
-                                             'X-Amz-Meta-Original-Filename': 'test_file.tiff',
+                                             'X-Amz-Meta-Original-Filename': str(default_artifact.file_path),
                                              'X-Amz-Meta-Summary': 'Test summary',
                                              'X-Amz-Meta-Description': 'Test description',
                                              'X-Amz-Meta-Store-Id': f'{general_uuid}_test_file.tiff',

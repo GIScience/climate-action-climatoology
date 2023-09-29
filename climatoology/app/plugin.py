@@ -1,12 +1,18 @@
+import asyncio
+import logging
 import time
+from typing import Optional
 
-from pika import BasicProperties
+import aio_pika
+from aio_pika.abc import AbstractIncomingMessage
 from pydantic import ValidationError
 
 from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
 from climatoology.base.operator import Operator, Artifact, ComputationScope
-from climatoology.broker.message_broker import Broker
+from climatoology.broker.message_broker import AsyncRabbitMQ
 from climatoology.store.object_store import Storage
+
+log = logging.getLogger(__name__)
 
 
 class PlatformPlugin:
@@ -19,29 +25,24 @@ class PlatformPlugin:
     def __init__(self,
                  operator: Operator,
                  storage: Storage,
-                 broker: Broker):
+                 broker: AsyncRabbitMQ):
         self.operator = operator
         self.storage = storage
         self.broker = broker
 
         name = operator.info().name
 
-        self.compute_queue = broker.get_compute_queue(plugin_name=name)
-        self.info_queue = broker.get_info_queue(plugin_name=name)
-        self.notification_queue = broker.get_status_queue()
+        self.compute_queue_name = broker.get_compute_queue(plugin_name=name)
+        self.info_queue_name = broker.get_info_queue(plugin_name=name)
+        self.compute_queue: Optional[aio_pika.Queue] = None
+        self.info_queue: Optional[aio_pika.Queue] = None
 
-        self.channel = self.broker.get_channel()
+    async def __compute_callback(self, message: AbstractIncomingMessage):
+        command = ComputeCommand.model_validate_json(message.body)
+        log.debug(f'Acquired compute request ({command.correlation_uuid})')
 
-        self.channel.basic_qos(prefetch_count=1)
-
-        self.channel.queue_declare(queue=self.compute_queue, durable=True)
-        self.channel.exchange_declare(self.notification_queue, exchange_type='fanout')
-        self.channel.queue_declare(queue=self.info_queue)
-
-    def __compute_callback(self, ch, method, _, body):
-        command = ComputeCommand.model_validate_json(body)
-        self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                          status=ComputeCommandStatus.IN_PROGRESS)
+        await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                                status=ComputeCommandStatus.IN_PROGRESS)
 
         try:
             tic = time.perf_counter()
@@ -56,28 +57,37 @@ class PlatformPlugin:
 
             toc = time.perf_counter()
 
-            self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                              status=ComputeCommandStatus.COMPLETED,
-                                              message=f'Took {toc - tic:0.4f} seconds')
+            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                                    status=ComputeCommandStatus.COMPLETED,
+                                                    message=f'Took {toc - tic:0.4f} seconds')
         except (ValueError, ValidationError) as e:
-            self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                              status=ComputeCommandStatus.FAILED,
-                                              message=str(e))
+            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                                    status=ComputeCommandStatus.FAILED,
+                                                    message=str(e))
 
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        await message.ack()
 
-    def __info_callback(self, ch, method, props, in_body):
-        command: InfoCommand = InfoCommand.model_validate_json(in_body)
+    async def __info_callback(self, message):
+        command: InfoCommand = InfoCommand.model_validate_json(message.body)
+        log.debug(f'Acquired info request ({command.correlation_uuid})')
 
         out_body = self.operator.info_enriched().model_dump_json().encode()
 
-        ch.basic_publish(exchange='',
-                         routing_key=props.reply_to,
-                         properties=BasicProperties(correlation_id=str(command.correlation_uuid)),
-                         body=out_body)
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        async with self.broker.channel_pool.acquire() as channel:
+            await channel.default_exchange.publish(message=aio_pika.Message(body=out_body),
+                                                   routing_key=message.properties.reply_to)
+            await message.ack()
 
-    def run(self):
-        self.channel.basic_consume(queue=self.compute_queue, on_message_callback=self.__compute_callback)
-        self.channel.basic_consume(queue=self.info_queue, on_message_callback=self.__info_callback)
-        self.channel.start_consuming()
+    async def run(self) -> None:
+        log.debug(f'Running plugin loop')
+
+        async with self.broker.channel_pool.acquire() as channel:
+            await channel.set_qos(prefetch_count=1)
+
+            compute_queue = await channel.declare_queue(name=self.compute_queue_name, durable=True)
+            info_queue = await channel.declare_queue(name=self.info_queue_name)
+
+            await self.broker.loop.create_task(compute_queue.consume(self.__compute_callback))
+            await self.broker.loop.create_task(info_queue.consume(self.__info_callback))
+            await asyncio.Future()
+

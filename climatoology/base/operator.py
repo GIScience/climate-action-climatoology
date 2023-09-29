@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final
+from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final, Union
 from uuid import UUID
 
 import bibtexparser
@@ -53,8 +53,9 @@ class Info(BaseModel):
     @field_validator('version', mode='before')
     @classmethod
     def _convert_version(cls, version: Any) -> str:
-        assert isinstance(version, Version)
-        return str(version)
+        if isinstance(version, Version):
+            return str(version)
+        return version
 
     @classmethod
     def _verify_icon(cls, icon: Path) -> None:
@@ -64,25 +65,35 @@ class Info(BaseModel):
     @field_validator('icon', mode='before')
     @classmethod
     def _convert_icon(cls, icon: Any) -> str:
-        assert isinstance(icon, Path)
-        Info._verify_icon(icon)
-        image = Image.open(icon)
-        image.thumbnail((500, 500))
-        buffered = BytesIO()
-        image.save(buffered, format='JPEG')
-        buffered.seek(0)
-        data_url = base64.b64encode(buffered.getvalue()).decode('UTF-8')
-        return f'data:image/jpeg;base64,{data_url}'
+        if isinstance(icon, Path):
+            Info._verify_icon(icon)
+            image = Image.open(icon)
+            image.thumbnail((500, 500))
+            buffered = BytesIO()
+            image.save(buffered, format='JPEG')
+            buffered.seek(0)
+            data_url = base64.b64encode(buffered.getvalue()).decode('UTF-8')
+            return f'data:image/jpeg;base64,{data_url}'
+        return icon
 
     @field_validator('sources', mode='before')
     @classmethod
-    def _covert_bib(cls, sources: Any) -> dict:
-        assert isinstance(sources, Path)
-        with open(sources, mode='r') as file:
-            return bibtexparser.load(file).get_entry_dict()
+    def _convert_bib(cls, sources: Any) -> dict:
+        if isinstance(sources, Path):
+            with open(sources, mode='r') as file:
+                return bibtexparser.load(file).get_entry_dict()
+        return sources
 
-    class Config:
-        extra = Extra.forbid
+    @field_validator('concerns', mode='before')
+    @classmethod
+    def _convert_concerns(cls, concerns: Any) -> List[Concern]:
+        if isinstance(concerns, List):
+            return [Concern(x) for x in concerns]
+        return concerns
+
+
+class Config:
+    extra = Extra.forbid
 
 
 class ArtifactModality(Enum):
