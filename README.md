@@ -4,9 +4,24 @@ This package provides the background functionality to serve climate action plugi
 The [climate action framework](https://heigit.atlassian.net/wiki/spaces/CA/pages/170066046/Architecture) operates through an event-bus infrastructure.
 All product logic is encapsulated within plugins that use utilities for data acquisition.
 Plugins on the other hand handle the event bus interaction.
-They use operators to produces results,
+They use operators to produce results,
 so-called artifacts,
 that provide climate action information to the user.
+
+## API
+
+The package features a REST-API that serves as a gateway between the user realm and the architecture.
+It provides endpoints to list available plugins, trigger computation tasks and retrieve computation results.
+Each computation generates a correlation id that uniquely identifies a computation request.
+Result retrieval is bound to these ids in a two-step procedure:
+
+1. All results generated through a given id can be listed. The list remains empty as long as the computation is not finished or in case it failed.
+2. The listed results (artifacts) provide a `store_uuid` which is a unique identifier for that element. The element can then be downloaded in a second API call.
+
+For more information see the API documentation page linked below.
+
+Yet, the swagger documentation interface does not well display the `/computation` endpoint which provides a [WebSocket](https://en.wikipedia.org/wiki/WebSocket): `ws://localhost:8000/computation/`. The websocket will provide status updates on computation tasks. The optional `correlation_uuid` parameter allows you to filter events by a specific computation request. A 3-second heartbeat is required. To test the websocket you can use tools like [websockets-cli](https://pypi.org/project/websockets-cli/).
+
 
 ## Utilities
 
@@ -25,47 +40,37 @@ To create a new operator (or plugin) please refer to the documentation in the [p
 
 ## Install
 
-This package is currently only available via the repository. You need to have read-access to this repository.  Depending on your connection choice (https or ssh) run `pip install git+ssh://git@gitlab.gistools.geog.uni-heidelberg.de:2022/climate-action/climatoology.git@v2.0` or `pip install git+https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology.git@v2.0`.
-Alternatively you can request an access token, then run `pip install git+https://climate-action:${GIT_PROJECT_TOKEN}@gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology.git@v2.0`.
+This package is currently only available via the repository.
+You need to have read-access to this repository, then run
+`pip install git+ssh://git@gitlab.gistools.geog.uni-heidelberg.de:2022/climate-action/climatoology.git@v2.3.0`.
 
 ## Run
 
-The package and its API are embedded in a full event-driven architecture. It therefore requires multiple services such as [minIO](https://min.io/) and [RabbitMQ](https://www.rabbitmq.com/) to be available. To start these, see the [infrastructure repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/infrastructure).
+The package and its API are embedded in a full event-driven architecture.
+It therefore requires multiple services such as [minIO](https://min.io/) and [RabbitMQ](https://www.rabbitmq.com/) to be available and the respective environment variables to be set.
+The simplest way to do so, is using docker.
+You can use the [infrastructure repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/infrastructure) to set up the architecture.
+Afterward copy [`.env_template`](.env_template) to `.env` and fill in the necessary environment variables.
 
-The following environment variables need to be set. Copy [`.env_template`](.env_template) to `.env` and fill in your config
+### Direct run
 
-| env var           | description                                                                                   |
-|-------------------|-----------------------------------------------------------------------------------------------|
-| MINIO_HOST        |                                                                                               |
-| MINIO_PORT        |                                                                                               |
-| MINIO_ACCESS_KEY  | your minIO access key. you have to manually create it in the UI or request it from the admins |
-| MINIO_SECRET_KEY  | same as the access key                                                                        |
-| RABBITMQ_HOST     |                                                                                               |
-| RABBITMQ_PORT     |                                                                                               |
-| RABBITMQ_API_URL  | the URL to the RabbitMQ management API.                                                       |
-| RABBITMQ_USER     | a user with read access on the management API                                                 |
-| RABBITMQ_PASSWORD |                                                                                               |
-
-Activate the environment, then run
+Set the environment variables
 
 ```shell
-export PYTHONPATH="gateway:$PYTHONPATH"
-python climatoology/app/api.py
+export $(cat .env)
 ```
 
-Check out the result at [localhost:8000](localhost:8000).
+then start the api
 
-### Further Optional Parameters
+```shell
+ poetry run python climatoology/app/api.py
+```
 
-| env var                    | description                                    |
-|----------------------------|------------------------------------------------|
-| MINIO_BUCKET               | the minio bucket to use for storage            |
-| MINIO_SECURE               | set to True to enable SSL in Minio connections |
-| FILE_CACHE                 | location where files are temporarily stored    |
-| API_GATEWAY_APP_CONFIG_DIR | The directory holding configuration files      |
-| API_GATEWAY_API_PORT       | The port, the api should start under           |
+and head to [localhost:8000](localhost:8000/docs) to check out the results.
 
-## Docker
+Of course, you won't see much until you also launch a plugin that can answer your calls. You can try the [plugin-blueprint](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/plugin-blueprint) or any other plugin listed in the [infrastructure repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/infrastructure).
+
+### Docker
 
 The tool is also [Dockerised](Dockerfile):
 
@@ -78,7 +83,7 @@ and head to the link above.
 
 To run behind a proxy, you can configure the root path using the environment variable `ROOT_PATH`.
 
-### Deploy
+#### Deploy
 
 Build the image as described above. To push a new version to [Docker Hub](https://hub.docker.com/orgs/heigit) run
 
@@ -86,6 +91,16 @@ Build the image as described above. To push a new version to [Docker Hub](https:
 docker image push heigit/ca-api-gateway:devel
 ```
 
+
+### Further Optional Parameters
+
+| env var                    | description                                    |
+|----------------------------|------------------------------------------------|
+| MINIO_BUCKET               | the minio bucket to use for storage            |
+| MINIO_SECURE               | set to True to enable SSL in Minio connections |
+| FILE_CACHE                 | location where files are temporarily stored    |
+| API_GATEWAY_APP_CONFIG_DIR | The directory holding configuration files      |
+| API_GATEWAY_API_PORT       | The port, the api should start under           |
 
 ## Contributing
 
