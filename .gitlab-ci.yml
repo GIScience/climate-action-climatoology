@@ -1,0 +1,19 @@
+image: python:3.11.5
+
+stages:
+  - test
+
+cache:
+  paths:
+    - .venv
+
+before_script:
+  - pip install poetry
+  - poetry config virtualenvs.in-project true
+  - poetry install
+  - source `poetry env info --path`/bin/activate
+
+pytest:
+  stage: test
+  script:
+    - poetry run pytest
