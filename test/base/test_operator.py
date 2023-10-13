@@ -1,15 +1,14 @@
 import uuid
-from typing import List
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
-from climatoology.base.operator import Info, Operator, Artifact, ComputationResources, ComputationScope
+from climatoology.base.operator import ComputationScope
 
 
 def test_operator_info(default_info):
     assert default_info.version == '3.1.0'
-    assert default_info.sources['test2023']['ENTRYTYPE'] == 'article'
+    assert default_info.sources[0]['ENTRYTYPE'] == 'article'
     assert default_info.icon == ('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDB'
                                  'kSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjI'
                                  'yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEB'

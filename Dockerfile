@@ -8,7 +8,7 @@ RUN poetry install --no-ansi --no-interaction --all-extras --without dev,test --
 
 COPY climatoology ./climatoology
 COPY conf ./conf
-COPY README.md README.md
+COPY README.md ./README.md
 
 RUN poetry install --no-ansi --no-interaction --all-extras --without dev,test
 

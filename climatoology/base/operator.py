@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final, Union
+from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final
 from uuid import UUID
 
 import bibtexparser
@@ -49,7 +49,7 @@ class Info(BaseModel):
     concerns: List[Concern]
     purpose: str
     methodology: str
-    sources: Optional[dict] = None
+    sources: Optional[List[dict]] = None
     operator_schema: Optional[dict] = None
     library_version: str = climatoology.__version__
 
@@ -84,7 +84,7 @@ class Info(BaseModel):
     def _convert_bib(cls, sources: Any) -> dict:
         if isinstance(sources, Path):
             with open(sources, mode='r') as file:
-                return bibtexparser.load(file).get_entry_dict()
+                return bibtexparser.load(file).get_entry_list()
         return sources
 
     @field_validator('concerns', mode='before')
