@@ -2,12 +2,14 @@ import logging
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from pydantic.dataclasses import dataclass
+from datetime import datetime
 from io import BytesIO
-from typing import Tuple, List, ContextManager
+from typing import Tuple, List, ContextManager, Optional
 
 import rasterio as rio
 import requests
+from pydantic import Field
+from pydantic.dataclasses import dataclass
 from rasterio.merge import merge
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
@@ -20,9 +22,30 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class LULCWorkUnit:
-    area_coords: Tuple[float, float, float, float]
-    start_date: str
-    end_date: str
+    area_coords: Tuple[float, float, float, float] = Field(
+        description='Bounding box coordinates in WGS 84 (left, bottom, right, top)',
+        examples=[[12.304687500000002,
+                   48.2246726495652,
+                   12.480468750000002,
+                   48.3416461723746]])
+    start_date: Optional[str] = Field(
+        description='Lower bound (inclusive) of remote sensing imagery acquisition date (UTC). '
+                    'The model uses an image stack of multiple acquisition times for predictions. '
+                    'Larger time intervals will improve the prediction accuracy'
+                    'If not set it will be automatically set to the week before `end_date`',
+        examples=['2023-05-01'],
+        default=None)
+    end_date: str = Field(description='Upper bound (inclusive) of remote sensing imagery acquisition date (UTC).'
+                                      "Defaults to today's date",
+                          examples=['2023-06-01'],
+                          default=str(datetime.now().strftime('%Y-%m-%d')))
+    threshold: float = Field(
+        description='Not exceeding this value by the class prediction score results in the recognition of the result '
+                    'as "unknown"',
+        default=0,
+        examples=[0.75],
+        ge=0.0,
+        le=1.0)
 
 
 class PlatformHttpUtility(ABC):
