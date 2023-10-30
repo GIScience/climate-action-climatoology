@@ -3,7 +3,7 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
-from climatoology.base.operator import ComputationScope
+from climatoology.base.computation import ComputationScope
 
 
 def test_operator_info(default_info):
@@ -22,12 +22,11 @@ def test_operator_info(default_info):
                                  'APwDwa5ubi5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z')
 
 
-def test_operator_typing(default_operator):
-    with ComputationScope(uuid.uuid4()) as resources:
-        default_operator.compute_unsafe(resources, {'id': 1234, 'name': 'test'})
+def test_operator_typing(default_operator, default_computation_resources):
+    default_operator.compute_unsafe(default_computation_resources, {'id': 1234, 'name': 'test'})
 
-        with pytest.raises(ValidationError):
-            default_operator.compute_unsafe(resources, {'id': 'ID:1234', 'name': 'test'})
+    with pytest.raises(ValidationError):
+        default_operator.compute_unsafe(default_computation_resources, {'id': 'ID:1234', 'name': 'test'})
 
 
 def test_operator_scope():

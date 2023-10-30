@@ -5,7 +5,7 @@ from unittest.mock import patch
 import minio.datatypes
 import pytest
 
-from climatoology.base.operator import ArtifactModality, Artifact
+from climatoology.base.artifact import ArtifactModality, Artifact
 from climatoology.store.object_store import MinioStorage
 
 
@@ -33,7 +33,7 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
                                                                         file_path=str(default_artifact.file_path),
                                                                         metadata={
                                                                             'Name': 'test_name',
-                                                                            'Modality': 'MAP_LAYER',
+                                                                            'Modality': 'MAP_LAYER_GEOJSON',
                                                                             'Original-Filename': default_artifact.file_path.name,
                                                                             'Summary': 'Test summary',
                                                                             'Description': 'Test description',
@@ -46,7 +46,7 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
 def test_minio_save_all(mocked_client, general_uuid, default_artifact):
     second_correlation_uuid = uuid.uuid4()
     second_plugin_artifact = Artifact(name='test',
-                                      modality=ArtifactModality.TEXT,
+                                      modality=ArtifactModality.MARKDOWN,
                                       file_path=Path('/tmp/text.txt'),
                                       summary='A test',
                                       description='A test file',
@@ -61,7 +61,7 @@ def test_minio_list_all(mocked_client, general_uuid, default_artifact):
                                          object_name=f'{general_uuid}/{general_uuid}',
                                          metadata={
                                              'X-Amz-Meta-Name': 'test_name',
-                                             'X-Amz-Meta-Modality': 'MAP_LAYER',
+                                             'X-Amz-Meta-Modality': 'MAP_LAYER_GEOJSON',
                                              'X-Amz-Meta-Original-Filename': str(default_artifact.file_path),
                                              'X-Amz-Meta-Summary': 'Test summary',
                                              'X-Amz-Meta-Description': 'Test description',

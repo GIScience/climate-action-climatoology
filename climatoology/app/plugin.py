@@ -7,8 +7,10 @@ import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
 from pydantic import ValidationError
 
+from climatoology.base.artifact import Artifact
+from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
-from climatoology.base.operator import Operator, Artifact, ComputationScope
+from climatoology.base.operator import Operator
 from climatoology.broker.message_broker import AsyncRabbitMQ
 from climatoology.store.object_store import Storage
 
@@ -79,7 +81,7 @@ class PlatformPlugin:
             await message.ack()
 
     async def run(self) -> None:
-        log.debug(f'Running plugin loop')
+        log.debug('Running plugin loop')
 
         async with self.broker.channel_pool.acquire() as channel:
             await channel.set_qos(prefetch_count=1)
@@ -90,4 +92,3 @@ class PlatformPlugin:
             await self.broker.loop.create_task(compute_queue.consume(self.__compute_callback))
             await self.broker.loop.create_task(info_queue.consume(self.__info_callback))
             await asyncio.Future()
-

@@ -1,20 +1,18 @@
 import base64
-import shutil
-import tempfile
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
 from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final
-from uuid import UUID
 
 import bibtexparser
 from PIL import Image
-from pydantic import BaseModel, field_validator, Extra
+from pydantic import BaseModel, field_validator, Extra, Field
 from semver import Version
 
 import climatoology
+from climatoology.base.artifact import Artifact
+from climatoology.base.computation import ComputationResources
 
 
 class Concern(Enum):
@@ -26,32 +24,69 @@ class Concern(Enum):
     SUSTAINABILITY__WASTE = 'waste'
 
 
-class Info(BaseModel):
-    """A dataclass to provide the basic information about an operator/ a plugin.
+class Info(BaseModel, extra=Extra.forbid):
+    """A dataclass to provide the basic information about a plugin."""
 
-    :param name: A short and concise name that can be used in the UI
-    :param icon: An image or icon that can be used in the UI. Make sure the file is committed to the repository,
-    and you have all rights to use it.
-    :param version: The plugin version. You can start at 0.0.1 for your first try and then got 1.0.0 for your first
-    release, increasing as you update the code.
-    :param concerns: A set of keywords that can be used to group multiple plugins.
-    :param purpose: What will this operator accomplish?
-    :param methodology: How does the operator achieve its goal?
-    :param sources: A list of sources that were used in the process or are related. Self-citations are welcome
-    and even preferred!
-    :param operator_schema: Do not set! It will be overridden by the plugin with the schematic description of the parameters
-    necessary to initiate a computation.
-    :param library_version: Do not set!
-    """
-    name: str
-    icon: str
-    version: str
-    concerns: List[Concern]
-    purpose: str
-    methodology: str
-    sources: Optional[List[dict]] = None
-    operator_schema: Optional[dict] = None
-    library_version: str = climatoology.__version__
+    name: str = Field(description='A short and concise name that can be used in the UI.',
+                      examples=['The Plugin'])
+    icon: str = Field(description='An image or icon that can be used in the UI in the form of a data URL. If the '
+                                  'input is a path, it will be automatically converted. Make sure the file is '
+                                  'committed to the repository and you have all rights to use it.',
+                      examples=['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBk'
+                                'SEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyM'
+                                'jIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxE'
+                                'B/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhM'
+                                'UEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmN'
+                                'kZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW1'
+                                '9jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgE'
+                                'CBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpK'
+                                'jU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKm'
+                                'qsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwa5ubi'
+                                '5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z'])
+    version: str = Field(description='The plugin version. You can provide a Version object.',
+                         examples=[str(Version(0, 0, 1)), 'alpha-centauri'])
+    concerns: List[Concern] = Field(description='A set of keywords that can be used to group multiple plugins.',
+                                    examples=[[Concern.CLIMATE_ACTION__GHG_EMISSION,
+                                               Concern.CLIMATE_ACTION__MITIGATION]])
+    purpose: str = Field(description='What will this plugin accomplish?',
+                         examples=['This plugin provides information on a special aspect of climate action.'])
+    methodology: str = Field(description='How does the operator achieve its goal?',
+                             examples=['This plugin uses a combination of data source A and method B to accomplish '
+                                       'the purpose.'])
+    sources: Optional[List[dict]] = Field(description='A list of sources that were used in the process or are related. '
+                                                      'Self-citations are welcome and even preferred! You can provide '
+                                                      'a path to a bib-tex file that will then be parsed '
+                                                      'automatically.',
+                                          examples=[[{
+                                              'pages': '14-15',
+                                              'volume': '2',
+                                              'journal': 'J. Geophys. Res.',
+                                              'year': '1954',
+                                              'title': "Nothing Particular in this Year's History",
+                                              'author': 'J. G. Smith and H. K. Weston',
+                                              'ENTRYTYPE': 'article',
+                                              'ID': 'smit54'
+                                          }]],
+                                          default=None)
+    operator_schema: Optional[dict] = Field(description='Do not set! It will be overridden by the plugin with the '
+                                                        'schematic description of the parameters necessary to '
+                                                        'initiate a computation.',
+                                            examples=[{'properties': {
+                                                'bool': {
+                                                    'description': 'A required boolean parameter.',
+                                                    'examples': [
+                                                        True
+                                                    ],
+                                                    'title': 'Boolean Input',
+                                                    'type': 'boolean'
+                                                }, 'required': [
+                                                    'bool',
+                                                ],
+                                                'title': 'ComputeInput',
+                                                'type': 'object'}}],
+                                            default=None)
+    library_version: str = Field(description='Do not set!',
+                                 default=climatoology.__version__)
 
     @field_validator('version', mode='before')
     @classmethod
@@ -95,65 +130,7 @@ class Info(BaseModel):
         return concerns
 
 
-class Config:
-    extra = Extra.forbid
-
-
-class ArtifactModality(Enum):
-    """Available artifact types."""
-    TEXT = 'TEXT'
-    """A string. This can either be a static output provided by your operator, or a parametrised text that changes
-        based on the operator results generated. It is meant for end-users. Use .txt-files for storage."""
-    TABLE = 'TABLE'
-    """A table. Use .csv-files for storage, first line is expected to contain the column names."""
-    MAP_LAYER = 'MAP_LAYER'
-    """Geodata. Either a .gpkg for vector data or a .tiff (geotiff) for raster data."""
-    IMAGE = 'IMAGE'
-    """A non-georeferenced image."""
-    URL = 'URL'
-    """A string that points to a public website in the form of https://dns.end/path . Use .txt files for storage."""
-
-
-class Artifact(BaseModel):
-    """A result generated by an Operator."""
-    name: str
-    """A short name for the artifact that could be used as an alias."""
-    modality: ArtifactModality
-    """The type of artefact created."""
-    file_path: Path
-    """The full path to the file that stores the artefact. The file-type must be in line with the type of artefact
-    (see ArtifactModality documentation)."""
-    summary: str
-    """A short description of the artifact that could be used in a caption."""
-    description: str
-    """A long description of the generated output that may help users better understand the artifact."""
-    correlation_uuid: Optional[UUID] = None
-    """Do not set! The correlation UUID for this call. Will be automatically set by the plugin."""
-    params: Optional[dict] = None
-    """Do not set! The parameters for this call. Will be automatically set by the plugin."""
-    store_id: Optional[str] = None
-    """Do not set! This is the pointer to the file in the artifactory store. Will be automatically set."""
-
-
 T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
-
-
-@dataclass
-class ComputationResources:
-    correlation_uuid: UUID
-    computation_dir: Path
-
-
-class ComputationScope:
-    def __init__(self, correlation_uuid: UUID):
-        self.resources = ComputationResources(computation_dir=Path(tempfile.mkdtemp(prefix=str(correlation_uuid))),
-                                              correlation_uuid=correlation_uuid)
-
-    def __enter__(self):
-        return self.resources
-
-    def __exit__(self, *args):
-        shutil.rmtree(self.resources.computation_dir)
 
 
 class Operator(ABC, Generic[T_co]):

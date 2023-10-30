@@ -7,7 +7,7 @@ from uuid import UUID
 
 from minio import Minio, S3Error
 
-from climatoology.base.operator import ArtifactModality, Artifact
+from climatoology.base.artifact import ArtifactModality, Artifact
 
 
 class Storage(ABC):

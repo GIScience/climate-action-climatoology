@@ -20,7 +20,7 @@ Result retrieval is bound to these ids in a two-step procedure:
 
 For more information see the API documentation page linked below.
 
-Yet, the swagger documentation interface does not well display the `/computation` endpoint which provides a [WebSocket](https://en.wikipedia.org/wiki/WebSocket): `ws://localhost:8000/computation/`. The websocket will provide status updates on computation tasks. The optional `correlation_uuid` parameter allows you to filter events by a specific computation request. A 3-second heartbeat is required. To test the websocket you can use tools like [websockets-cli](https://pypi.org/project/websockets-cli/).
+Yet, the swagger documentation interface does not well display the `/computation/` endpoint which provides a [WebSocket](https://en.wikipedia.org/wiki/WebSocket): `ws://localhost:8000/computation/` (trailing `/` is mandatory). The websocket will provide status updates on computation tasks. The optional `correlation_uuid` parameter allows you to filter events by a specific computation request. A 3-second heartbeat is required. To test the websocket you can use tools like [websockets-cli](https://pypi.org/project/websockets-cli/).
 
 
 ## Utilities
