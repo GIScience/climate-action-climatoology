@@ -12,8 +12,8 @@ from affine import Affine
 from geopandas import GeoSeries, GeoDataFrame
 from numpy.typing import ArrayLike
 from pandas import DataFrame
-from pydantic import BaseModel, Field, model_validator, conlist
-from pydantic.color import Color
+from pydantic import BaseModel, Field, model_validator, conlist, field_serializer
+from pydantic_extra_types.color import Color
 from rasterio import CRS
 from rasterio.profiles import DefaultGTiffProfile
 
@@ -84,17 +84,24 @@ class Chart2dData(BaseModel):
                                   description='The type of chart to be created.',
                                   examples=[ChartType.SCATTER])
     color: Union[Color, List[Color]] = Field(title='Chart Color',
-                                             description='The color or the chart elements. If a list is given, it '
-                                                         'must be the same length as the data input.',
-                                             examples=['#590d08'],
+                                             description='The color for the chart elements. If a list is given, it '
+                                                         'must be the same length as the data input. If only a single '
+                                                         'color is given, all elements will have the same color. Line-'
+                                                         'Charts accept only a single color (one line=one color).',
+                                             examples=[['#590d08', '#590d08', '#590d08']],
                                              default='#590d08',
                                              validate_default=True)
 
     @model_validator(mode='after')
     def check_length(self) -> 'Chart2dData':
         assert len(self.x) == len(self.y), 'X and Y data must be the same length.'
-        assert isinstance(self.color, Color) or (len(self.color) == len(self.x)), ('Data and color lists must be the '
-                                                                                   'same length.')
+
+        if self.chart_type == ChartType.LINE:
+            assert isinstance(self.color, Color), 'Line charts can only have a single color for the line.'
+        else:
+            assert isinstance(self.color, Color) or (len(self.color) == len(self.x)), ('Data and color lists must be '
+                                                                                       'the same length.')
+
         return self
 
     @model_validator(mode='after')
@@ -110,8 +117,12 @@ class Chart2dData(BaseModel):
             assert sum(self.y) == 1, 'Pie-chart y values must sum up to 1.'
         return self
 
-    class Config:
-        json_encoders = {Color: lambda c: c.as_hex()}
+    @field_serializer('color')
+    def serialize_color_list(self, co: Union[Color, List[Color]], _info):
+        if isinstance(co, Color):
+            return co.as_hex()
+        else:
+            return [c.as_hex() for c in co]
 
 
 def create_markdown_artifact(text: str,
@@ -242,7 +253,7 @@ def create_geojson_artifact(features: GeoSeries,
                             caption: str,
                             description: str,
                             resources: ComputationResources,
-                            color: Union[List[Color], Color] = '#590d08',
+                            color: Union[List[Color], Color] = Color('#590d08'),
                             filename: str = uuid.uuid4()) -> Artifact:
     """Create a vector data artifact.
 

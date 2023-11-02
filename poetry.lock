@@ -1279,6 +1279,23 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
+name = "pydantic-extra-types"
+version = "2.1.0"
+description = "Extra Pydantic types."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pydantic_extra_types-2.1.0-py3-none-any.whl", hash = "sha256:1b8aa83a2986b0bc6a7179834fdb423c5e0bcef6b2b4cd9261bf753ad7dcc483"},
+    {file = "pydantic_extra_types-2.1.0.tar.gz", hash = "sha256:d07b869e733d33712b07d6b8cd7b0223077c23ae5a1e23bd0699a00401259ec7"},
+]
+
+[package.dependencies]
+pydantic = ">=2.0.3"
+
+[package.extras]
+all = ["phonenumbers (>=8,<9)", "pycountry (>=22,<23)"]
+
+[[package]]
 name = "pyparsing"
 version = "3.1.1"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -2104,4 +2121,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.11.5"
-content-hash = "401b2958981fd1367bbc3d0f14619ce9fcfd2e8c0287442698209bbe76ba1b01"
+content-hash = "1f8bef62fb95ebeff507291970d35e2a815756b49288f0bc50874e43e4ca410b"
