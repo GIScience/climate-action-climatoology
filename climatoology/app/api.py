@@ -135,26 +135,26 @@ async def plugins() -> List[Info]:
     return await list_plugins(tuple(plugin_names))
 
 
-@plugin.get(path='/{name}',
+@plugin.get(path='/{plugin_id}',
             summary='Get information on a specific plugin or check its online status.')
-async def get_plugin(name: str) -> Info:
+async def get_plugin(plugin_id: str) -> Info:
     try:
-        return await app.state.broker.request_info(plugin_name=name)
+        return await app.state.broker.request_info(plugin_id=plugin_id)
     except InfoNotReceivedException as e:
-        raise HTTPException(status_code=404, detail=f'Plugin {name} does not exist.') from e
+        raise HTTPException(status_code=404, detail=f'Plugin {plugin_id} does not exist.') from e
     except AssertionError as e:
         raise HTTPException(status_code=500,
-                            detail=f'Plugin {name} is not in a correct state (version mismatch).') from e
+                            detail=f'Plugin {plugin_id} is not in a correct state (version mismatch).') from e
 
 
-@plugin.post(path='/{name}',
+@plugin.post(path='/{plugin_id}',
              summary='Schedule a computation task on a plugin.',
              description='The parameters depend on the chosen plugin. '
                          'Their input schema can be requested from the /plugin GET methods.')
-async def plugin_compute(name: str, params: dict) -> UUID:
+async def plugin_compute(plugin_id: str, params: dict) -> UUID:
     correlation_uuid = uuid.uuid4()
     try:
-        await app.state.broker.send_compute(name, params, correlation_uuid)
+        await app.state.broker.send_compute(plugin_id, params, correlation_uuid)
     except ChannelNotFoundEntity as e:
         await app.state.broker.publish_status_update(correlation_uuid=correlation_uuid,
                                                      status=ComputeCommandStatus.FAILED)

@@ -1,7 +1,7 @@
 import uuid
 from contextlib import asynccontextmanager
 from typing import AsyncIterable, AsyncIterator
-from unittest.mock import patch, AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -80,13 +80,13 @@ async def test_request_info(connection, default_info):
     queue_mock.iterator = iterator(default_info.model_dump_json())
     channel.declare_queue.return_value = queue_mock
 
-    info = await connection['broker'].request_info(plugin_name='test_plugin')
+    info = await connection['broker'].request_info(plugin_id='test_plugin')
     assert info == default_info
 
 
 @pytest.mark.asyncio
 async def test_send_compute(connection):
-    await connection['broker'].send_compute(plugin_name='test_plugin', params={}, correlation_uuid=uuid.uuid4())
+    await connection['broker'].send_compute(plugin_id='test_plugin', params={}, correlation_uuid=uuid.uuid4())
     channel = await connection['mocked_pool'].__aenter__()
     mocked_exchange = channel.default_exchange
     mocked_exchange.publish.assert_called_once()

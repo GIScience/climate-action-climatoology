@@ -28,23 +28,23 @@ class Broker(ABC):
         return STATUS_EXCHANGE
 
     @staticmethod
-    def get_compute_queue(plugin_name: str):
-        return f'{plugin_name.lower()}{QUEUE_SEPARATOR}{COMPUTE_QUEUE}'
+    def get_compute_queue(plugin_id: str):
+        return f'{plugin_id}{QUEUE_SEPARATOR}{COMPUTE_QUEUE}'
 
     @staticmethod
-    def get_info_queue(plugin_name: str):
-        return f'{plugin_name.lower()}{QUEUE_SEPARATOR}{INFO_QUEUE}'
+    def get_info_queue(plugin_id: str):
+        return f'{plugin_id}{QUEUE_SEPARATOR}{INFO_QUEUE}'
 
     @abstractmethod
     def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus, message: str = None) -> None:
         pass
 
     @abstractmethod
-    def request_info(self, plugin_name: str) -> Info:
+    def request_info(self, plugin_id: str) -> Info:
         pass
 
     @abstractmethod
-    def send_compute(self, plugin_name: str, params: dict, correlation_uuid: UUID):
+    def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
         pass
 
 
@@ -82,7 +82,8 @@ class AsyncRabbitMQ(Broker):
     def __await__(self):
         return self.async_init().__await__()
 
-    async def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus, message: str = None) -> None:
+    async def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus,
+                                    message: str = None) -> None:
         compute_command = ComputeCommandResult(correlation_uuid=correlation_uuid,
                                                status=status,
                                                message=message,
@@ -92,7 +93,7 @@ class AsyncRabbitMQ(Broker):
             exchange = await channel.declare_exchange(self.get_status_exchange(), type=ExchangeType.FANOUT)
             await exchange.publish(routing_key='', message=aio_pika.Message(body=body))
 
-    async def request_info(self, plugin_name: str, ttl: int = 3) -> Info:
+    async def request_info(self, plugin_id: str, ttl: int = 3) -> Info:
         info_call_corr_uuid = uuid.uuid4()
         async with self.channel_pool.acquire() as channel:
             await channel.set_qos(prefetch_count=1)
@@ -100,9 +101,10 @@ class AsyncRabbitMQ(Broker):
             callback_queue = await channel.declare_queue(exclusive=True, auto_delete=True)
 
             info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
-            await channel.default_exchange.publish(message=aio_pika.Message(body=info_command_body.model_dump_json().encode(),
-                                                                            reply_to=callback_queue.name),
-                                                   routing_key=self.get_info_queue(plugin_name=plugin_name))
+            await channel.default_exchange.publish(
+                message=aio_pika.Message(body=info_command_body.model_dump_json().encode(),
+                                         reply_to=callback_queue.name),
+                routing_key=self.get_info_queue(plugin_id=plugin_id))
 
             try:
                 async with callback_queue.iterator(timeout=ttl) as queue_iter:
@@ -111,16 +113,17 @@ class AsyncRabbitMQ(Broker):
                             response = json.loads(message.body)
                             return Info(**response)
             except TimeoutError as e:
-                raise InfoNotReceivedException(f'The info request ({info_call_corr_uuid}) did not respond within the time '
-                                               f'limit of {ttl} seconds.')
+                raise InfoNotReceivedException(
+                    f'The info request ({info_call_corr_uuid}) did not respond within the time '
+                    f'limit of {ttl} seconds.') from e
 
-    async def send_compute(self, plugin_name: str, params: dict, correlation_uuid: UUID):
+    async def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
         async with self.channel_pool.acquire() as channel:
-            await channel.declare_queue(self.get_compute_queue(plugin_name), durable=True)
+            await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
 
             command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
             await channel.default_exchange.publish(aio_pika.Message(body=command.model_dump_json().encode()),
-                                                   routing_key=self.get_compute_queue(plugin_name))
+                                                   routing_key=self.get_compute_queue(plugin_id))
 
 
 class RabbitMQManagementAPI:

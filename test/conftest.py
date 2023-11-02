@@ -19,7 +19,7 @@ def general_uuid():
 @pytest.fixture
 def default_info() -> Info:
     return Info(
-        name='test_plugin',
+        name='Test Plugin',
         icon=Path(__file__).parent / 'resources/test_icon.jpeg',
         version=Version.parse('3.1.0'),
         concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],

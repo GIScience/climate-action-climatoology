@@ -32,10 +32,10 @@ class PlatformPlugin:
         self.storage = storage
         self.broker = broker
 
-        name = operator.info().name
+        plugin_id = operator.info().plugin_id
 
-        self.compute_queue_name = broker.get_compute_queue(plugin_name=name)
-        self.info_queue_name = broker.get_info_queue(plugin_name=name)
+        self.compute_queue_name = broker.get_compute_queue(plugin_id=plugin_id)
+        self.info_queue_name = broker.get_info_queue(plugin_id=plugin_id)
         self.compute_queue: Optional[aio_pika.Queue] = None
         self.info_queue: Optional[aio_pika.Queue] = None
 

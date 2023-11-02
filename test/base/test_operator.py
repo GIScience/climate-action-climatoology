@@ -1,9 +1,12 @@
 import uuid
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from semver import Version
 
 from climatoology.base.computation import ComputationScope
+from climatoology.base.operator import Info, Concern
 
 
 def test_operator_info(default_info):
@@ -20,6 +23,22 @@ def test_operator_info(default_info):
                                  'RomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoq'
                                  'OkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxE'
                                  'APwDwa5ubi5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z')
+
+
+def test_info_name():
+    with pytest.raises(ValidationError):
+        Info(
+            name='Test Plugin With $pecial Charact3ers',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            version=Version.parse('3.1.0'),
+            concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
+            purpose='The purpose of this base is to '
+                    'present basic library properties in '
+                    'terms of enforcing similar capabilities '
+                    'between Climate Action event components',
+            methodology='This is a test base',
+            sources=Path(__file__).parent.parent / 'resources/test.bib'
+        )
 
 
 def test_operator_typing(default_operator, default_computation_resources):

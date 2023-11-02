@@ -1,4 +1,5 @@
 import base64
+import re
 from abc import ABC, abstractmethod
 from enum import Enum
 from io import BytesIO
@@ -7,7 +8,7 @@ from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin
 
 import bibtexparser
 from PIL import Image
-from pydantic import BaseModel, field_validator, Extra, Field
+from pydantic import BaseModel, field_validator, Extra, Field, model_validator
 from semver import Version
 
 import climatoology
@@ -68,6 +69,9 @@ class Info(BaseModel, extra=Extra.forbid):
                                               'ID': 'smit54'
                                           }]],
                                           default=None)
+    plugin_id: Optional[str] = Field(description='Do not set! It will be overridden with the cleaned name.',
+                                     examples=['the_plugin_001'],
+                                     default=None)
     operator_schema: Optional[dict] = Field(description='Do not set! It will be overridden by the plugin with the '
                                                         'schematic description of the parameters necessary to '
                                                         'initiate a computation.',
@@ -89,7 +93,6 @@ class Info(BaseModel, extra=Extra.forbid):
                                  default=climatoology.__version__)
 
     @field_validator('version', mode='before')
-    @classmethod
     def _convert_version(cls, version: Any) -> str:
         if isinstance(version, Version):
             return str(version)
@@ -101,7 +104,6 @@ class Info(BaseModel, extra=Extra.forbid):
         image.verify()
 
     @field_validator('icon', mode='before')
-    @classmethod
     def _convert_icon(cls, icon: Any) -> str:
         if isinstance(icon, Path):
             Info._verify_icon(icon)
@@ -115,7 +117,6 @@ class Info(BaseModel, extra=Extra.forbid):
         return icon
 
     @field_validator('sources', mode='before')
-    @classmethod
     def _convert_bib(cls, sources: Any) -> dict:
         if isinstance(sources, Path):
             with open(sources, mode='r') as file:
@@ -123,11 +124,17 @@ class Info(BaseModel, extra=Extra.forbid):
         return sources
 
     @field_validator('concerns', mode='before')
-    @classmethod
     def _convert_concerns(cls, concerns: Any) -> List[Concern]:
         if isinstance(concerns, List):
             return [Concern(x) for x in concerns]
         return concerns
+
+    @model_validator(mode='after')
+    def create_id(self) -> 'Info':
+        assert len(re.findall('[^a-zA-Z_ ]', self.name)) == 0, ('Special characters and numbers are not allowed '
+                                                                'in the name.')
+        self.plugin_id = self.name.lower().replace(' ', '_')
+        return self
 
 
 T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
