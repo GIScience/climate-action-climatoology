@@ -55,17 +55,19 @@ def test_chart_check_data():
 
 
 def test_create_markdown_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='',
+    expected_artifact = Artifact(name=' ',
                                  modality=ArtifactModality.MARKDOWN,
                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.md'),
-                                 summary='',
-                                 description='')
+                                 summary=' ',
+                                 description=' ')
     expected_content = """# Header
 
     Content
     """
 
     generated_artifact = create_markdown_artifact(text=expected_content,
+                                                  name=' ',
+                                                  tl_dr=' ',
                                                   resources=default_computation_resources,
                                                   filename=general_uuid)
     with open(generated_artifact.file_path, 'r') as test_file:
@@ -80,7 +82,7 @@ def test_create_table_artifact(default_computation_resources, general_uuid):
                                  modality=ArtifactModality.TABLE,
                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.csv'),
                                  summary='Table caption',
-                                 description='')
+                                 description=' ')
     method_input = DataFrame(data=[('Data1', 2.5),
                                    ('Data2', np.nan)],
                              index=['Row1', 'Row2'],
@@ -93,6 +95,7 @@ Row2,Data2,
     generated_artifact = create_table_artifact(data=method_input,
                                                title='Test Table',
                                                caption='Table caption',
+                                               description=' ',
                                                resources=default_computation_resources,
                                                filename=general_uuid)
     with open(generated_artifact.file_path, 'r') as test_file:
@@ -107,7 +110,7 @@ def test_create_image_artifact(default_computation_resources, general_uuid):
                                  modality=ArtifactModality.IMAGE,
                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.png'),
                                  summary='Image caption',
-                                 description='')
+                                 description=' ')
     expected_content = Image.new(mode='RGB',
                                  size=(2, 2),
                                  color=(153, 153, 255))
@@ -115,7 +118,7 @@ def test_create_image_artifact(default_computation_resources, general_uuid):
     generated_artifact = create_image_artifact(image=expected_content,
                                                title='Test Image',
                                                caption='Image caption',
-                                               description='',
+                                               description=' ',
                                                resources=default_computation_resources,
                                                filename=general_uuid)
     generated_content = Image.open(generated_artifact.file_path,
@@ -131,7 +134,7 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
                                  modality=ArtifactModality.CHART,
                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
                                  summary='Chart caption',
-                                 description='')
+                                 description=' ')
     method_input = Chart2dData(x=[1, 2, 3],
                                y=[3, 2, 1],
                                chart_type=ChartType.SCATTER)
@@ -153,7 +156,7 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
     generated_artifact = create_chart_artifact(data=method_input,
                                                title='Test Chart',
                                                caption='Chart caption',
-                                               description='',
+                                               description=' ',
                                                resources=default_computation_resources,
                                                filename=general_uuid)
     with open(generated_artifact.file_path, 'r') as test_file:
@@ -169,7 +172,7 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
                                  file_path=Path(default_computation_resources.computation_dir /
                                                 f'{general_uuid}.geojson'),
                                  summary='Vector caption',
-                                 description='')
+                                 description=' ')
     method_input = GeoSeries(data=[Point(1, 1),
                                    Point(2, 2),
                                    Point(3, 3)],
@@ -250,7 +253,7 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
                                                  layer_name='Test Vector',
                                                  caption='Vector caption',
                                                  color=Color((255, 255, 255)),
-                                                 description='',
+                                                 description=' ',
                                                  resources=default_computation_resources,
                                                  filename=general_uuid)
     with open(generated_artifact.file_path, 'r') as test_file:
@@ -266,7 +269,7 @@ def test_create_geotiff_artifact(default_computation_resources, general_uuid):
                                  file_path=Path(default_computation_resources.computation_dir /
                                                 f'{general_uuid}.tiff'),
                                  summary='Raster caption',
-                                 description='')
+                                 description=' ')
     method_input = np.ones(shape=(2, 3, 4), dtype=float)
 
     generated_artifact = create_geotiff_artifact(method_input,
@@ -280,7 +283,7 @@ def test_create_geotiff_artifact(default_computation_resources, general_uuid):
                                                  colormap={1: (0, 255, 0)},
                                                  layer_name='Test Raster',
                                                  caption='Raster caption',
-                                                 description='',
+                                                 description=' ',
                                                  resources=default_computation_resources,
                                                  filename=general_uuid)
 
