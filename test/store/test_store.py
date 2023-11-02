@@ -38,8 +38,7 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
                                                                             'Summary': 'Test summary',
                                                                             'Description': 'Test description',
                                                                             'Correlation-UUID': general_uuid,
-                                                                            'Store-ID': store_id,
-                                                                            'Params': '{"test param key": "test param val"}'
+                                                                            'Store-ID': store_id
                                                                         })
 
 
@@ -50,8 +49,7 @@ def test_minio_save_all(mocked_client, general_uuid, default_artifact):
                                       file_path=Path('/tmp/text.txt'),
                                       summary='A test',
                                       description='A test file',
-                                      correlation_uuid=second_correlation_uuid,
-                                      params={})
+                                      correlation_uuid=second_correlation_uuid)
     mocked_client['minio_storage'].save_all([default_artifact, second_plugin_artifact])
     assert mocked_client['minio_client']().fput_object.call_count == 2
 

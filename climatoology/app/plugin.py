@@ -52,8 +52,7 @@ class PlatformPlugin:
             with ComputationScope(command.correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(resources, command.params)
                 plugin_artifacts = [Artifact(correlation_uuid=command.correlation_uuid,
-                                             params=command.params,
-                                             **artifact.model_dump(exclude={'correlation_uuid', 'params'}))
+                                             **artifact.model_dump(exclude={'correlation_uuid'}))
                                     for artifact in artifacts]
                 self.storage.save_all(plugin_artifacts)
 

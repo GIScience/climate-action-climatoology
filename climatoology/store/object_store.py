@@ -1,4 +1,3 @@
-import json
 import uuid
 from abc import abstractmethod, ABC
 from pathlib import Path
@@ -97,8 +96,7 @@ class MinioStorage(Storage):
                                     'Summary': artifact.summary,
                                     'Description': artifact.description,
                                     'Correlation-UUID': artifact.correlation_uuid,
-                                    'Store-ID': store_id,
-                                    'Params': json.dumps(artifact.params),
+                                    'Store-ID': store_id
                                 })
         return store_id
 
@@ -118,7 +116,6 @@ class MinioStorage(Storage):
             file_path = obj.metadata['X-Amz-Meta-Original-Filename']
             summary = obj.metadata['X-Amz-Meta-Summary']
             description = obj.metadata['X-Amz-Meta-Description']
-            params = json.loads(obj.metadata['X-Amz-Meta-Params'])
             store_id = obj.metadata['X-Amz-Meta-Store-Id']
             plugin_artifact = Artifact(name=name,
                                        modality=modality,
@@ -126,7 +123,6 @@ class MinioStorage(Storage):
                                        summary=summary,
                                        description=description,
                                        correlation_uuid=correlation_uuid,
-                                       params=params,
                                        store_id=store_id)
             artifacts.append(plugin_artifact)
 

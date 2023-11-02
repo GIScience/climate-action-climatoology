@@ -50,10 +50,6 @@ class Artifact(BaseModel):
     correlation_uuid: Optional[UUID] = Field(description='Do not set! The correlation UUID for this call. Will be '
                                                          'automatically set by the plugin.',
                                              default=None)
-    params: Optional[dict] = Field(description='Do not set! The parameters for this call. Will be automatically set '
-                                               'by the plugin.',
-                                   examples=[{'blueprint_bool': True}],
-                                   default=None)
     store_id: Optional[str] = Field(description='Do not set! This is the pointer to the file in the artifactory store. '
                                                 'Will be automatically set.',
                                     examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],

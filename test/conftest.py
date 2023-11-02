@@ -40,7 +40,6 @@ def default_artifact(general_uuid):
                     summary='Test summary',
                     description='Test description',
                     correlation_uuid=general_uuid,
-                    params={'test param key': 'test param val'},
                     store_id=f'{general_uuid}_test_file.tiff')
 
 
