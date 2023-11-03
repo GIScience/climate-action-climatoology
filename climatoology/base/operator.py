@@ -70,7 +70,7 @@ class Info(BaseModel, extra=Extra.forbid):
                                           }]],
                                           default=None)
     plugin_id: Optional[str] = Field(description='Do not set! It will be overridden with the cleaned name.',
-                                     examples=['the_plugin_001'],
+                                     examples=['the_plugin'],
                                      default=None)
     operator_schema: Optional[dict] = Field(description='Do not set! It will be overridden by the plugin with the '
                                                         'schematic description of the parameters necessary to '
@@ -131,9 +131,9 @@ class Info(BaseModel, extra=Extra.forbid):
 
     @model_validator(mode='after')
     def create_id(self) -> 'Info':
-        assert len(re.findall('[^a-zA-Z_ ]', self.name)) == 0, ('Special characters and numbers are not allowed '
+        assert len(re.findall('[^a-zA-Z- ]', self.name)) == 0, ('Special characters and numbers are not allowed '
                                                                 'in the name.')
-        self.plugin_id = self.name.lower().replace(' ', '_')
+        self.plugin_id, _ = re.subn('[- ]', '_', self.name.lower())
         return self
 
 

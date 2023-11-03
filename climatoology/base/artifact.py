@@ -70,8 +70,11 @@ class Chart2dData(BaseModel):
                                                                                            'y values. Only one of both '
                                                                                            'can be a nominal variable '
                                                                                            '(string). For Pie-Charts, '
-                                                                                           'this must be floats summing'
-                                                                                           ' up to 1.',
+                                                                                           'all values must be '
+                                                                                           'positive numbers. They '
+                                                                                           'will be interpreted as '
+                                                                                           'share, i.e. divided by '
+                                                                                           'the sum.',
                                                                                examples=[['first', 'second', 'third']])
     y: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(title='Y values',
                                                                                description='Data values on the Y axis. '
@@ -114,7 +117,9 @@ class Chart2dData(BaseModel):
     def check_data(self) -> 'Chart2dData':
         if self.chart_type == ChartType.PIE:
             assert isinstance(self.y[0], float), 'Pie-chart Y-Axis must be numeric.'
-            assert sum(self.y) == 1, 'Pie-chart y values must sum up to 1.'
+            assert all(val >= 0 for val in self.y), 'Pie-chart Y-Data must be all positive.'
+            y_sum = sum(self.y)
+            self.y = [val / y_sum for val in self.y]
         return self
 
     @field_serializer('color')

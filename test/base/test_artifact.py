@@ -48,9 +48,9 @@ def test_chart_check_data():
         Chart2dData(x=[1, 2],
                     y=['1', '2'],
                     chart_type=ChartType.PIE)
-    with pytest.raises(ValidationError, match='Pie-chart y values must sum up to 1.'):
-        Chart2dData(x=['1', '2'],
-                    y=[1, 2],
+    with pytest.raises(ValidationError, match='Pie-chart Y-Data must be all positive.'):
+        Chart2dData(x=[1, 2],
+                    y=[1, -2],
                     chart_type=ChartType.PIE)
 
 

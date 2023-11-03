@@ -32,13 +32,21 @@ def test_info_name():
             icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
             version=Version.parse('3.1.0'),
             concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
-            purpose='The purpose of this base is to '
-                    'present basic library properties in '
-                    'terms of enforcing similar capabilities '
-                    'between Climate Action event components',
+            purpose='No purpose',
             methodology='This is a test base',
             sources=Path(__file__).parent.parent / 'resources/test.bib'
         )
+
+    info = Info(
+        name='Test-Plugin with spaces',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        version=Version.parse('3.1.0'),
+        concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
+        purpose='No purpose',
+        methodology='This is a test base',
+        sources=Path(__file__).parent.parent / 'resources/test.bib'
+    )
+    assert info.plugin_id == 'test_plugin_with_spaces'
 
 
 def test_operator_typing(default_operator, default_computation_resources):
