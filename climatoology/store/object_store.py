@@ -86,18 +86,21 @@ class MinioStorage(Storage):
     def save(self, artifact: Artifact) -> str:
         store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
 
+        metadata = {
+            'Name': artifact.name,
+            'Modality': artifact.modality.name,
+            'Original-Filename': str(artifact.file_path.name),
+            'Summary': artifact.summary,
+            'Correlation-UUID': artifact.correlation_uuid,
+            'Store-ID': store_id
+        }
+        if artifact.description:
+            metadata['Description'] = artifact.description
+
         self.client.fput_object(bucket_name=self.__bucket,
                                 object_name=Storage.generate_object_name(artifact.correlation_uuid, store_id),
                                 file_path=str(artifact.file_path),
-                                metadata={
-                                    'Name': artifact.name,
-                                    'Modality': artifact.modality.name,
-                                    'Original-Filename': str(artifact.file_path.name),
-                                    'Summary': artifact.summary,
-                                    'Description': artifact.description,
-                                    'Correlation-UUID': artifact.correlation_uuid,
-                                    'Store-ID': store_id
-                                })
+                                metadata=metadata)
         return store_id
 
     def save_all(self, artifacts: List[Artifact]) -> List[str]:
@@ -115,7 +118,7 @@ class MinioStorage(Storage):
             modality = ArtifactModality(obj.metadata['X-Amz-Meta-Modality'])
             file_path = obj.metadata['X-Amz-Meta-Original-Filename']
             summary = obj.metadata['X-Amz-Meta-Summary']
-            description = obj.metadata['X-Amz-Meta-Description']
+            description = obj.metadata.get('X-Amz-Meta-Description')
             store_id = obj.metadata['X-Amz-Meta-Store-Id']
             plugin_artifact = Artifact(name=name,
                                        modality=modality,
@@ -129,7 +132,7 @@ class MinioStorage(Storage):
         return artifacts
 
     def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
-        file_path = self.__file_cache/store_id
+        file_path = self.__file_cache / store_id
         try:
             self.client.fget_object(bucket_name=self.__bucket,
                                     object_name=Storage.generate_object_name(correlation_uuid=correlation_uuid,

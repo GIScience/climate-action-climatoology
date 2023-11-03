@@ -43,10 +43,11 @@ class Artifact(BaseModel):
     summary: str = Field(description='A short description of the artifact that could be used in a caption.',
                          min_length=1,
                          examples=['This image shows A.'])
-    description: str = Field(description='A long description of the generated output that may help users better '
-                                         'understand the artifact.',
-                             min_length=1,
-                             examples=['This image shows A and was taken from B by C because of D.'])
+    description: Optional[str] = Field(description='A long description of the generated output that may help users '
+                                                   'better understand the artifact.',
+                                       min_length=1,
+                                       examples=['This image shows A and was taken from B by C because of D.'],
+                                       default=None)
     correlation_uuid: Optional[UUID] = Field(description='Do not set! The correlation UUID for this call. Will be '
                                                          'automatically set by the plugin.',
                                              default=None)
@@ -153,15 +154,14 @@ def create_markdown_artifact(text: str,
     return Artifact(name=name,
                     modality=ArtifactModality.MARKDOWN,
                     file_path=file_path,
-                    summary=tl_dr,
-                    description=' ')
+                    summary=tl_dr)
 
 
 def create_table_artifact(data: DataFrame,
                           title: str,
                           caption: str,
                           resources: ComputationResources,
-                          description: str,
+                          description: str = None,
                           filename: str = uuid.uuid4()) -> Artifact:
     """Create an artifact from a data frame.
 
@@ -194,8 +194,8 @@ def create_table_artifact(data: DataFrame,
 def create_image_artifact(image: Image,
                           title: str,
                           caption: str,
-                          description: str,
                           resources: ComputationResources,
+                          description: str = None,
                           filename: str = uuid.uuid4()) -> Artifact:
     """Create an artifact from a pillow image.
 
@@ -223,8 +223,8 @@ def create_image_artifact(image: Image,
 def create_chart_artifact(data: Chart2dData,
                           title: str,
                           caption: str,
-                          description: str,
                           resources: ComputationResources,
+                          description: str = None,
                           filename: str = uuid.uuid4()) -> Artifact:
     """Create a chart artifact.
 
@@ -256,8 +256,8 @@ def create_chart_artifact(data: Chart2dData,
 def create_geojson_artifact(features: GeoSeries,
                             layer_name: str,
                             caption: str,
-                            description: str,
                             resources: ComputationResources,
+                            description: str = None,
                             color: Union[List[Color], Color] = Color('#590d08'),
                             filename: str = uuid.uuid4()) -> Artifact:
     """Create a vector data artifact.
@@ -304,8 +304,8 @@ def create_geotiff_artifact(data: ArrayLike,
                             transformation: Affine,
                             layer_name: str,
                             caption: str,
-                            description: str,
                             resources: ComputationResources,
+                            description: str = None,
                             colormap: Optional[Dict[Number, Tuple[int, int, int]]] = None,
                             nodata: Number = 0,
                             filename: str = uuid.uuid4()) -> Artifact:
