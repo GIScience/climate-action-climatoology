@@ -40,13 +40,13 @@ class PlatformPlugin:
         self.info_queue: Optional[aio_pika.Queue] = None
 
     async def __compute_callback(self, message: AbstractIncomingMessage):
-        command = ComputeCommand.model_validate_json(message.body)
-        log.debug(f'Acquired compute request ({command.correlation_uuid})')
-
-        await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                                status=ComputeCommandStatus.IN_PROGRESS)
-
         try:
+            command = ComputeCommand.model_validate_json(message.body)
+            log.debug(f'Acquired compute request ({command.correlation_uuid})')
+
+            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                                    status=ComputeCommandStatus.IN_PROGRESS)
+
             tic = time.perf_counter()
 
             with ComputationScope(command.correlation_uuid) as resources:
@@ -62,6 +62,10 @@ class PlatformPlugin:
                                                     status=ComputeCommandStatus.COMPLETED,
                                                     message=f'Took {toc - tic:0.4f} seconds')
         except (ValueError, ValidationError) as e:
+            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
+                                                    status=ComputeCommandStatus.FAILED__WRONG_INPUT,
+                                                    message=str(e))
+        except Exception as e:
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.FAILED,
                                                     message=str(e))

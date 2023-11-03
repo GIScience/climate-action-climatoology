@@ -15,6 +15,7 @@ class ComputeCommandStatus(Enum):
     IN_PROGRESS = 'in-progress'
     COMPLETED = 'completed'
     FAILED = 'failed'
+    FAILED__WRONG_INPUT = 'wrong-input'
 
 
 class ComputeCommandResult(BaseModel):

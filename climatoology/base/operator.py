@@ -70,7 +70,7 @@ class Info(BaseModel, extra=Extra.forbid):
                                           }]],
                                           default=None)
     plugin_id: Optional[str] = Field(description='Do not set! It will be overridden with the cleaned name.',
-                                     examples=['the_plugin'],
+                                     examples=['the_plugin_001'],
                                      default=None)
     operator_schema: Optional[dict] = Field(description='Do not set! It will be overridden by the plugin with the '
                                                         'schematic description of the parameters necessary to '
