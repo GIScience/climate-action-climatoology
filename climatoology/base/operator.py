@@ -8,7 +8,7 @@ from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin
 
 import bibtexparser
 from PIL import Image
-from pydantic import BaseModel, field_validator, Extra, Field, model_validator
+from pydantic import BaseModel, field_validator, Field, model_validator
 from semver import Version
 
 import climatoology
@@ -25,7 +25,7 @@ class Concern(Enum):
     SUSTAINABILITY__WASTE = 'waste'
 
 
-class Info(BaseModel, extra=Extra.forbid):
+class Info(BaseModel, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
     name: str = Field(description='A short and concise name that can be used in the UI.',

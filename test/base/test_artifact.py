@@ -8,7 +8,7 @@ from affine import Affine
 from geopandas import GeoSeries
 from pandas import DataFrame
 from pydantic import ValidationError
-from pydantic.color import Color
+from pydantic_extra_types.color import Color
 from rasterio import CRS
 from shapely import Point
 
@@ -37,7 +37,7 @@ def test_chart_check_type():
     except ValidationError:
         pytest.fail('String and Number should be allowed')
 
-    with pytest.raises(ValidationError, match='Only one dimension can be nominal \(a str\).'):
+    with pytest.raises(ValidationError, match=r'Only one dimension can be nominal \(a str\).'):
         Chart2dData(x=['1', '2'],
                     y=['1', '2'],
                     chart_type=ChartType.SCATTER)
