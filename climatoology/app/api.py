@@ -182,7 +182,7 @@ async def subscribe_compute_status(websocket: WebSocket, correlation_uuid: UUID 
             await queue.consume(subscribe_callback)
 
             while True:
-                await asyncio.wait_for(websocket.receive_bytes(), timeout=10.0)
+                await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
 
         except ChannelClosed as e:
             raise WebSocketException(code=1003) from e
