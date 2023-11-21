@@ -16,6 +16,7 @@ from cache import AsyncTTL
 from fastapi import APIRouter, FastAPI, WebSocket, HTTPException
 from fastapi.responses import FileResponse
 from hydra import compose
+from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocketDisconnect
 
 from climatoology.base.artifact import Artifact
@@ -28,6 +29,11 @@ from climatoology.utility.exception import InfoNotReceivedException
 config_dir = os.getenv('API_GATEWAY_APP_CONFIG_DIR', str(Path('conf').absolute()))
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class CorrelationIdObject:
+    correlation_uuid: UUID
 
 
 @asynccontextmanager
@@ -152,7 +158,7 @@ async def get_plugin(plugin_id: str) -> Info:
              summary='Schedule a computation task on a plugin.',
              description='The parameters depend on the chosen plugin. '
                          'Their input schema can be requested from the /plugin GET methods.')
-async def plugin_compute(plugin_id: str, params: dict) -> UUID:
+async def plugin_compute(plugin_id: str, params: dict) -> CorrelationIdObject:
     correlation_uuid = uuid.uuid4()
     try:
         await app.state.broker.send_compute(plugin_id, params, correlation_uuid)
@@ -162,7 +168,7 @@ async def plugin_compute(plugin_id: str, params: dict) -> UUID:
         raise HTTPException(status_code=404, detail='The plugin is not online.') from e
     await app.state.broker.publish_status_update(correlation_uuid=correlation_uuid,
                                                  status=ComputeCommandStatus.SCHEDULED)
-    return correlation_uuid
+    return CorrelationIdObject(correlation_uuid)
 
 
 @computation.websocket(path='/')
