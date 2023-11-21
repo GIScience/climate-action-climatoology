@@ -77,7 +77,7 @@ class AsyncRabbitMQ(Broker):
                 return await connection.channel()
 
         self.connection_pool: Pool = Pool(get_connection, max_size=self.connection_pool_max_size, loop=self.loop)
-        self.channel_pool: Pool = Pool(get_channel, max_size=self.channel_pool_max_size, loop=self.loop)
+        self.channel_pool: Pool = Pool(get_channel, loop=self.loop)
 
     def __await__(self):
         return self.async_init().__await__()

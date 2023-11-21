@@ -13,9 +13,10 @@ import uvicorn
 from aio_pika import ExchangeType
 from aiormq import ChannelClosed, ChannelNotFoundEntity
 from cache import AsyncTTL
-from fastapi import APIRouter, FastAPI, WebSocket, HTTPException, WebSocketException
+from fastapi import APIRouter, FastAPI, WebSocket, HTTPException
 from fastapi.responses import FileResponse
 from hydra import compose
+from starlette.websockets import WebSocketDisconnect
 
 from climatoology.base.artifact import Artifact
 from climatoology.base.event import ComputeCommandStatus, ComputeCommandResult
@@ -178,16 +179,18 @@ async def subscribe_compute_status(websocket: WebSocket, correlation_uuid: UUID 
             exchange = await channel.declare_exchange(app.state.broker.get_status_exchange(), ExchangeType.FANOUT)
             queue = await channel.declare_queue(exclusive=True)
             await queue.bind(exchange)
-
             await queue.consume(subscribe_callback)
+            log.info(f'Websocket {queue.name} interaction has been started')
 
             while True:
                 await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
 
-        except ChannelClosed as e:
-            raise WebSocketException(code=1003) from e
-        except TimeoutError as e:
-            raise WebSocketException(code=1003) from e
+        except (TimeoutError, WebSocketDisconnect):
+            log.info(f'Websocket {queue.name} interaction has been finished')
+        except ChannelClosed:
+            log.exception(f'Websocket {queue.name} interaction has been abruptly finished')
+        finally:
+            await queue.delete(if_unused=False, if_empty=False)
 
 
 @store.get(path='/{correlation_uuid}',
