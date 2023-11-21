@@ -167,30 +167,32 @@ async def plugin_compute(plugin_id: str, params: dict) -> UUID:
 
 @computation.websocket(path='/')
 async def subscribe_compute_status(websocket: WebSocket, correlation_uuid: UUID = None) -> None:
-    async with app.state.broker.channel_pool.acquire() as channel:
-        await websocket.accept()
+    async with app.state.broker.connection_pool.acquire() as connection:
+        async with connection.channel() as channel:
 
-        async def subscribe_callback(message):
-            status = ComputeCommandResult.model_validate_json(message.body.decode())
-            if not correlation_uuid or status.correlation_uuid == correlation_uuid:
-                await websocket.send_json(status.model_dump_json())
+            await websocket.accept()
 
-        try:
-            exchange = await channel.declare_exchange(app.state.broker.get_status_exchange(), ExchangeType.FANOUT)
-            queue = await channel.declare_queue(exclusive=True)
-            await queue.bind(exchange)
-            await queue.consume(subscribe_callback)
-            log.info(f'Websocket {queue.name} interaction has been started')
+            async def subscribe_callback(message):
+                status = ComputeCommandResult.model_validate_json(message.body.decode())
+                if not correlation_uuid or status.correlation_uuid == correlation_uuid:
+                    await websocket.send_json(status.model_dump_json())
 
-            while True:
-                await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+            try:
+                exchange = await channel.declare_exchange(app.state.broker.get_status_exchange(), ExchangeType.FANOUT)
+                queue = await channel.declare_queue(exclusive=True)
+                await queue.bind(exchange)
+                await queue.consume(subscribe_callback)
+                log.info(f'Websocket {queue.name} interaction has been started')
 
-        except (TimeoutError, WebSocketDisconnect):
-            log.info(f'Websocket {queue.name} interaction has been finished')
-        except ChannelClosed:
-            log.exception(f'Websocket {queue.name} interaction has been abruptly finished')
-        finally:
-            await queue.delete(if_unused=False, if_empty=False)
+                while True:
+                    await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+
+            except (TimeoutError, WebSocketDisconnect):
+                log.info(f'Websocket {queue.name} interaction has been finished')
+            except ChannelClosed:
+                log.exception(f'Websocket {queue.name} interaction has been abruptly finished')
+            finally:
+                await queue.delete(if_unused=False, if_empty=False)
 
 
 @store.get(path='/{correlation_uuid}',

@@ -55,29 +55,21 @@ class AsyncRabbitMQ(Broker):
                  port: int,
                  user: str,
                  password: str,
-                 connection_pool_max_size: int = 2,
-                 channel_pool_max_size: int = 10):
+                 connection_pool_max_size: int = 2):
         super().__init__()
         self.host = host
         self.port = port
         self.user = user
         self.password = password
         self.connection_pool_max_size = connection_pool_max_size
-        self.channel_pool_max_size = channel_pool_max_size
         self.loop = asyncio.get_event_loop()
         self.connection_pool: Optional[Pool] = None
-        self.channel_pool: Optional[Pool] = None
 
     async def async_init(self):
         async def get_connection():
             return await aio_pika.connect(host=self.host, port=self.port, login=self.user, password=self.password)
 
-        async def get_channel():
-            async with self.connection_pool.acquire() as connection:
-                return await connection.channel()
-
         self.connection_pool: Pool = Pool(get_connection, max_size=self.connection_pool_max_size, loop=self.loop)
-        self.channel_pool: Pool = Pool(get_channel, loop=self.loop)
 
     def __await__(self):
         return self.async_init().__await__()
@@ -89,41 +81,44 @@ class AsyncRabbitMQ(Broker):
                                                message=message,
                                                timestamp=datetime.now())
         body = compute_command.model_dump_json().encode()
-        async with self.channel_pool.acquire() as channel:
-            exchange = await channel.declare_exchange(self.get_status_exchange(), type=ExchangeType.FANOUT)
-            await exchange.publish(routing_key='', message=aio_pika.Message(body=body))
+        async with self.connection_pool.acquire() as connection:
+            async with connection.channel() as channel:
+                exchange = await channel.declare_exchange(self.get_status_exchange(), type=ExchangeType.FANOUT)
+                await exchange.publish(routing_key='', message=aio_pika.Message(body=body))
 
     async def request_info(self, plugin_id: str, ttl: int = 3) -> Info:
         info_call_corr_uuid = uuid.uuid4()
-        async with self.channel_pool.acquire() as channel:
-            await channel.set_qos(prefetch_count=1)
+        async with self.connection_pool.acquire() as connection:
+            async with connection.channel() as channel:
+                await channel.set_qos(prefetch_count=1)
 
-            callback_queue = await channel.declare_queue(exclusive=True, auto_delete=True)
+                callback_queue = await channel.declare_queue(exclusive=True, auto_delete=True)
 
-            info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
-            await channel.default_exchange.publish(
-                message=aio_pika.Message(body=info_command_body.model_dump_json().encode(),
-                                         reply_to=callback_queue.name),
-                routing_key=self.get_info_queue(plugin_id=plugin_id))
+                info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
+                await channel.default_exchange.publish(
+                    message=aio_pika.Message(body=info_command_body.model_dump_json().encode(),
+                                             reply_to=callback_queue.name),
+                    routing_key=self.get_info_queue(plugin_id=plugin_id))
 
-            try:
-                async with callback_queue.iterator(timeout=ttl) as queue_iter:
-                    async for message in queue_iter:
-                        async with message.process():
-                            response = json.loads(message.body)
-                            return Info(**response)
-            except TimeoutError as e:
-                raise InfoNotReceivedException(
-                    f'The info request ({info_call_corr_uuid}) did not respond within the time '
-                    f'limit of {ttl} seconds.') from e
+                try:
+                    async with callback_queue.iterator(timeout=ttl) as queue_iter:
+                        async for message in queue_iter:
+                            async with message.process():
+                                response = json.loads(message.body)
+                                return Info(**response)
+                except TimeoutError as e:
+                    raise InfoNotReceivedException(
+                        f'The info request ({info_call_corr_uuid}) did not respond within the time '
+                        f'limit of {ttl} seconds.') from e
 
     async def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
-        async with self.channel_pool.acquire() as channel:
-            await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
+        async with self.connection_pool.acquire() as connection:
+            async with connection.channel() as channel:
+                await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
 
-            command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
-            await channel.default_exchange.publish(aio_pika.Message(body=command.model_dump_json().encode()),
-                                                   routing_key=self.get_compute_queue(plugin_id))
+                command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
+                await channel.default_exchange.publish(aio_pika.Message(body=command.model_dump_json().encode()),
+                                                       routing_key=self.get_compute_queue(plugin_id))
 
 
 class RabbitMQManagementAPI:

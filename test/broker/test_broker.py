@@ -10,39 +10,53 @@ from climatoology.broker.message_broker import AsyncRabbitMQ
 
 
 @pytest.fixture()
-def connection():
-    mocked_pool = AsyncMock()
+def broker():
+    mock = AsyncMock()
+    mock.acquire = AsyncMock()
 
-    class ChannelPool(AsyncIterable):
+    class MockIter(AsyncIterable):
+
+        def __init__(self, *args, **kwargs):
+            self.call_count = 0
 
         def __aiter__(self) -> AsyncIterator:
             return self
 
         async def __anext__(self):
+            if self.call_count == 0:
+                self.call_count = + 1
+                return mock
             raise StopAsyncIteration()
 
-        @staticmethod
-        def acquire():
-            return mocked_pool
+        def acquire(self):
+            return mock
+
+        def channel(self):
+            return mock
+
+    @asynccontextmanager
+    def ctx():
+        return MockIter()
 
     broker = AsyncRabbitMQ(host='rabbitmq.test.org',
                            port=9999,
                            user='user',
                            password='password')
-    broker.channel_pool = ChannelPool
+    mock.acquire = ctx
+    mock.channel = ctx
 
-    yield {
-        'mocked_pool': mocked_pool,
-        'broker': broker
-    }
+    broker.connection_pool = mock
+
+    yield broker
 
 
 @pytest.mark.asyncio
-async def test_publish_status_update(connection):
-    await connection['broker'].publish_status_update(uuid.uuid4(), ComputeCommandStatus.COMPLETED, 'success')
-    channel = await connection['mocked_pool'].__aenter__()
-    exchange = await channel.declare_exchange()
-    exchange.publish.assert_called_once()
+async def test_publish_status_update(broker):
+    async with broker.connection_pool.acquire() as connection:
+        async with connection.channel() as channel:
+            await broker.publish_status_update(uuid.uuid4(), ComputeCommandStatus.COMPLETED, 'success')
+            exchange = await channel.declare_exchange()
+            exchange.publish.assert_called_once()
 
 
 def iterator(body: str):
@@ -73,20 +87,21 @@ def iterator(body: str):
 
 
 @pytest.mark.asyncio
-async def test_request_info(connection, default_info):
-    channel = await connection['mocked_pool'].__aenter__()
+async def test_request_info(broker, default_info):
+    async with broker.connection_pool.acquire() as connection:
+        async with connection.channel() as channel:
+            queue_mock = AsyncMock()
+            queue_mock.iterator = iterator(default_info.model_dump_json())
+            channel.declare_queue.return_value = queue_mock
 
-    queue_mock = AsyncMock()
-    queue_mock.iterator = iterator(default_info.model_dump_json())
-    channel.declare_queue.return_value = queue_mock
-
-    info = await connection['broker'].request_info(plugin_id='test_plugin')
-    assert info == default_info
+            info = await broker.request_info(plugin_id='test_plugin')
+            assert info == default_info
 
 
 @pytest.mark.asyncio
-async def test_send_compute(connection):
-    await connection['broker'].send_compute(plugin_id='test_plugin', params={}, correlation_uuid=uuid.uuid4())
-    channel = await connection['mocked_pool'].__aenter__()
-    mocked_exchange = channel.default_exchange
-    mocked_exchange.publish.assert_called_once()
+async def test_send_compute(broker):
+    async with broker.connection_pool.acquire() as connection:
+        async with connection.channel() as channel:
+            await broker.send_compute(plugin_id='test_plugin', params={}, correlation_uuid=uuid.uuid4())
+            mocked_exchange = channel.default_exchange
+            mocked_exchange.publish.assert_called_once()
