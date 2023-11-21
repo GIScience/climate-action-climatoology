@@ -3,6 +3,7 @@ from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime
+from enum import Enum
 from io import BytesIO
 from typing import Tuple, List, ContextManager, Optional
 
@@ -18,6 +19,14 @@ from urllib3 import Retry
 from climatoology.utility.exception import PlatformUtilityException
 
 log = logging.getLogger(__name__)
+
+
+class FusionMode(Enum):
+    ONLY_MODEL = 'only_model'
+    ONLY_OSM = 'only_osm'
+    FAVOUR_OSM = 'favour_osm'
+    FAVOUR_MODEL = 'favour_model'
+    MEAN_MIXIN = 'mean_mixin'
 
 
 @dataclass
@@ -36,7 +45,9 @@ class LULCWorkUnit:
         examples=['2023-05-01'],
         default=None)
     end_date: str = Field(description='Upper bound (inclusive) of remote sensing imagery acquisition date (UTC).'
-                                      "Defaults to today's date",
+                                      "Defaults to today's date"
+                                      'In case `fusion_mode` has been declared to value different than `only_model`'
+                                      'the `end_date` will also be used to acquire OSM data',
                           examples=['2023-06-01'],
                           default=str(datetime.now().strftime('%Y-%m-%d')))
     threshold: float = Field(
@@ -46,6 +57,16 @@ class LULCWorkUnit:
         examples=[0.75],
         ge=0.0,
         le=1.0)
+    fusion_mode: FusionMode = Field(description='Enables merging model results with OSM data: '
+                                                '`only_model` - no fusion with OSM will take place, '
+                                                '`only_osm` - displays OSM output only, '
+                                                '`favour_model` - OSM will be used to fill in regions considered as '
+                                                '"unknown" for the model, '
+                                                '`favour_osm` - model results will be used to fill in empty OSM data, '
+                                                '`mean_mixin` - model and OSM will simultaneously contribute to '
+                                                'overall classification',
+                                    default=FusionMode.ONLY_MODEL,
+                                    examples=[FusionMode.ONLY_MODEL])
 
 
 class PlatformHttpUtility(ABC):
