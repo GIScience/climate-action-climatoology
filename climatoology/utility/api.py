@@ -9,8 +9,7 @@ from typing import Tuple, List, ContextManager, Optional
 
 import rasterio as rio
 import requests
-from pydantic import Field
-from pydantic.dataclasses import dataclass
+from pydantic import Field, BaseModel
 from rasterio.merge import merge
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
@@ -29,8 +28,7 @@ class FusionMode(Enum):
     MEAN_MIXIN = 'mean_mixin'
 
 
-@dataclass
-class LULCWorkUnit:
+class LULCWorkUnit(BaseModel):
     area_coords: Tuple[float, float, float, float] = Field(
         description='Bounding box coordinates in WGS 84 (left, bottom, right, top)',
         examples=[[12.304687500000002,
@@ -92,7 +90,7 @@ class LulcUtilityUtility(PlatformHttpUtility):
 
     def __fetch_data(self, unit: LULCWorkUnit) -> rio.DatasetReader:
         try:
-            response = self.session.post(f'{self.base_url}{self.root_url}segment/', json=unit.__dict__)
+            response = self.session.post(f'{self.base_url}{self.root_url}segment/', data=unit.model_dump_json())
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityException('Connection to utility cannot be established') from e
