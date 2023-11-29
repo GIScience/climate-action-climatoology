@@ -135,10 +135,14 @@ class RabbitMQManagementAPI:
         self.api_url = api_url
         self.user = user
         self.password = password
+        # Test connection
+        _ = self.get_active_plugins()
 
     def get_active_plugins(self) -> List[str]:
         url = f'{self.api_url}/api/queues'
+
         response = requests.get(url, auth=(self.user, self.password))
+        response.raise_for_status()
 
         suffix = f'{QUEUE_SEPARATOR}{INFO_QUEUE}'
         plugins = [x['name'].removesuffix(suffix) for x in response.json() if suffix in x['name']]

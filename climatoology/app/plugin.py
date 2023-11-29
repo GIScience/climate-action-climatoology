@@ -44,6 +44,14 @@ class PlatformPlugin:
     async def __compute_callback(self, message: AbstractIncomingMessage):
         try:
             command = ComputeCommand.model_validate_json(message.body)
+        except Exception as e:
+            logging.exception(f'Failed to parse compute message {message.correlation_id} with content '
+                              f'{message.body}', exc_info=e)
+            return
+        finally:
+            await message.ack()
+
+        try:
             log.debug(f'Acquired compute request ({command.correlation_uuid})')
             log.debug(f'Computing with parameters {command.params}')
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
@@ -74,8 +82,8 @@ class PlatformPlugin:
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.FAILED,
                                                     message=str(e))
-
-        await message.ack()
+        finally:
+            await message.ack()
 
     async def __info_callback(self, message):
         command: InfoCommand = InfoCommand.model_validate_json(message.body)
