@@ -1,3 +1,4 @@
+import logging
 import uuid
 from abc import abstractmethod, ABC
 from pathlib import Path
@@ -7,6 +8,8 @@ from uuid import UUID
 from minio import Minio, S3Error
 
 from climatoology.base.artifact import ArtifactModality, Artifact
+
+log = logging.getLogger(__name__)
 
 
 class Storage(ABC):
@@ -78,6 +81,7 @@ class MinioStorage(Storage):
         self.client = Minio(endpoint=f'{host}:{port}', access_key=access_key, secret_key=secret_key, secure=secure)
 
         if not self.client.bucket_exists(bucket):
+            log.info(f'Bucket {bucket} does not exist. Creating it.')
             self.client.make_bucket(bucket)
 
         self.__bucket = bucket
@@ -85,6 +89,7 @@ class MinioStorage(Storage):
 
     def save(self, artifact: Artifact) -> str:
         store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
+        log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} at {store_id}')
 
         metadata = {
             'Name': artifact.name,
@@ -128,15 +133,18 @@ class MinioStorage(Storage):
                                        correlation_uuid=correlation_uuid,
                                        store_id=store_id)
             artifacts.append(plugin_artifact)
+        log.debug(f'Found {len(artifacts)} artifacts for correlation_uuid {correlation_uuid}')
 
         return artifacts
 
     def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
         file_path = self.__file_cache / store_id
         try:
+            object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid,
+                                                       store_id=store_id)
+            log.debug(f'Download{object_name} from bucket {self.__bucket} to {file_path}')
             self.client.fget_object(bucket_name=self.__bucket,
-                                    object_name=Storage.generate_object_name(correlation_uuid=correlation_uuid,
-                                                                             store_id=store_id),
+                                    object_name=object_name,
                                     file_path=file_path)
         except S3Error as e:
             if e.code == 'NoSuchKey':

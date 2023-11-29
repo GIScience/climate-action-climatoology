@@ -39,11 +39,13 @@ class PlatformPlugin:
         self.compute_queue: Optional[aio_pika.Queue] = None
         self.info_queue: Optional[aio_pika.Queue] = None
 
+        log.info(f'Plugin {plugin_id} initialised')
+
     async def __compute_callback(self, message: AbstractIncomingMessage):
         try:
             command = ComputeCommand.model_validate_json(message.body)
             log.debug(f'Acquired compute request ({command.correlation_uuid})')
-
+            log.debug(f'Computing with parameters {command.params}')
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.IN_PROGRESS)
 
@@ -61,11 +63,14 @@ class PlatformPlugin:
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.COMPLETED,
                                                     message=f'Took {toc - tic:0.4f} seconds')
+            log.debug(f'{command.correlation_uuid} successfully computed')
         except (ValueError, ValidationError) as e:
+            log.warning(f'Input validation failed for correlation id {command.correlation_uuid}', exc_info=e)
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.FAILED__WRONG_INPUT,
                                                     message=str(e))
         except Exception as e:
+            log.warning(f'Computation failed for correlation id {command.correlation_uuid}', exc_info=e)
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.FAILED,
                                                     message=str(e))

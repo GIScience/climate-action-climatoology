@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from enum import Enum
 from numbers import Number
@@ -18,6 +19,8 @@ from rasterio import CRS
 from rasterio.profiles import DefaultGTiffProfile
 
 from climatoology.base.computation import ComputationResources
+
+log = logging.getLogger(__name__)
 
 
 class ArtifactModality(Enum):
@@ -148,13 +151,18 @@ def create_markdown_artifact(text: str,
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.md'
+    log.debug(f'Writing markdown file {file_path}')
+
     with open(file_path, 'x') as out_file:
         out_file.write(text)
 
-    return Artifact(name=name,
-                    modality=ArtifactModality.MARKDOWN,
-                    file_path=file_path,
-                    summary=tl_dr)
+    result = Artifact(name=name,
+                      modality=ArtifactModality.MARKDOWN,
+                      file_path=file_path,
+                      summary=tl_dr)
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result
 
 
 def create_table_artifact(data: DataFrame,
@@ -176,6 +184,7 @@ def create_table_artifact(data: DataFrame,
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.csv'
+    log.debug(f'Writing table {file_path}')
 
     data = data.reset_index()
     data.to_csv(file_path,
@@ -184,11 +193,14 @@ def create_table_artifact(data: DataFrame,
                 index_label=False,
                 mode='x')
 
-    return Artifact(name=title,
-                    modality=ArtifactModality.TABLE,
-                    file_path=file_path,
-                    summary=caption,
-                    description=description)
+    result = Artifact(name=title,
+                      modality=ArtifactModality.TABLE,
+                      file_path=file_path,
+                      summary=caption,
+                      description=description)
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result
 
 
 def create_image_artifact(image: Image,
@@ -210,14 +222,20 @@ def create_image_artifact(image: Image,
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.png'
+    log.debug(f'Writing image {file_path}')
+
     image.save(file_path,
                format='PNG',
                optimize=True)
-    return Artifact(name=title,
-                    modality=ArtifactModality.IMAGE,
-                    file_path=file_path,
-                    summary=caption,
-                    description=description)
+
+    result = Artifact(name=title,
+                      modality=ArtifactModality.IMAGE,
+                      file_path=file_path,
+                      summary=caption,
+                      description=description)
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result
 
 
 def create_chart_artifact(data: Chart2dData,
@@ -239,6 +257,7 @@ def create_chart_artifact(data: Chart2dData,
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.json'
+    log.debug(f'Writing chart {file_path}')
 
     with open(file_path, 'x') as out_file:
         chart_data = data.model_dump(mode='json')
@@ -246,11 +265,14 @@ def create_chart_artifact(data: Chart2dData,
                   out_file,
                   indent=4)
 
-    return Artifact(name=title,
-                    modality=ArtifactModality.CHART,
-                    file_path=file_path,
-                    summary=caption,
-                    description=description)
+    result = Artifact(name=title,
+                      modality=ArtifactModality.CHART,
+                      file_path=file_path,
+                      summary=caption,
+                      description=description)
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result
 
 
 def create_geojson_artifact(features: GeoSeries,
@@ -275,6 +297,7 @@ def create_geojson_artifact(features: GeoSeries,
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.geojson'
+    log.debug(f'Writing vector dataset {file_path}')
 
     if not isinstance(color, List):
         color = [color] * features.size
@@ -292,11 +315,14 @@ def create_geojson_artifact(features: GeoSeries,
                                indent=4)
         out_file.write(json_str)
 
-    return Artifact(name=layer_name,
-                    modality=ArtifactModality.MAP_LAYER_GEOJSON,
-                    file_path=file_path,
-                    summary=caption,
-                    description=description)
+    result = Artifact(name=layer_name,
+                      modality=ArtifactModality.MAP_LAYER_GEOJSON,
+                      file_path=file_path,
+                      summary=caption,
+                      description=description)
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result
 
 
 def create_geotiff_artifact(data: ArrayLike,
@@ -327,6 +353,7 @@ def create_geotiff_artifact(data: ArrayLike,
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.tiff'
+    log.debug(f'Writing raster dataset {file_path}')
 
     if data.ndim == 2:
         height = data.shape[0]
@@ -354,8 +381,12 @@ def create_geotiff_artifact(data: ArrayLike,
         out_map_file.write(data)
         if colormap:
             out_map_file.write_colormap(1, colormap)
-    return Artifact(name=layer_name,
-                    modality=ArtifactModality.MAP_LAYER_GEOTIFF,
-                    file_path=file_path,
-                    summary=caption,
-                    description=description)
+
+    result = Artifact(name=layer_name,
+                      modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+                      file_path=file_path,
+                      summary=caption,
+                      description=description)
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result

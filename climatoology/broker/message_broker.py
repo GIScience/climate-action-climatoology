@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -14,6 +15,8 @@ from aio_pika.pool import Pool
 from climatoology.base.event import InfoCommand, ComputeCommand, ComputeCommandStatus, ComputeCommandResult
 from climatoology.base.operator import Info
 from climatoology.utility.exception import InfoNotReceivedException
+
+log = logging.getLogger(__name__)
 
 QUEUE_SEPARATOR = '_'
 STATUS_EXCHANGE = 'notify'
@@ -76,6 +79,7 @@ class AsyncRabbitMQ(Broker):
 
     async def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus,
                                     message: str = None) -> None:
+        log.debug(f'Sending compute update for {correlation_uuid}: {status.name} - {message}.')
         compute_command = ComputeCommandResult(correlation_uuid=correlation_uuid,
                                                status=status,
                                                message=message,
@@ -87,6 +91,7 @@ class AsyncRabbitMQ(Broker):
                 await exchange.publish(routing_key='', message=aio_pika.Message(body=body))
 
     async def request_info(self, plugin_id: str, ttl: int = 3) -> Info:
+        log.debug(f"Requesting 'info' from {plugin_id}.")
         info_call_corr_uuid = uuid.uuid4()
         async with self.connection_pool.acquire() as connection:
             async with connection.channel() as channel:
@@ -112,6 +117,7 @@ class AsyncRabbitMQ(Broker):
                         f'limit of {ttl} seconds.') from e
 
     async def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
+        log.debug(f"Requesting 'compute' from {plugin_id} under {correlation_uuid}.")
         async with self.connection_pool.acquire() as connection:
             async with connection.channel() as channel:
                 await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
@@ -135,5 +141,6 @@ class RabbitMQManagementAPI:
         response = requests.get(url, auth=(self.user, self.password))
 
         suffix = f'{QUEUE_SEPARATOR}{INFO_QUEUE}'
-        queues = [x['name'] for x in response.json() if suffix in x['name']]
-        return [x.removesuffix(suffix) for x in queues]
+        plugins = [x['name'].removesuffix(suffix) for x in response.json() if suffix in x['name']]
+        log.debug(f'Active plugins: {plugins}.')
+        return plugins

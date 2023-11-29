@@ -101,6 +101,7 @@ docker image push heigit/ca-api-gateway:devel
 | FILE_CACHE                 | location where files are temporarily stored    |
 | API_GATEWAY_APP_CONFIG_DIR | The directory holding configuration files      |
 | API_GATEWAY_API_PORT       | The port, the api should start under           |
+| LOG_LEVEL                  | The api logging level                          |
 
 ## Contributing
 

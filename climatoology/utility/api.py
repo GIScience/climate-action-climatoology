@@ -90,7 +90,9 @@ class LulcUtilityUtility(PlatformHttpUtility):
 
     def __fetch_data(self, unit: LULCWorkUnit) -> rio.DatasetReader:
         try:
-            response = self.session.post(f'{self.base_url}{self.root_url}segment/', data=unit.model_dump_json())
+            url = f'{self.base_url}{self.root_url}segment/'
+            log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')
+            response = self.session.post(url=url, data=unit.model_dump_json())
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityException('Connection to utility cannot be established') from e
@@ -122,6 +124,7 @@ class LulcUtilityUtility(PlatformHttpUtility):
                 first_colormap = slices[0].colormap(1)
 
             with rio.MemoryFile() as memfile:
+                log.debug('Creating LULC file.')
                 with memfile.open(
                         driver='GTiff',
                         height=mosaic.shape[1], width=mosaic.shape[2],
@@ -140,4 +143,5 @@ class LulcUtilityUtility(PlatformHttpUtility):
                     del slices
 
                 with memfile.open() as dataset:
+                    log.debug('Serving LULC classification')
                     yield dataset

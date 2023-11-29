@@ -1,5 +1,5 @@
 import asyncio
-import logging
+import logging.config
 import os
 import uuid
 from asyncio.exceptions import TimeoutError
@@ -10,6 +10,7 @@ from uuid import UUID
 
 import hydra
 import uvicorn
+import yaml
 from aio_pika import ExchangeType
 from aiormq import ChannelClosed, ChannelNotFoundEntity
 from cache import AsyncTTL
@@ -28,6 +29,8 @@ from climatoology.utility.exception import InfoNotReceivedException
 
 config_dir = os.getenv('API_GATEWAY_APP_CONFIG_DIR', str(Path('conf').absolute()))
 
+log_level = os.getenv('LOG_LEVEL', 'INFO')
+log_config = f'{config_dir}/logging/app/logging.yaml'
 log = logging.getLogger(__name__)
 
 
@@ -38,6 +41,8 @@ class CorrelationIdObject:
 
 @asynccontextmanager
 async def configure_dependencies(app: FastAPI):
+    log.debug('configure dependencies')
+
     hydra.initialize_config_dir(config_dir=config_dir, version_base=None)
     cfg = compose(config_name='config')
 
@@ -58,6 +63,8 @@ async def configure_dependencies(app: FastAPI):
     app.state.broker_management_api = RabbitMQManagementAPI(api_url=cfg.broker.api_url,
                                                             user=cfg.broker.user,
                                                             password=cfg.broker.password)
+
+    log.debug('dependencies configured')
     yield
 
 
@@ -229,8 +236,14 @@ app.include_router(computation)
 app.include_router(store)
 
 if __name__ == '__main__':
+    logging.basicConfig(level=log_level.upper())
+    with open(log_config) as file:
+        logging.config.dictConfig(yaml.safe_load(file))
+    log.info('Starting API-gateway')
+
     uvicorn.run(app,
                 host='0.0.0.0',
                 port=int(os.getenv('API_GATEWAY_API_PORT', 8000)),
                 root_path=os.getenv('ROOT_PATH', '/'),
-                log_config=f'{config_dir}/logging/app/logging.yaml')
+                log_config=log_config,
+                log_level=log_level.lower())

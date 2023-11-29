@@ -6,9 +6,7 @@ formatters:
 handlers:
   console:
     class: logging.StreamHandler
-    level: INFO
     formatter: timestamped
     stream: ext://sys.stdout
 root:
-  level: INFO
   handlers: [console]

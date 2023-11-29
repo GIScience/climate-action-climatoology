@@ -1,4 +1,5 @@
 import base64
+import logging
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -14,6 +15,8 @@ from semver import Version
 import climatoology
 from climatoology.base.artifact import Artifact
 from climatoology.base.computation import ComputationResources
+
+log = logging.getLogger(__name__)
 
 
 class Concern(Enum):
@@ -169,6 +172,7 @@ class Operator(ABC, Generic[T_co]):
                 cls._model = type_arg
                 return
         assert cls._model, 'Could not initialise the compute input type model. Did you properly subtype your operator?'
+        log.debug('Operator initialised')
 
     @final
     def info_enriched(self) -> Info:
@@ -178,6 +182,7 @@ class Operator(ABC, Generic[T_co]):
         """
         info = self.info()
         info.operator_schema = self._model.model_json_schema()
+        log.debug(f'{info.name} info constructed')
         return info
 
     @abstractmethod
@@ -200,6 +205,7 @@ class Operator(ABC, Generic[T_co]):
         """
 
         validate_params = self._model(**params)
+        logging.debug(f'Compute parameters of correlation_uuid {resources.correlation_uuid} validated')
         return self.compute(resources, validate_params)
 
     @abstractmethod
