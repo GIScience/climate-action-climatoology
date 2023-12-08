@@ -30,7 +30,7 @@ The following set of utilities is currently available. In addition, you may use 
 ### LULC classification
 
 This utility can generate LULC classifications for arbitrary areas.
-It is exposed via the [`LulcUtilityOperator`](climatoology/utility/api.py).
+It is exposed via the [`LulcUtility`](climatoology/utility/api.py).
 For a full documentation of the functionality see [the respective repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/lulc-utility).
 
 ## Operator Creation

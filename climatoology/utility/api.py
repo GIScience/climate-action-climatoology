@@ -69,8 +69,9 @@ class LULCWorkUnit(BaseModel):
 
 class PlatformHttpUtility(ABC):
 
-    def __init__(self, host: str, port: int, max_retries=5):
-        self.base_url = f'http://{host}:{port}'
+    def __init__(self, host: str, port: int, path: str, max_retries: int = 5):
+        assert path[0] == path[-1] == '/', 'The path must start and end with a /'
+        self.base_url = f'http://{host}:{port}{path}'
 
         retries = Retry(total=max_retries,
                         backoff_factor=0.1,
@@ -81,16 +82,24 @@ class PlatformHttpUtility(ABC):
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
 
-class LulcUtilityUtility(PlatformHttpUtility):
+class LulcUtility(PlatformHttpUtility):
 
-    def __init__(self, host='localhost', port=4000, max_workers=2, max_retries=5, root_url='/'):
-        super().__init__(host, port, max_retries)
+    def __init__(self, host: str, port: int, path: str, max_workers: int = 2, max_retries: int = 5):
+        """A wrapper class around the LULC Utility API.
+
+        :param host: api host
+        :param port: api port
+        :param path: api path
+        :param max_workers: maximum number of threads to spawn for parallel requests
+        :param max_retries: number of retires before giving up during connection startup
+        """
+        super().__init__(host, port, path, max_retries)
+
         self.max_workers = max_workers
-        self.root_url = root_url
 
     def __fetch_data(self, unit: LULCWorkUnit) -> rio.DatasetReader:
         try:
-            url = f'{self.base_url}{self.root_url}segment/'
+            url = f'{self.base_url}segment/'
             log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')
             response = self.session.post(url=url, data=unit.model_dump_json())
             response.raise_for_status()

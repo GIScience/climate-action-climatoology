@@ -6,7 +6,7 @@ import rasterio
 from rasterio.coords import BoundingBox
 from requests import Response
 
-from climatoology.utility.api import LulcUtilityUtility, LULCWorkUnit
+from climatoology.utility.api import LulcUtility, LULCWorkUnit
 from climatoology.utility.exception import PlatformUtilityException
 
 
@@ -26,7 +26,7 @@ unit_b = LULCWorkUnit(area_coords=(8.0859375, 47.63578359086485, 8.26171875, 47.
 
 
 def test_lulc_when_passing_zero_units():
-    operator = LulcUtilityUtility()
+    operator = LulcUtility(host='localhost', port=80, path='/')
     with pytest.raises(AssertionError):
         with operator.compute_raster([]):
             pass
@@ -39,7 +39,7 @@ def test_lulc_when_passing_single_unit(mocked_client):
         response.content = raster.read()
 
         mocked_client.return_value = response
-        operator = LulcUtilityUtility()
+        operator = LulcUtility(host='localhost', port=80, path='/')
 
     with operator.compute_raster([unit_a]) as raster:
         assert raster.shape == (1304, 1336)
@@ -59,7 +59,7 @@ def test_lulc_when_passing_multiple_units(mocked_client):
         response_b.content = raster_b.read()
 
         mocked_client.side_effect = [response_a, response_b]
-        operator = LulcUtilityUtility()
+        operator = LulcUtility(host='localhost', port=80, path='/')
 
     with operator.compute_raster([unit_a, unit_b]) as raster:
         assert raster.shape == (2605, 1336)
@@ -74,7 +74,7 @@ def test_lulc_when_encountering_connection_issues(mocked_client):
 
     mocked_client.return_value = response
 
-    operator = LulcUtilityUtility()
+    operator = LulcUtility(host='localhost', port=80, path='/')
     with pytest.raises(PlatformUtilityException):
         with operator.compute_raster([unit_a]):
             pass
