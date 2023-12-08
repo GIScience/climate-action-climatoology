@@ -22,7 +22,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from climatoology.base.artifact import Artifact
 from climatoology.base.event import ComputeCommandStatus, ComputeCommandResult
-from climatoology.base.operator import Info
+from climatoology.base.operator import Info, Concern
 from climatoology.broker.message_broker import AsyncRabbitMQ, RabbitMQManagementAPI
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.exception import InfoNotReceivedException
@@ -37,6 +37,11 @@ log = logging.getLogger(__name__)
 @dataclass
 class CorrelationIdObject:
     correlation_uuid: UUID
+
+
+@dataclass
+class Concerns:
+    items: set[str]
 
 
 @asynccontextmanager
@@ -69,6 +74,7 @@ async def configure_dependencies(app: FastAPI):
 
 
 health = APIRouter(prefix='/health')
+metadata = APIRouter(prefix='/metadata', tags=['metadata'])
 plugin = APIRouter(prefix='/plugin', tags=['plugin'])
 computation = APIRouter(prefix='/computation', tags=['computation'])
 store = APIRouter(prefix='/store', tags=['store'])
@@ -230,7 +236,15 @@ def fetch_artifact(correlation_uuid: UUID, store_id: str) -> FileResponse:
     return FileResponse(path=file_path)
 
 
+@metadata.get(path='/concerns',
+              summary='Retrieve a list of concerns.',
+              description='Concerns are tag-like descriptions of plugin topics.')
+def get_concerns() -> Concerns:
+    return Concerns({c.value for c in Concern})
+
+
 app.include_router(health)
+app.include_router(metadata)
 app.include_router(plugin)
 app.include_router(computation)
 app.include_router(store)
