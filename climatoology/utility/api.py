@@ -134,15 +134,13 @@ class LulcUtility(PlatformHttpUtility):
 
             with rio.MemoryFile() as memfile:
                 log.debug('Creating LULC file.')
-                with memfile.open(
-                        driver='GTiff',
-                        height=mosaic.shape[1], width=mosaic.shape[2],
-                        transform=transform,
-                        count=1,
-                        dtype=rio.dtypes.uint8,
-                        crs=rio.CRS.from_string('EPSG:4326'),
-                        nodata=None
-                ) as m:
+
+                write_profile = slices[0].profile
+                write_profile['transform'] = transform
+                write_profile['height'] = mosaic.shape[1]
+                write_profile['width'] = mosaic.shape[2]
+
+                with memfile.open(**write_profile) as m:
                     pbar.set_description(f'Writing mosaic {mosaic.shape}')
 
                     m.write(mosaic)
