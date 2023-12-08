@@ -81,6 +81,19 @@ class PlatformHttpUtility(ABC):
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
+        assert self.health(), 'Utility startup failed: the API is not reachable.'
+
+    def health(self) -> bool:
+        try:
+            url = f'{self.base_url}health/'
+            response = self.session.get(url=url)
+            response.raise_for_status()
+            assert response.json().get('status') == 'ok'
+        except Exception as e:
+            logging.error('LULC utility not reachable', exc_info=e)
+            return False
+        return True
+
 
 class LulcUtility(PlatformHttpUtility):
 
@@ -101,7 +114,7 @@ class LulcUtility(PlatformHttpUtility):
         try:
             url = f'{self.base_url}segment/'
             log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')
-            response = self.session.post(url=url, data=unit.model_dump_json())
+            response = self.session.post(url=url, json=unit.model_dump(mode='json'))
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityException('Connection to utility cannot be established') from e

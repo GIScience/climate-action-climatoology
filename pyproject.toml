@@ -39,6 +39,7 @@ pydantic-extra-types = "^2.1.0"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.1"
 pytest_asyncio = "^0.21.1"
+responses = "^0.24.1"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.4.0"
