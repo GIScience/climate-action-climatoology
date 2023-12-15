@@ -2,8 +2,11 @@ unit_tests:
   stage: test
   image:
     name: python:3.11.5
+  variables:
+    PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
   cache:
     paths:
+      - $PRE_COMMIT_HOME
       - .venv
   before_script:
     - pip install poetry
@@ -11,6 +14,7 @@ unit_tests:
     - poetry install
     - source `poetry env info --path`/bin/activate
   script:
+    - poetry run pre-commit run --all-files
     - poetry run pytest
 
 docker_build_deploy:

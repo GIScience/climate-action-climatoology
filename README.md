@@ -105,7 +105,7 @@ docker image push heigit/ca-api-gateway:devel
 
 ## Contributing
 
-This Package uses [poetry](https://python-poetry.org/) for environment management. Run `poetry install --with test` to create the environment. Don't forget to run `pre-commit install` to activate the specified [pre-commit](https://pre-commit.com/) hooks.
+This Package uses [poetry](https://python-poetry.org/) for environment management. Run `poetry install --with test` to create the environment. Don't forget to run `poetry run pre-commit install` to activate the specified [pre-commit](https://pre-commit.com/) hooks.
 
 ---
 <img src="docs/logo.png"  width="40%">
