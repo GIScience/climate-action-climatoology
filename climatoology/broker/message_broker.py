@@ -25,29 +25,61 @@ COMPUTE_QUEUE: str = 'compute'
 
 
 class Broker(ABC):
+    """A message broker class that holds connections and provides access to an underlying message broker framework."""
 
     @staticmethod
-    def get_status_exchange():
+    def get_status_exchange() -> str:
+        """Retrieve the status exchange channel name.
+
+        :return: Status exchange channel name
+        """
         return STATUS_EXCHANGE
 
     @staticmethod
-    def get_compute_queue(plugin_id: str):
+    def get_compute_queue(plugin_id: str) -> str:
+        """Get the compute queue name for a specific plugin.
+
+        :param plugin_id: The plugin id
+        :return: The compute queue name for that plugin
+        """
         return f'{plugin_id}{QUEUE_SEPARATOR}{COMPUTE_QUEUE}'
 
     @staticmethod
-    def get_info_queue(plugin_id: str):
+    def get_info_queue(plugin_id: str) -> str:
+        """Get the info queue name for a specific plugin.
+
+        :param plugin_id: The plugin id
+        :return: The info queue name for that plugin
+        """
         return f'{plugin_id}{QUEUE_SEPARATOR}{INFO_QUEUE}'
 
     @abstractmethod
     def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus, message: str = None) -> None:
+        """Push a compute status update to the broker.
+
+        :param correlation_uuid: The correlation uuid of the computation
+        :param status: The new status
+        :param message: An optional message to be added to the status
+        """
         pass
 
     @abstractmethod
     def request_info(self, plugin_id: str) -> Info:
+        """Get an info object from a plugin.
+
+        :param plugin_id: The plugin to inquire info from
+        :return: Information on the plugin
+        """
         pass
 
     @abstractmethod
-    def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
+    def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID) -> None:
+        """Trigger a computation.
+
+        :param plugin_id: The target plugin
+        :param params: The computation configuration parameters
+        :param correlation_uuid: The computations' correlation uuid
+        """
         pass
 
 
@@ -128,6 +160,8 @@ class AsyncRabbitMQ(Broker):
 
 
 class RabbitMQManagementAPI:
+    """An interface class for the RabbitMQ management API."""
+
     def __init__(self,
                  api_url: str,
                  user: str,
@@ -139,6 +173,10 @@ class RabbitMQManagementAPI:
         _ = self.get_active_plugins()
 
     def get_active_plugins(self) -> List[str]:
+        """Retrieve a list of active plugins.
+
+        :return: List of plugin ids
+        """
         url = f'{self.api_url}/api/queues'
 
         response = requests.get(url, auth=(self.user, self.password))

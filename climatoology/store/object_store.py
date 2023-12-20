@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class Storage(ABC):
+    """A file storage wrapper class."""
 
     @staticmethod
     def generate_object_name(correlation_uuid: UUID, store_id: str) -> str:

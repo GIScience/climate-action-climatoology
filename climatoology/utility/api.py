@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 
 
 class FusionMode(Enum):
+    """Available LULC Utility fusion modes."""
     ONLY_MODEL = 'only_model'
     ONLY_OSM = 'only_osm'
     FAVOUR_OSM = 'favour_osm'
@@ -29,6 +30,7 @@ class FusionMode(Enum):
 
 
 class LULCWorkUnit(BaseModel):
+    """LULC area of interest."""
     area_coords: Tuple[float, float, float, float] = Field(
         description='Bounding box coordinates in WGS 84 (left, bottom, right, top)',
         examples=[[12.304687500000002,
