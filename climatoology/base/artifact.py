@@ -228,6 +228,8 @@ def create_image_artifact(image: Image,
     file_path = resources.computation_dir / f'{filename}.png'
     log.debug(f'Writing image {file_path}')
 
+    assert image.mode in ('1', 'L', 'LA', 'I', 'P', 'RGB', 'RGBA'), f'Image mode {image.mode} not supported.'
+
     image.save(file_path,
                format='PNG',
                optimize=True)
