@@ -7,7 +7,7 @@ import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
 from pydantic import ValidationError
 
-from climatoology.base.artifact import Artifact
+from climatoology.base.artifact import _Artifact
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
 from climatoology.base.operator import Operator
@@ -61,8 +61,8 @@ class PlatformPlugin:
 
             with ComputationScope(command.correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(resources, command.params)
-                plugin_artifacts = [Artifact(correlation_uuid=command.correlation_uuid,
-                                             **artifact.model_dump(exclude={'correlation_uuid'}))
+                plugin_artifacts = [_Artifact(correlation_uuid=command.correlation_uuid,
+                                              **artifact.model_dump(exclude={'correlation_uuid'}))
                                     for artifact in artifacts]
                 self.storage.save_all(plugin_artifacts)
 

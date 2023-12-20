@@ -20,7 +20,7 @@ from hydra import compose
 from pydantic.dataclasses import dataclass
 from starlette.websockets import WebSocketDisconnect
 
-from climatoology.base.artifact import Artifact
+from climatoology.base.artifact import _Artifact
 from climatoology.base.event import ComputeCommandStatus, ComputeCommandResult
 from climatoology.base.operator import Info, Concern
 from climatoology.broker.message_broker import AsyncRabbitMQ, RabbitMQManagementAPI
@@ -219,7 +219,7 @@ async def subscribe_compute_status(websocket: WebSocket, correlation_uuid: UUID 
            description='Note that this list may be emtpy if the computation has not been started '
                        'or is not yet completed. '
                        'To receive actual content you need to use the store uuid returned.')
-def list_artifacts(correlation_uuid: UUID) -> List[Artifact]:
+def list_artifacts(correlation_uuid: UUID) -> List[_Artifact]:
     return app.state.storage.list_all(correlation_uuid=correlation_uuid)
 
 

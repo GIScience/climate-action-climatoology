@@ -12,7 +12,7 @@ from pydantic_extra_types.color import Color
 from rasterio import CRS
 from shapely import Point
 
-from climatoology.base.artifact import create_markdown_artifact, Artifact, ArtifactModality, create_table_artifact, \
+from climatoology.base.artifact import create_markdown_artifact, _Artifact, ArtifactModality, create_table_artifact, \
     create_image_artifact, create_chart_artifact, Chart2dData, ChartType, create_geojson_artifact, \
     create_geotiff_artifact
 
@@ -55,10 +55,10 @@ def test_chart_check_data():
 
 
 def test_create_markdown_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='-',
-                                 modality=ArtifactModality.MARKDOWN,
-                                 file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.md'),
-                                 summary='-')
+    expected_artifact = _Artifact(name='-',
+                                  modality=ArtifactModality.MARKDOWN,
+                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.md'),
+                                  summary='-')
     expected_content = """# Header
 
     Content
@@ -77,10 +77,10 @@ def test_create_markdown_artifact(default_computation_resources, general_uuid):
 
 
 def test_create_table_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='Test Table',
-                                 modality=ArtifactModality.TABLE,
-                                 file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.csv'),
-                                 summary='Table caption')
+    expected_artifact = _Artifact(name='Test Table',
+                                  modality=ArtifactModality.TABLE,
+                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.csv'),
+                                  summary='Table caption')
     method_input = DataFrame(data=[('Data1', 2.5),
                                    ('Data2', np.nan)],
                              index=['Row1', 'Row2'],
@@ -103,11 +103,11 @@ Row2,Data2,
 
 
 def test_create_image_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='Test Image',
-                                 modality=ArtifactModality.IMAGE,
-                                 file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.png'),
-                                 summary='Image caption',
-                                 description='Nice graphic')
+    expected_artifact = _Artifact(name='Test Image',
+                                  modality=ArtifactModality.IMAGE,
+                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.png'),
+                                  summary='Image caption',
+                                  description='Nice graphic')
     expected_content = Image.new(mode='RGB',
                                  size=(2, 2),
                                  color=(153, 153, 255))
@@ -127,10 +127,10 @@ def test_create_image_artifact(default_computation_resources, general_uuid):
 
 
 def test_create_chart_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='Test Chart',
-                                 modality=ArtifactModality.CHART,
-                                 file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
-                                 summary='Chart caption')
+    expected_artifact = _Artifact(name='Test Chart',
+                                  modality=ArtifactModality.CHART,
+                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+                                  summary='Chart caption')
     method_input = Chart2dData(x=[1, 2, 3],
                                y=[3, 2, 1],
                                chart_type=ChartType.SCATTER)
@@ -162,11 +162,11 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
 
 
 def test_create_geojson_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='Test Vector',
-                                 modality=ArtifactModality.MAP_LAYER_GEOJSON,
-                                 file_path=Path(default_computation_resources.computation_dir /
+    expected_artifact = _Artifact(name='Test Vector',
+                                  modality=ArtifactModality.MAP_LAYER_GEOJSON,
+                                  file_path=Path(default_computation_resources.computation_dir /
                                                 f'{general_uuid}.geojson'),
-                                 summary='Vector caption')
+                                  summary='Vector caption')
     method_input = GeoSeries(data=[Point(1, 1),
                                    Point(2, 2),
                                    Point(3, 3)],
@@ -257,11 +257,11 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
 
 
 def test_create_geotiff_artifact(default_computation_resources, general_uuid):
-    expected_artifact = Artifact(name='Test Raster',
-                                 modality=ArtifactModality.MAP_LAYER_GEOTIFF,
-                                 file_path=Path(default_computation_resources.computation_dir /
+    expected_artifact = _Artifact(name='Test Raster',
+                                  modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+                                  file_path=Path(default_computation_resources.computation_dir /
                                                 f'{general_uuid}.tiff'),
-                                 summary='Raster caption')
+                                  summary='Raster caption')
     method_input = np.ones(shape=(2, 3, 4), dtype=float)
 
     generated_artifact = create_geotiff_artifact(method_input,

@@ -13,7 +13,7 @@ from pydantic import BaseModel, field_validator, Field, model_validator
 from semver import Version
 
 import climatoology
-from climatoology.base.artifact import Artifact
+from climatoology.base.artifact import _Artifact
 from climatoology.base.computation import ComputationResources
 
 log = logging.getLogger(__name__)
@@ -194,7 +194,7 @@ class Operator(ABC, Generic[T_co]):
         pass
 
     @final
-    def compute_unsafe(self, resources: ComputationResources, params: Dict) -> List[Artifact]:
+    def compute_unsafe(self, resources: ComputationResources, params: Dict) -> List[_Artifact]:
         """
         Translated the incoming parameters to a declared pydantic model,
         validates input and runs the compute procedure.
@@ -209,7 +209,7 @@ class Operator(ABC, Generic[T_co]):
         return self.compute(resources, validate_params)
 
     @abstractmethod
-    def compute(self, resources: ComputationResources, params: T_co) -> List[Artifact]:
+    def compute(self, resources: ComputationResources, params: T_co) -> List[_Artifact]:
         """Generate an operator-specific report.
 
         A report is made up of a set of artifacts that can be displayed by a client.

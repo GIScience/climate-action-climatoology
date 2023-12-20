@@ -5,7 +5,7 @@ from unittest.mock import patch
 import minio.datatypes
 import pytest
 
-from climatoology.base.artifact import ArtifactModality, Artifact
+from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.store.object_store import MinioStorage
 
 
@@ -44,12 +44,12 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
 
 def test_minio_save_all(mocked_client, general_uuid, default_artifact):
     second_correlation_uuid = uuid.uuid4()
-    second_plugin_artifact = Artifact(name='test',
-                                      modality=ArtifactModality.MARKDOWN,
-                                      file_path=Path('/tmp/text.txt'),
-                                      summary='A test',
-                                      description='A test file',
-                                      correlation_uuid=second_correlation_uuid)
+    second_plugin_artifact = _Artifact(name='test',
+                                       modality=ArtifactModality.MARKDOWN,
+                                       file_path=Path('/tmp/text.txt'),
+                                       summary='A test',
+                                       description='A test file',
+                                       correlation_uuid=second_correlation_uuid)
     mocked_client['minio_storage'].save_all([default_artifact, second_plugin_artifact])
     assert mocked_client['minio_client']().fput_object.call_count == 2
 

@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel
 from semver import Version
 
-from climatoology.base.artifact import ArtifactModality, Artifact
+from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.operator import Info, Concern, Operator
 
@@ -34,13 +34,13 @@ def default_info() -> Info:
 
 @pytest.fixture
 def default_artifact(general_uuid):
-    return Artifact(name='test_name',
-                    modality=ArtifactModality.MAP_LAYER_GEOJSON,
-                    file_path=Path(__file__).parent / 'test_file.tiff',
-                    summary='Test summary',
-                    description='Test description',
-                    correlation_uuid=general_uuid,
-                    store_id=f'{general_uuid}_test_file.tiff')
+    return _Artifact(name='test_name',
+                     modality=ArtifactModality.MAP_LAYER_GEOJSON,
+                     file_path=Path(__file__).parent / 'test_file.tiff',
+                     summary='Test summary',
+                     description='Test description',
+                     correlation_uuid=general_uuid,
+                     store_id=f'{general_uuid}_test_file.tiff')
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def default_operator():
         def info(self) -> Info:
             pass
 
-        def compute(self, resources: ComputationResources, params: TestModel) -> List[Artifact]:
+        def compute(self, resources: ComputationResources, params: TestModel) -> List[_Artifact]:
             pass
 
     yield TestOperator()

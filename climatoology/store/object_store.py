@@ -7,7 +7,7 @@ from uuid import UUID
 
 from minio import Minio, S3Error
 
-from climatoology.base.artifact import ArtifactModality, Artifact
+from climatoology.base.artifact import ArtifactModality, _Artifact
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class Storage(ABC):
         return f'{correlation_uuid}/{store_id}'
 
     @abstractmethod
-    def save(self, artifact: Artifact) -> str:
+    def save(self, artifact: _Artifact) -> str:
         """Save a single artifact in the object store.
 
         :param artifact: Operators' report creation process result
@@ -29,7 +29,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def save_all(self, artifacts: List[Artifact]) -> List[str]:
+    def save_all(self, artifacts: List[_Artifact]) -> List[str]:
         """Save multiple artifacts in the object store.
 
         :param artifacts: Operators' report creation process results
@@ -38,7 +38,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def list_all(self, correlation_uuid: UUID) -> List[Artifact]:
+    def list_all(self, correlation_uuid: UUID) -> List[_Artifact]:
         """
         Acquire all artifacts created under a single correlator
         :param correlation_uuid: platform action correlator
@@ -88,7 +88,7 @@ class MinioStorage(Storage):
         self.__bucket = bucket
         self.__file_cache = file_cache
 
-    def save(self, artifact: Artifact) -> str:
+    def save(self, artifact: _Artifact) -> str:
         store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} at {store_id}')
 
@@ -109,10 +109,10 @@ class MinioStorage(Storage):
                                 metadata=metadata)
         return store_id
 
-    def save_all(self, artifacts: List[Artifact]) -> List[str]:
+    def save_all(self, artifacts: List[_Artifact]) -> List[str]:
         return [self.save(artifact) for artifact in artifacts]
 
-    def list_all(self, correlation_uuid: UUID) -> List[Artifact]:
+    def list_all(self, correlation_uuid: UUID) -> List[_Artifact]:
         artifacts = []
 
         objects = self.client.list_objects(bucket_name=self.__bucket,
@@ -126,13 +126,13 @@ class MinioStorage(Storage):
             summary = obj.metadata['X-Amz-Meta-Summary']
             description = obj.metadata.get('X-Amz-Meta-Description')
             store_id = obj.metadata['X-Amz-Meta-Store-Id']
-            plugin_artifact = Artifact(name=name,
-                                       modality=modality,
-                                       file_path=file_path,
-                                       summary=summary,
-                                       description=description,
-                                       correlation_uuid=correlation_uuid,
-                                       store_id=store_id)
+            plugin_artifact = _Artifact(name=name,
+                                        modality=modality,
+                                        file_path=file_path,
+                                        summary=summary,
+                                        description=description,
+                                        correlation_uuid=correlation_uuid,
+                                        store_id=store_id)
             artifacts.append(plugin_artifact)
         log.debug(f'Found {len(artifacts)} artifacts for correlation_uuid {correlation_uuid}')
 
