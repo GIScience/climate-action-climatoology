@@ -1,6 +1,6 @@
-FROM python:3.11.5-bookworm as builder
+FROM python:3.11.5-bookworm
 
-RUN pip install --no-cache-dir poetry==1.6.1
+RUN pip install --no-cache-dir poetry==1.7.1
 
 COPY pyproject.toml poetry.lock ./
 
