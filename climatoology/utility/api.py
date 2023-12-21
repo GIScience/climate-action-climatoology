@@ -29,7 +29,7 @@ class FusionMode(Enum):
     MEAN_MIXIN = 'mean_mixin'
 
 
-class LULCWorkUnit(BaseModel):
+class LulcWorkUnit(BaseModel):
     """LULC area of interest."""
     area_coords: Tuple[float, float, float, float] = Field(
         description='Bounding box coordinates in WGS 84 (left, bottom, right, top)',
@@ -112,7 +112,7 @@ class LulcUtility(PlatformHttpUtility):
 
         self.max_workers = max_workers
 
-    def __fetch_data(self, unit: LULCWorkUnit) -> rio.DatasetReader:
+    def __fetch_data(self, unit: LulcWorkUnit) -> rio.DatasetReader:
         try:
             url = f'{self.base_url}segment/'
             log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')
@@ -126,7 +126,7 @@ class LulcUtility(PlatformHttpUtility):
             return rio.open(BytesIO(response.content), mode='r')
 
     @contextmanager
-    def compute_raster(self, units: List[LULCWorkUnit]) -> ContextManager[rio.DatasetReader]:
+    def compute_raster(self, units: List[LulcWorkUnit]) -> ContextManager[rio.DatasetReader]:
         """Generate a remote sensing-based LULC classification.
 
         :param units: Areas of interest

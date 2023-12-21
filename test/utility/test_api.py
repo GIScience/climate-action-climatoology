@@ -7,7 +7,7 @@ from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
 
-from climatoology.utility.api import LulcUtility, LULCWorkUnit
+from climatoology.utility.api import LulcUtility, LulcWorkUnit
 from climatoology.utility.exception import PlatformUtilityException
 
 
@@ -19,11 +19,11 @@ def mocked_client():
         yield rsps
 
 
-unit_a = LULCWorkUnit(area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
+unit_a = LulcWorkUnit(area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
                       start_date='2023-05-01',
                       end_date='2023-06-01')
 
-unit_b = LULCWorkUnit(area_coords=(8.0859375, 47.63578359086485, 8.26171875, 47.754097979680026),
+unit_b = LulcWorkUnit(area_coords=(8.0859375, 47.63578359086485, 8.26171875, 47.754097979680026),
                       start_date='2023-05-01',
                       end_date='2023-06-01')
 
