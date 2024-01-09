@@ -312,6 +312,8 @@ def create_geojson_artifact(features: GeoSeries,
 
     assert features.crs, 'CRS must be set.'
 
+    features = features.reset_index(drop=True)
+
     gdf = GeoDataFrame({'color': color},
                        geometry=features)
 

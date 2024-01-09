@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 import rasterio
 from PIL import Image
@@ -129,7 +130,8 @@ def test_create_image_artifact(default_computation_resources, general_uuid):
 def test_create_chart_artifact(default_computation_resources, general_uuid):
     expected_artifact = _Artifact(name='Test Chart',
                                   modality=ArtifactModality.CHART,
-                                  file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+                                  file_path=Path(
+                                      default_computation_resources.computation_dir / f'{general_uuid}.json'),
                                   summary='Chart caption')
     method_input = Chart2dData(x=[1, 2, 3],
                                y=[3, 2, 1],
@@ -161,17 +163,7 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
     assert generated_content == expected_content
 
 
-def test_create_geojson_artifact(default_computation_resources, general_uuid):
-    expected_artifact = _Artifact(name='Test Vector',
-                                  modality=ArtifactModality.MAP_LAYER_GEOJSON,
-                                  file_path=Path(default_computation_resources.computation_dir /
-                                                f'{general_uuid}.geojson'),
-                                  summary='Vector caption')
-    method_input = GeoSeries(data=[Point(1, 1),
-                                   Point(2, 2),
-                                   Point(3, 3)],
-                             crs='EPSG:4326')
-    expected_content = """{
+EXPECTED_GEOJSON = """{
     "type": "FeatureCollection",
     "features": [
         {
@@ -243,6 +235,18 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
     ]
 }"""
 
+
+def test_create_geojson_artifact(default_computation_resources, general_uuid):
+    expected_artifact = _Artifact(name='Test Vector',
+                                  modality=ArtifactModality.MAP_LAYER_GEOJSON,
+                                  file_path=Path(default_computation_resources.computation_dir /
+                                                 f'{general_uuid}.geojson'),
+                                  summary='Vector caption')
+    method_input = GeoSeries(data=[Point(1, 1),
+                                   Point(2, 2),
+                                   Point(3, 3)],
+                             crs='EPSG:4326')
+
     generated_artifact = create_geojson_artifact(method_input,
                                                  layer_name='Test Vector',
                                                  caption='Vector caption',
@@ -253,14 +257,44 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
         generated_content = test_file.read()
 
     assert generated_artifact == expected_artifact
-    assert generated_content == expected_content
+    assert generated_content == EXPECTED_GEOJSON
+
+
+def test_create_geojson_artifact_multiindex(default_computation_resources, general_uuid):
+    expected_artifact = _Artifact(name='Test Vector',
+                                  modality=ArtifactModality.MAP_LAYER_GEOJSON,
+                                  file_path=Path(default_computation_resources.computation_dir /
+                                                 f'{general_uuid}.geojson'),
+                                  summary='Vector caption')
+
+    index = pd.MultiIndex.from_tuples([('bar', 'one'),
+                                       ('bar', 'two'),
+                                       ('baz', 'one')],
+                                      names=['first', 'second'])
+    method_input = GeoSeries(data=[Point(1, 1),
+                                   Point(2, 2),
+                                   Point(3, 3)],
+                             crs='EPSG:4326',
+                             index=index)
+
+    generated_artifact = create_geojson_artifact(method_input,
+                                                 layer_name='Test Vector',
+                                                 caption='Vector caption',
+                                                 color=Color((255, 255, 255)),
+                                                 resources=default_computation_resources,
+                                                 filename=general_uuid)
+    with open(generated_artifact.file_path, 'r') as test_file:
+        generated_content = test_file.read()
+
+    assert generated_artifact == expected_artifact
+    assert generated_content == EXPECTED_GEOJSON
 
 
 def test_create_geotiff_artifact(default_computation_resources, general_uuid):
     expected_artifact = _Artifact(name='Test Raster',
                                   modality=ArtifactModality.MAP_LAYER_GEOTIFF,
                                   file_path=Path(default_computation_resources.computation_dir /
-                                                f'{general_uuid}.tiff'),
+                                                 f'{general_uuid}.tiff'),
                                   summary='Raster caption')
     method_input = np.ones(shape=(2, 3, 4), dtype=float)
 
