@@ -182,6 +182,7 @@ class Operator(ABC, Generic[T_co]):
         """
         info = self.info()
         info.operator_schema = self._model.model_json_schema()
+        info.library_version = climatoology.__version__
         log.debug(f'{info.name} info constructed')
         return info
 

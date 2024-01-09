@@ -28,7 +28,8 @@ def default_info() -> Info:
                 'terms of enforcing similar capabilities '
                 'between Climate Action event components',
         methodology='This is a test base',
-        sources=Path(__file__).parent / 'resources/test.bib'
+        sources=Path(__file__).parent / 'resources/test.bib',
+        library_version=str(Version(0, 0, 1))
     )
 
 

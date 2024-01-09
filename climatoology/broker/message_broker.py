@@ -11,10 +11,12 @@ import aio_pika
 import requests
 from aio_pika.abc import ExchangeType
 from aio_pika.pool import Pool
+from semver import Version
 
+import climatoology
 from climatoology.base.event import InfoCommand, ComputeCommand, ComputeCommandStatus, ComputeCommandResult
 from climatoology.base.operator import Info
-from climatoology.utility.exception import InfoNotReceivedException
+from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +92,19 @@ class AsyncRabbitMQ(Broker):
                  port: int,
                  user: str,
                  password: str,
-                 connection_pool_max_size: int = 2):
+                 connection_pool_max_size: int = 2,
+                 assert_plugin_version: bool = True):
+        """Initialise a AsyncRabbitMQ-broker wrapper.
+
+        :param host: The host url
+        :param port: The port
+        :param user: The brokers' authentication user
+        :param password: The brokers' authentication password
+        :param connection_pool_max_size: The maximum number of connections in the pool
+        :param assert_plugin_version: Should the info request only be accepted for plugins that use a compatible
+        climatoology library version? If True, the info request may throw a ClimatoologyVersionMismatchException. This
+        flag can prevent outdated plugins from being announced on the platform, as they may create incompatible data.
+        """
         super().__init__()
         self.host = host
         self.port = port
@@ -99,6 +113,7 @@ class AsyncRabbitMQ(Broker):
         self.connection_pool_max_size = connection_pool_max_size
         self.loop = asyncio.get_event_loop()
         self.connection_pool: Optional[Pool] = None
+        self.assert_plugin_version = assert_plugin_version
 
     async def async_init(self):
         async def get_connection():
@@ -142,7 +157,16 @@ class AsyncRabbitMQ(Broker):
                         async for message in queue_iter:
                             async with message.process():
                                 response = json.loads(message.body)
-                                return Info(**response)
+                                info_return = Info(**response)
+                                if self.assert_plugin_version and \
+                                        not Version.parse(info_return.library_version).is_compatible(
+                                            climatoology.__version__):
+                                    raise ClimatoologyVersionMismatchException(f'Refusing to register plugin '
+                                                                               f'{info_return.name} for library '
+                                                                               f'version mismatch. '
+                                                                               f'Local: {climatoology.__version__}, '
+                                                                               f'Plugin: {info_return.version}')
+                                return info_return
                 except TimeoutError as e:
                     raise InfoNotReceivedException(
                         f'The info request ({info_call_corr_uuid}) did not respond within the time '

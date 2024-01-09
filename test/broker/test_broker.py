@@ -7,6 +7,7 @@ import pytest
 
 from climatoology.base.event import ComputeCommandStatus
 from climatoology.broker.message_broker import AsyncRabbitMQ
+from climatoology.utility.exception import ClimatoologyVersionMismatchException
 
 
 @pytest.fixture()
@@ -34,6 +35,9 @@ def broker():
         def channel(self):
             return mock
 
+        def athrow(self, exception: Exception, message: str, traceback):
+            raise exception
+
     @asynccontextmanager
     def ctx():
         return MockIter()
@@ -41,7 +45,8 @@ def broker():
     broker = AsyncRabbitMQ(host='rabbitmq.test.org',
                            port=9999,
                            user='user',
-                           password='password')
+                           password='password',
+                           assert_plugin_version=False)
     mock.acquire = ctx
     mock.channel = ctx
 
@@ -74,6 +79,9 @@ def iterator(body: str):
                 return self
             raise StopAsyncIteration()
 
+        def athrow(self, exception: Exception, message: str, traceback):
+            raise exception
+
         @property
         def body(self):
             self.call_count += 1
@@ -96,6 +104,19 @@ async def test_request_info(broker, default_info):
 
             info = await broker.request_info(plugin_id='test_plugin')
             assert info == default_info
+
+
+@pytest.mark.asyncio
+async def test_request_info_plugin_version_assert(broker, default_info):
+    broker.assert_plugin_version = True
+    async with broker.connection_pool.acquire() as connection:
+        async with connection.channel() as channel:
+            queue_mock = AsyncMock()
+            queue_mock.iterator = iterator(default_info.model_dump_json())
+            channel.declare_queue.return_value = queue_mock
+
+            with pytest.raises(ClimatoologyVersionMismatchException):
+                await broker.request_info(plugin_id='test_plugin')
 
 
 @pytest.mark.asyncio

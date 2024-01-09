@@ -1,2 +1,5 @@
 import importlib.metadata
-__version__ = importlib.metadata.version('climatoology')
+
+from semver import Version
+
+__version__: Version = Version.parse(importlib.metadata.version('climatoology'))

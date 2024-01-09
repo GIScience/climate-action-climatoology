@@ -25,7 +25,7 @@ from climatoology.base.event import ComputeCommandStatus, ComputeCommandResult
 from climatoology.base.operator import Info, Concern
 from climatoology.broker.message_broker import AsyncRabbitMQ, RabbitMQManagementAPI
 from climatoology.store.object_store import MinioStorage
-from climatoology.utility.exception import InfoNotReceivedException
+from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 config_dir = os.getenv('API_GATEWAY_APP_CONFIG_DIR', str(Path('conf').absolute()))
 
@@ -61,7 +61,9 @@ async def configure_dependencies(app: FastAPI):
     app.state.broker = AsyncRabbitMQ(host=cfg.broker.host,
                                      port=cfg.broker.port,
                                      user=cfg.broker.user,
-                                     password=cfg.broker.password)
+                                     password=cfg.broker.password,
+                                     connection_pool_max_size=cfg.broker.connection_pool_max_size,
+                                     assert_plugin_version=cfg.broker.assert_plugin_version == 'True')
 
     await app.state.broker.async_init()
 
@@ -139,7 +141,7 @@ async def list_plugins(plugin_names: Tuple) -> List[Info]:
             log.warning(f'Plugin {plugin_name} has an open channel but could not be reached.',
                         exc_info=e)
             continue
-        except AssertionError as e:
+        except ClimatoologyVersionMismatchException as e:
             log.warning(f'Version mismatch for plugin {plugin_name}',
                         exc_info=e)
             continue
@@ -162,7 +164,7 @@ async def get_plugin(plugin_id: str) -> Info:
         return await app.state.broker.request_info(plugin_id=plugin_id)
     except InfoNotReceivedException as e:
         raise HTTPException(status_code=404, detail=f'Plugin {plugin_id} does not exist.') from e
-    except AssertionError as e:
+    except ClimatoologyVersionMismatchException as e:
         raise HTTPException(status_code=500,
                             detail=f'Plugin {plugin_id} is not in a correct state (version mismatch).') from e
 
