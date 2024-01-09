@@ -52,17 +52,17 @@ async def configure_dependencies(app: FastAPI):
     cfg = compose(config_name='config')
 
     app.state.storage = MinioStorage(host=cfg.store.host,
-                                     port=cfg.store.port,
+                                     port=int(cfg.store.port),
                                      access_key=cfg.store.access_key,
                                      secret_key=cfg.store.secret_key,
                                      secure=cfg.store.secure == 'True',
                                      bucket=cfg.store.bucket,
                                      file_cache=Path(cfg.store.file_cache))
     app.state.broker = AsyncRabbitMQ(host=cfg.broker.host,
-                                     port=cfg.broker.port,
+                                     port=int(cfg.broker.port),
                                      user=cfg.broker.user,
                                      password=cfg.broker.password,
-                                     connection_pool_max_size=cfg.broker.connection_pool_max_size,
+                                     connection_pool_max_size=int(cfg.broker.connection_pool_max_size),
                                      assert_plugin_version=cfg.broker.assert_plugin_version == 'True')
 
     await app.state.broker.async_init()
