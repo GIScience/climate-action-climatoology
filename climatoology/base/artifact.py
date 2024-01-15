@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional, Union, List, Dict, Tuple
 from uuid import UUID
 
+import numpy as np
 import rasterio
 from PIL.Image import Image
 from affine import Affine
@@ -363,14 +364,23 @@ def create_geotiff_artifact(data: ArrayLike,
     file_path = resources.computation_dir / f'{filename}.tiff'
     log.debug(f'Writing raster dataset {file_path}')
 
+    data = np.array(data)
+
+    assert np.issubdtype(data.dtype, np.number), 'Array must be numeric'
+    assert min(data.shape) > 0, 'Input array cannot have zero length dimensions.'
+
     if data.ndim == 2:
+        count = 1
         height = data.shape[0]
         width = data.shape[1]
-        count = 1
+
+        indexes = count
     elif data.ndim == 3:
+        count = data.shape[0]
         height = data.shape[1]
         width = data.shape[2]
-        count = data.shape[0]
+
+        indexes = list(range(1, count + 1))
     else:
         raise ValueError('Only 2 and 3 dimensional arrays are supported.')
 
@@ -386,7 +396,7 @@ def create_geotiff_artifact(data: ArrayLike,
     }
 
     with rasterio.open(file_path, mode='w', **DefaultGTiffProfile(**profile)) as out_map_file:
-        out_map_file.write(data)
+        out_map_file.write(data, indexes=indexes)
         if colormap:
             out_map_file.write_colormap(1, colormap)
 
