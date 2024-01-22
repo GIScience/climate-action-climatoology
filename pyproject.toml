@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "climatoology"
 version = "2.6.4"
-description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins."
+description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
   "Maciej Adamiak <maciej.adamiak@heigit.org>",
   "Moritz Schott <moritz.schott@heigit.org>"
@@ -16,7 +16,6 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "~3.11.5"
 aio_pika = "^9.3.0"
-async-cache = "^1.1.1"
 pydantic = "^2.3.0"
 bibtexparser = "^1.4.0"
 semver = "^3.0.1"
@@ -25,11 +24,6 @@ rasterio = "^1.3.8"
 tqdm = "^4.66.1"
 requests = "^2.31.0"
 pillow = "^10.0.0"
-pamqp="^3.2.1"
-cachetools = "^5.3.1"
-fastapi = "^0.103.1"
-uvicorn = {extras = ["standard"], version = "^0.23.2"}
-websocket = "^0.2.1"
 hydra-core = "^1.3.2"
 email-validator = "^2.0.0.post2"
 pandas = "^2.1.1"
