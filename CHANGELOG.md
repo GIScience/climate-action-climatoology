@@ -2,13 +2,19 @@
 
 ## [Unreleased]
 
+---
+
+## [3.0.0] - 2024-01-29
+
 ### Added
 
 - a health-check call to the API on `LulcUtility` initialisation ([plugin-blueprint#13](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/plugin-blueprint/-/issues/13))
 - a CHANGELOG
+- author information to the plugin `Info` ([#61](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/61))
 
 ### Changed
 
+- Versions no longer have a leading letter 'v'
 - Renamed `LulcUtilityUtility` class to `LulcUtility` ([#8](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/8))
     - Renamed `root_url` variable to `path`
 - Renamed `LULCWorkUnit` class to `LulcWorkUnit`
