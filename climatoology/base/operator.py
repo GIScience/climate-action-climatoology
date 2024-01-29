@@ -9,7 +9,7 @@ from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin
 
 import bibtexparser
 from PIL import Image
-from pydantic import BaseModel, field_validator, Field, model_validator
+from pydantic import BaseModel, field_validator, Field, model_validator, HttpUrl
 from semver import Version
 
 import climatoology
@@ -29,11 +29,28 @@ class Concern(Enum):
     SUSTAINABILITY__WASTE = 'waste'
 
 
+class PluginAuthor(BaseModel):
+    name: str = Field(description='The author name.',
+                      examples=['John Doe'])
+    affiliation: Optional[str] = Field(description="The author's affiliation statement. Leave blank if you are a "
+                                                   'HeiGIT member.',
+                                       examples=['HeiGIT gGmbH'],
+                                       default=None)
+    website: Optional[HttpUrl] = Field(description="The name will be linked to this website. HeiGIT members who don't "
+                                                   'have a dedicated may link to the general team website '
+                                                   '(see example).',
+                                       examples=['https://heigit.org/heigit-team/'],
+                                       default=None)
+
+
 class Info(BaseModel, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
     name: str = Field(description='A short and concise name that can be used in the UI.',
                       examples=['The Plugin'])
+    authors: List[PluginAuthor] = Field(description='A list of plugin authors that should be displayed in the plugin '
+                                                    'info panes. The list should have research-paper order (most '
+                                                    'contributions, descending)')
     icon: str = Field(description='An image or icon that can be used in the UI in the form of a data URL. If the '
                                   'input is a path, it will be automatically converted. Make sure the file is '
                                   'committed to the repository and you have all rights to use it.',

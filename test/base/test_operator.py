@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from semver import Version
 
 from climatoology.base.computation import ComputationScope
-from climatoology.base.operator import Info, Concern
+from climatoology.base.operator import Info, Concern, PluginAuthor
 from climatoology.utility.exception import InputValidationError
 
 
@@ -27,10 +27,11 @@ def test_operator_info(default_info):
 
 
 def test_info_name():
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=r'Special characters and numbers are not allowed in the name.'):
         Info(
             name='Test Plugin With $pecial Charact3ers',
             icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            authors=[PluginAuthor(name='John Doe')],
             version=Version.parse('3.1.0'),
             concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
             purpose='No purpose',
@@ -41,6 +42,7 @@ def test_info_name():
     info = Info(
         name='Test-Plugin with spaces',
         icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[PluginAuthor(name='John Doe')],
         version=Version.parse('3.1.0'),
         concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
         purpose='No purpose',

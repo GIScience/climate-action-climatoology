@@ -8,7 +8,7 @@ from semver import Version
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources, ComputationScope
-from climatoology.base.operator import Info, Concern, Operator
+from climatoology.base.operator import Info, Concern, Operator, PluginAuthor
 
 
 @pytest.fixture
@@ -21,6 +21,9 @@ def default_info() -> Info:
     return Info(
         name='Test Plugin',
         icon=Path(__file__).parent / 'resources/test_icon.jpeg',
+        authors=[PluginAuthor(name='John Doe',
+                              affiliation='HeiGIT gGmbH',
+                              website='https://heigit.org/heigit-team/')],
         version=Version.parse('3.1.0'),
         concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
         purpose='The purpose of this base is to '
