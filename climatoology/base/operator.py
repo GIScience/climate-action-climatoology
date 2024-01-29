@@ -15,6 +15,7 @@ from semver import Version
 import climatoology
 from climatoology.base.artifact import _Artifact
 from climatoology.base.computation import ComputationResources
+from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)
 
@@ -204,9 +205,12 @@ class Operator(ABC, Generic[T_co]):
         :param params: computation configuration parameters
         :return:
         """
-
-        validate_params = self._model(**params)
+        try:
+            validate_params = self._model(**params)
+        except Exception as e:
+            raise InputValidationError('The given user input is invalid') from e
         logging.debug(f'Compute parameters of correlation_uuid {resources.correlation_uuid} validated')
+
         return self.compute(resources, validate_params)
 
     @abstractmethod

@@ -25,6 +25,7 @@
 ### Fixed
 
 - a bug that prevented the usage of the convenience method for raster data with 2d arrays ([#56](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/56))
+- an issue where any `ValidationError` raised by plugins was reported as being caused by wrong input. We now raise separate errors for issues that happen during input parsing and those that happen during computation ([#65](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/65))
 
 ---
 

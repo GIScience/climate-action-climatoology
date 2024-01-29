@@ -5,7 +5,6 @@ from typing import Optional
 
 import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
-from pydantic import ValidationError
 
 from climatoology.base.artifact import _Artifact
 from climatoology.base.computation import ComputationScope
@@ -13,6 +12,7 @@ from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCo
 from climatoology.base.operator import Operator
 from climatoology.broker.message_broker import AsyncRabbitMQ
 from climatoology.store.object_store import Storage
+from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class PlatformPlugin:
                                                     status=ComputeCommandStatus.COMPLETED,
                                                     message=f'Took {toc - tic:0.4f} seconds')
             log.debug(f'{command.correlation_uuid} successfully computed')
-        except (ValueError, ValidationError) as e:
+        except InputValidationError as e:
             log.warning(f'Input validation failed for correlation id {command.correlation_uuid}', exc_info=e)
             await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
                                                     status=ComputeCommandStatus.FAILED__WRONG_INPUT,

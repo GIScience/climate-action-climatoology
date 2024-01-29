@@ -7,6 +7,7 @@ from semver import Version
 
 from climatoology.base.computation import ComputationScope
 from climatoology.base.operator import Info, Concern
+from climatoology.utility.exception import InputValidationError
 
 
 def test_operator_info(default_info):
@@ -52,7 +53,7 @@ def test_info_name():
 def test_operator_typing(default_operator, default_computation_resources):
     default_operator.compute_unsafe(default_computation_resources, {'id': 1234, 'name': 'test'})
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(InputValidationError):
         default_operator.compute_unsafe(default_computation_resources, {'id': 'ID:1234', 'name': 'test'})
 
 
