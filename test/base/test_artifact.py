@@ -15,7 +15,7 @@ from shapely import Point
 
 from climatoology.base.artifact import create_markdown_artifact, _Artifact, ArtifactModality, create_table_artifact, \
     create_image_artifact, create_chart_artifact, Chart2dData, ChartType, create_geojson_artifact, \
-    create_geotiff_artifact
+    create_geotiff_artifact, RasterInfo
 
 
 def test_chart_check_length():
@@ -296,17 +296,17 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
                                   file_path=Path(default_computation_resources.computation_dir /
                                                  f'{general_uuid}.tiff'),
                                   summary='Raster caption')
-    method_input = np.ones(shape=(4, 5), dtype=float)
+    method_input = RasterInfo(data=np.ones(shape=(4, 5), dtype=float),
+                              crs=CRS({'init': 'epsg:4326'}),
+                              transformation=Affine.from_gdal(c=8.7,
+                                                              a=0.1,
+                                                              b=0.0,
+                                                              f=49.4,
+                                                              d=0.0,
+                                                              e=0.1),
+                              colormap={1: (0, 255, 0)})
 
     generated_artifact = create_geotiff_artifact(method_input,
-                                                 crs=CRS({'init': 'epsg:4326'}),
-                                                 transformation=Affine.from_gdal(c=8.7,
-                                                                                 a=0.1,
-                                                                                 b=0.0,
-                                                                                 f=49.4,
-                                                                                 d=0.0,
-                                                                                 e=0.1),
-                                                 colormap={1: (0, 255, 0)},
                                                  layer_name='Test Raster',
                                                  caption='Raster caption',
                                                  resources=default_computation_resources,
@@ -315,7 +315,7 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
     generated_content = rasterio.open(generated_artifact.file_path)
 
     assert generated_artifact == expected_artifact
-    assert (generated_content.read() == method_input).all()
+    assert (generated_content.read() == method_input.data).all()
 
 
 def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid):
@@ -324,17 +324,17 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
                                   file_path=Path(default_computation_resources.computation_dir /
                                                  f'{general_uuid}.tiff'),
                                   summary='Raster caption')
-    method_input = np.ones(shape=(3, 4, 5), dtype=float)
+    method_input = RasterInfo(data=np.ones(shape=(3, 4, 5), dtype=float),
+                              crs=CRS({'init': 'epsg:4326'}),
+                              transformation=Affine.from_gdal(c=8.7,
+                                                              a=0.1,
+                                                              b=0.0,
+                                                              f=49.4,
+                                                              d=0.0,
+                                                              e=0.1),
+                              colormap={1: (0, 255, 0)})
 
     generated_artifact = create_geotiff_artifact(method_input,
-                                                 crs=CRS({'init': 'epsg:4326'}),
-                                                 transformation=Affine.from_gdal(c=8.7,
-                                                                                 a=0.1,
-                                                                                 b=0.0,
-                                                                                 f=49.4,
-                                                                                 d=0.0,
-                                                                                 e=0.1),
-                                                 colormap={1: (0, 255, 0)},
                                                  layer_name='Test Raster',
                                                  caption='Raster caption',
                                                  resources=default_computation_resources,
@@ -343,4 +343,4 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
     generated_content = rasterio.open(generated_artifact.file_path)
 
     assert generated_artifact == expected_artifact
-    assert (generated_content.read() == method_input).all()
+    assert (generated_content.read() == method_input.data).all()

@@ -13,6 +13,8 @@
     - Renamed `root_url` variable to `path`
 - Renamed `LULCWorkUnit` class to `LulcWorkUnit`
 - The geojson convenience method now ignores any given index on the data as it does not contain relevant information that should be made available to the front-end ([#57](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/57))
+- The input for the geotiff creation method is now a pydantic `RasterInfo` that holds all the related elements ([#64](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/64))
+
 
 ### Removed
 
@@ -22,7 +24,7 @@
 
 ### Fixed
 
-- a bug that prevented the usage of the convenience method for raster data with 2d arrays ([#56](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/56)
+- a bug that prevented the usage of the convenience method for raster data with 2d arrays ([#56](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/56))
 
 ---
 

@@ -334,26 +334,42 @@ def create_geojson_artifact(features: GeoSeries,
     return result
 
 
-def create_geotiff_artifact(data: ArrayLike,
-                            crs: CRS,
-                            transformation: Affine,
+class RasterInfo(BaseModel, arbitrary_types_allowed=True):
+    data: ArrayLike = Field(title='Input data',
+                            description='The array of raster values to write to the image. Must be 2d or 3d.',
+                            examples=[[[1, 1], [1, 1]]])
+    crs: CRS = Field(title='CRS',
+                     description='The coordinate reference system.',
+                     examples=[CRS({'init': 'epsg:4326'}).to_string()])
+    transformation: Affine = Field(title='Transformation',
+                                   description='An affine transformation. This is best read from an existing image or '
+                                               'using https://github.com/rasterio/affine',
+                                   examples=[Affine.identity()])
+    colormap: Optional[Dict[Number, Tuple[int, int, int]]] = Field(title='Colormap',
+                                                                   description='An optional colormap for easy display. '
+                                                                               'It will be applied to the first layer '
+                                                                               'of the image and resolves all possible '
+                                                                               'array data values (key) to the '
+                                                                               'respective RGB-color (value).',
+                                                                   examples=[{1: Color('red').as_rgb_tuple()}],
+                                                                   default=None)
+    nodata: Number = Field(title='No-Data Value',
+                           description='The array values that signifies no-data in the raster.',
+                           examples=[0],
+                           default=0)
+
+
+def create_geotiff_artifact(raster_info: RasterInfo,
                             layer_name: str,
                             caption: str,
                             resources: ComputationResources,
                             description: str = None,
-                            colormap: Optional[Dict[Number, Tuple[int, int, int]]] = None,
-                            nodata: Number = 0,
                             filename: str = uuid.uuid4()) -> _Artifact:
     """Create a raster data artifact.
 
     This will create a GeoTIFF file holding all information required to plot a simple map layer.
 
-    :param data: The array to write to the image. Must be 2 or 3d.
-    :param crs: The coordinate reference system.
-    :param transformation: An affine transformation. This is best read from an existing image or
-    using https://github.com/rasterio/affine
-    :param colormap: An optional colormap for easy display.
-    :param nodata: The no-data value
+    :param raster_info: The RasterInfo object.
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
@@ -364,21 +380,21 @@ def create_geotiff_artifact(data: ArrayLike,
     file_path = resources.computation_dir / f'{filename}.tiff'
     log.debug(f'Writing raster dataset {file_path}')
 
-    data = np.array(data)
+    data_array = np.array(raster_info.data)
 
-    assert np.issubdtype(data.dtype, np.number), 'Array must be numeric'
-    assert min(data.shape) > 0, 'Input array cannot have zero length dimensions.'
+    assert np.issubdtype(data_array.dtype, np.number), 'Array must be numeric'
+    assert min(data_array.shape) > 0, 'Input array cannot have zero length dimensions.'
 
-    if data.ndim == 2:
+    if data_array.ndim == 2:
         count = 1
-        height = data.shape[0]
-        width = data.shape[1]
+        height = data_array.shape[0]
+        width = data_array.shape[1]
 
         indexes = count
-    elif data.ndim == 3:
-        count = data.shape[0]
-        height = data.shape[1]
-        width = data.shape[2]
+    elif data_array.ndim == 3:
+        count = data_array.shape[0]
+        height = data_array.shape[1]
+        width = data_array.shape[2]
 
         indexes = list(range(1, count + 1))
     else:
@@ -388,17 +404,17 @@ def create_geotiff_artifact(data: ArrayLike,
         'height': height,
         'width': width,
         'count': count,
-        'dtype': data.dtype,
-        'crs': crs,
-        'nodata': nodata,
+        'dtype': data_array.dtype,
+        'crs': raster_info.crs,
+        'nodata': raster_info.nodata,
         'photometric': 'RGB',
-        'transform': transformation
+        'transform': raster_info.transformation
     }
 
     with rasterio.open(file_path, mode='w', **DefaultGTiffProfile(**profile)) as out_map_file:
-        out_map_file.write(data, indexes=indexes)
-        if colormap:
-            out_map_file.write_colormap(1, colormap)
+        out_map_file.write(data_array, indexes=indexes)
+        if raster_info.colormap:
+            out_map_file.write_colormap(1, raster_info.colormap)
 
     result = _Artifact(name=layer_name,
                        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
