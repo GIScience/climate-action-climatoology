@@ -4,7 +4,7 @@ import uuid
 from enum import Enum
 from numbers import Number
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Tuple
+from typing import Optional, Union, List, Dict
 from uuid import UUID
 
 import numpy as np
@@ -14,7 +14,7 @@ from affine import Affine
 from geopandas import GeoSeries, GeoDataFrame
 from numpy.typing import ArrayLike
 from pandas import DataFrame
-from pydantic import BaseModel, Field, model_validator, conlist, field_serializer
+from pydantic import BaseModel, Field, model_validator, conlist, field_serializer, conint
 from pydantic_extra_types.color import Color
 from rasterio import CRS
 from rasterio.profiles import DefaultGTiffProfile
@@ -345,14 +345,17 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
                                    description='An affine transformation. This is best read from an existing image or '
                                                'using https://github.com/rasterio/affine',
                                    examples=[Affine.identity()])
-    colormap: Optional[Dict[Number, Tuple[int, int, int]]] = Field(title='Colormap',
-                                                                   description='An optional colormap for easy display. '
-                                                                               'It will be applied to the first layer '
-                                                                               'of the image and resolves all possible '
-                                                                               'array data values (key) to the '
-                                                                               'respective RGB-color (value).',
-                                                                   examples=[{1: Color('red').as_rgb_tuple()}],
-                                                                   default=None)
+    colormap: Optional[Dict[Number, conlist(item_type=conint(ge=0, le=255),
+                                            min_length=3,
+                                            max_length=4)]] = Field(title='Colormap',
+                                                                    description='An optional colormap for easy '
+                                                                                'display. It will be applied to the '
+                                                                                'first layer of the image and '
+                                                                                'resolves all possible array data '
+                                                                                'values (key) to the respective '
+                                                                                'RGB-color (value).',
+                                                                    examples=[{1: Color('red').as_rgb_tuple()}],
+                                                                    default=None)
     nodata: Number = Field(title='No-Data Value',
                            description='The array values that signifies no-data in the raster.',
                            examples=[0],

@@ -4,6 +4,12 @@
 
 ---
 
+## [3.0.1] - 2024-01-30
+
+### Changed
+
+- `RasterInfo` dataclass now accepts a `Tuple[R, G, B, A]` for the colormap to be directly usable with rasterio
+
 ## [3.0.0] - 2024-01-29
 
 ### Added

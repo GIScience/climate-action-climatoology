@@ -36,7 +36,7 @@ def test_lulc_when_passing_zero_units(mocked_client):
 
 
 def test_lulc_when_passing_single_unit(mocked_client):
-    with open(f'{os.path.dirname(__file__)}/test_raster_a.tiff', 'rb') as raster:
+    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster:
         mocked_client.post('http://localhost:80/segment/',
                            body=raster.read())
 
@@ -50,8 +50,8 @@ def test_lulc_when_passing_single_unit(mocked_client):
 
 
 def test_lulc_when_passing_multiple_units(mocked_client):
-    with (open(f'{os.path.dirname(__file__)}/test_raster_a.tiff', 'rb') as raster_a,
-          open(f'{os.path.dirname(__file__)}/test_raster_b.tiff', 'rb') as raster_b):
+    with (open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster_a,
+          open(f'{os.path.dirname(__file__)}/../resources/test_raster_b.tiff', 'rb') as raster_b):
         mocked_client.post('http://localhost:80/segment/',
                            match=[matchers.json_params_matcher(unit_a.model_dump(mode='json'))],
                            body=raster_a.read())

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import numpy as np
@@ -344,3 +345,13 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
 
     assert generated_artifact == expected_artifact
     assert (generated_content.read() == method_input.data).all()
+
+
+def test_rasterinfo_from_rastario(default_computation_resources, general_uuid):
+    with rasterio.open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff') as raster:
+        generated_info = RasterInfo(data=raster.read(),
+                                    crs=raster.crs,
+                                    transformation=raster.transform,
+                                    colormap=raster.colormap(1))
+
+    assert generated_info
