@@ -4,6 +4,12 @@
 
 ---
 
+## [3.0.2] - 2024-01-31
+
+### Fixed
+
+- `Info` class containing the library version as `semver.Version` could not be serialised to JSON
+
 ## [3.0.1] - 2024-01-30
 
 ### Changed
@@ -14,30 +20,41 @@
 
 ### Added
 
-- a health-check call to the API on `LulcUtility` initialisation ([plugin-blueprint#13](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/plugin-blueprint/-/issues/13))
+- a health-check call to the API on `LulcUtility`
+  initialisation ([plugin-blueprint#13](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/plugin-blueprint/-/issues/13))
 - a CHANGELOG
-- author information to the plugin `Info` ([#61](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/61))
+- author information to the
+  plugin `Info` ([#61](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/61))
 
 ### Changed
 
 - Versions no longer have a leading letter 'v'
-- Renamed `LulcUtilityUtility` class to `LulcUtility` ([#8](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/8))
+- Renamed `LulcUtilityUtility` class
+  to `LulcUtility` ([#8](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/8))
     - Renamed `root_url` variable to `path`
 - Renamed `LULCWorkUnit` class to `LulcWorkUnit`
-- The geojson convenience method now ignores any given index on the data as it does not contain relevant information that should be made available to the front-end ([#57](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/57))
-- The input for the geotiff creation method is now a pydantic `RasterInfo` that holds all the related elements ([#64](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/64))
-
+- The geojson convenience method now ignores any given index on the data as it does not contain relevant information
+  that should be made available to the
+  front-end ([#57](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/57))
+- The input for the geotiff creation method is now a pydantic `RasterInfo` that holds all the related
+  elements ([#64](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/64))
 
 ### Removed
 
-- The code and dependencies related to the API-Gateway. It was not relevant for the function of the library and CA-plugin development. It now resides in [its own repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/api-gateway).
+- The code and dependencies related to the API-Gateway. It was not relevant for the function of the library and
+  CA-plugin development. It now resides
+  in [its own repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/api-gateway).
 - The `Artifact`-Class is now 'hidden' and was renamed to `_Artifact`. This should prevent plugin developers from
-  instantiating it directly and encourage the usage of the provided convenience methods. ([#12](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/12))
+  instantiating it directly and encourage the usage of the provided convenience
+  methods. ([#12](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/12))
 
 ### Fixed
 
-- a bug that prevented the usage of the convenience method for raster data with 2d arrays ([#56](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/56))
-- an issue where any `ValidationError` raised by plugins was reported as being caused by wrong input. We now raise separate errors for issues that happen during input parsing and those that happen during computation ([#65](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/65))
+- a bug that prevented the usage of the convenience method for raster data with 2d
+  arrays ([#56](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/56))
+- an issue where any `ValidationError` raised by plugins was reported as being caused by wrong input. We now raise
+  separate errors for issues that happen during input parsing and those that happen during
+  computation ([#65](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/65))
 
 ---
 
@@ -71,7 +88,8 @@
 
 ### Fixed
 
-- remove deprecated pydantic `Color` class in favour of `Color` class from the new external library: [Color](https://github.com/pydantic/pydantic-extra-types/blob/main/pydantic_extra_types/color.py)
+- remove deprecated pydantic `Color` class in favour of `Color` class from the new external
+  library: [Color](https://github.com/pydantic/pydantic-extra-types/blob/main/pydantic_extra_types/color.py)
 
 ## [v2.6.1]
 
@@ -111,7 +129,8 @@
 ### Changed
 
 - documentation on how to set up the plugin and infrastructure
-- The citations of plugins are now parsed as a `List[dict]` instead of a `dict`. The key: ID is already present in the single objects.
+- The citations of plugins are now parsed as a `List[dict]` instead of a `dict`. The key: ID is already present in the
+  single objects.
 - updated LULC Utility wrapper to latest version of LULC Utility API
 
 ## [v2.3]

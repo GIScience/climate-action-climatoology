@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "climatoology"
-version = "3.0.1"
+version = "3.0.2"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
   "Maciej Adamiak <maciej.adamiak@heigit.org>",
@@ -26,7 +26,7 @@ requests = "^2.31.0"
 pillow = "^10.0.0"
 hydra-core = "^1.3.2"
 email-validator = "^2.0.0.post2"
-pandas = "^2.1.1"
+pandas = "~2.1.4"
 geopandas = "^0.14.0"
 pydantic-extra-types = "^2.1.0"
 

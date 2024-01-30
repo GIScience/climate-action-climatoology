@@ -111,9 +111,9 @@ class Info(BaseModel, extra='forbid'):
                                                 'type': 'object'}}],
                                             default=None)
     library_version: str = Field(description='Do not set!',
-                                 default=climatoology.__version__)
+                                 default=str(climatoology.__version__))
 
-    @field_validator('version', mode='before')
+    @field_validator(*['version', 'library_version'], mode='before')
     def _convert_version(cls, version: Any) -> str:
         if isinstance(version, Version):
             return str(version)
@@ -138,7 +138,7 @@ class Info(BaseModel, extra='forbid'):
         return icon
 
     @field_validator('sources', mode='before')
-    def _convert_bib(cls, sources: Any) -> dict:
+    def _convert_bib(cls, sources: Any) -> List[dict]:
         if isinstance(sources, Path):
             with open(sources, mode='r') as file:
                 return bibtexparser.load(file).get_entry_list()
@@ -200,7 +200,7 @@ class Operator(ABC, Generic[T_co]):
         """
         info = self.info()
         info.operator_schema = self._model.model_json_schema()
-        info.library_version = climatoology.__version__
+        info.library_version = str(climatoology.__version__)
         log.debug(f'{info.name} info constructed')
         return info
 

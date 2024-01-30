@@ -32,7 +32,7 @@ def default_info() -> Info:
                 'between Climate Action event components',
         methodology='This is a test base',
         sources=Path(__file__).parent / 'resources/test.bib',
-        library_version=str(Version(0, 0, 1))
+        library_version=str(Version(1, 0, 0))
     )
 
 
@@ -48,7 +48,7 @@ def default_artifact(general_uuid):
 
 
 @pytest.fixture
-def default_operator():
+def default_operator(default_info):
     class TestModel(BaseModel):
         id: int
         name: str
@@ -56,7 +56,7 @@ def default_operator():
     class TestOperator(Operator[TestModel]):
 
         def info(self) -> Info:
-            pass
+            return default_info.model_copy()
 
         def compute(self, resources: ComputationResources, params: TestModel) -> List[_Artifact]:
             pass
