@@ -87,12 +87,12 @@ class PlatformHttpUtility(ABC):
 
     def health(self) -> bool:
         try:
-            url = f'{self.base_url}health/'
+            url = f'{self.base_url}health'
             response = self.session.get(url=url)
             response.raise_for_status()
             assert response.json().get('status') == 'ok'
         except Exception as e:
-            logging.error('LULC utility not reachable', exc_info=e)
+            logging.error(f'{self.__class__.__name__} API not reachable', exc_info=e)
             return False
         return True
 

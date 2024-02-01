@@ -4,6 +4,12 @@
 
 ---
 
+## [3.0.3] - 2024-02-01
+
+### Fixed
+
+- an issue where the trailing `/` in the health-call on an HTTP-API (e.g. `LulcUtility`) would cause a redirect into no-mans-land in certain configurations
+
 ## [3.0.2] - 2024-01-31
 
 ### Fixed

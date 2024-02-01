@@ -14,7 +14,7 @@ from climatoology.utility.exception import PlatformUtilityException
 @pytest.fixture()
 def mocked_client():
     with responses.RequestsMock() as rsps:
-        rsps.get('http://localhost:80/health/',
+        rsps.get('http://localhost:80/health',
                  json={'status': 'ok'})
         yield rsps
 
