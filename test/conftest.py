@@ -21,30 +21,36 @@ def default_info() -> Info:
     return Info(
         name='Test Plugin',
         icon=Path(__file__).parent / 'resources/test_icon.jpeg',
-        authors=[PluginAuthor(name='John Doe',
-                              affiliation='HeiGIT gGmbH',
-                              website='https://heigit.org/heigit-team/')],
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website='https://heigit.org/heigit-team/',
+            )
+        ],
         version=Version.parse('3.1.0'),
         concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
         purpose='The purpose of this base is to '
-                'present basic library properties in '
-                'terms of enforcing similar capabilities '
-                'between Climate Action event components',
+        'present basic library properties in '
+        'terms of enforcing similar capabilities '
+        'between Climate Action event components',
         methodology='This is a test base',
         sources=Path(__file__).parent / 'resources/test.bib',
-        library_version=str(Version(1, 0, 0))
+        library_version=str(Version(1, 0, 0)),
     )
 
 
 @pytest.fixture
 def default_artifact(general_uuid):
-    return _Artifact(name='test_name',
-                     modality=ArtifactModality.MAP_LAYER_GEOJSON,
-                     file_path=Path(__file__).parent / 'test_file.tiff',
-                     summary='Test summary',
-                     description='Test description',
-                     correlation_uuid=general_uuid,
-                     store_id=f'{general_uuid}_test_file.tiff')
+    return _Artifact(
+        name='test_name',
+        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        file_path=Path(__file__).parent / 'test_file.tiff',
+        summary='Test summary',
+        description='Test description',
+        correlation_uuid=general_uuid,
+        store_id=f'{general_uuid}_test_file.tiff',
+    )
 
 
 @pytest.fixture
@@ -54,7 +60,6 @@ def default_operator(default_info):
         name: str
 
     class TestOperator(Operator[TestModel]):
-
         def info(self) -> Info:
             return default_info.model_copy()
 

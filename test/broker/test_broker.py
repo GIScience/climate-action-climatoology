@@ -16,7 +16,6 @@ def broker():
     mock.acquire = AsyncMock()
 
     class MockIter(AsyncIterable):
-
         def __init__(self, *args, **kwargs):
             self.call_count = 0
 
@@ -25,7 +24,7 @@ def broker():
 
         async def __anext__(self):
             if self.call_count == 0:
-                self.call_count = + 1
+                self.call_count = +1
                 return mock
             raise StopAsyncIteration()
 
@@ -42,11 +41,13 @@ def broker():
     def ctx():
         return MockIter()
 
-    broker = AsyncRabbitMQ(host='rabbitmq.test.org',
-                           port=9999,
-                           user='user',
-                           password='password',
-                           assert_plugin_version=False)
+    broker = AsyncRabbitMQ(
+        host='rabbitmq.test.org',
+        port=9999,
+        user='user',
+        password='password',
+        assert_plugin_version=False,
+    )
     mock.acquire = ctx
     mock.channel = ctx
 
@@ -67,7 +68,6 @@ async def test_publish_status_update(broker):
 def iterator(body: str):
     @asynccontextmanager
     class TestAsyncIterator(AsyncIterable):
-
         def __init__(self, *args, **kwargs):
             self.call_count = 0
 

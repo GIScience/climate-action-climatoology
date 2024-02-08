@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 class FusionMode(Enum):
     """Available LULC Utility fusion modes."""
+
     ONLY_MODEL = 'only_model'
     ONLY_OSM = 'only_osm'
     FAVOUR_OSM = 'favour_osm'
@@ -31,53 +32,68 @@ class FusionMode(Enum):
 
 class LulcWorkUnit(BaseModel):
     """LULC area of interest."""
+
     area_coords: Tuple[float, float, float, float] = Field(
         description='Bounding box coordinates in WGS 84 (left, bottom, right, top)',
-        examples=[[12.304687500000002,
-                   48.2246726495652,
-                   12.480468750000002,
-                   48.3416461723746]])
+        examples=[
+            [
+                12.304687500000002,
+                48.2246726495652,
+                12.480468750000002,
+                48.3416461723746,
+            ]
+        ],
+    )
     start_date: Optional[str] = Field(
         description='Lower bound (inclusive) of remote sensing imagery acquisition date (UTC). '
-                    'The model uses an image stack of multiple acquisition times for predictions. '
-                    'Larger time intervals will improve the prediction accuracy'
-                    'If not set it will be automatically set to the week before `end_date`',
+        'The model uses an image stack of multiple acquisition times for predictions. '
+        'Larger time intervals will improve the prediction accuracy'
+        'If not set it will be automatically set to the week before `end_date`',
         examples=['2023-05-01'],
-        default=None)
-    end_date: str = Field(description='Upper bound (inclusive) of remote sensing imagery acquisition date (UTC).'
-                                      "Defaults to today's date"
-                                      'In case `fusion_mode` has been declared to value different than `only_model`'
-                                      'the `end_date` will also be used to acquire OSM data',
-                          examples=['2023-06-01'],
-                          default=str(datetime.now().strftime('%Y-%m-%d')))
+        default=None,
+    )
+    end_date: str = Field(
+        description='Upper bound (inclusive) of remote sensing imagery acquisition date (UTC).'
+        "Defaults to today's date"
+        'In case `fusion_mode` has been declared to value different than `only_model`'
+        'the `end_date` will also be used to acquire OSM data',
+        examples=['2023-06-01'],
+        default=str(datetime.now().strftime('%Y-%m-%d')),
+    )
     threshold: float = Field(
         description='Not exceeding this value by the class prediction score results in the recognition of the result '
-                    'as "unknown"',
+        'as "unknown"',
         default=0,
         examples=[0.75],
         ge=0.0,
-        le=1.0)
-    fusion_mode: FusionMode = Field(description='Enables merging model results with OSM data: '
-                                                '`only_model` - no fusion with OSM will take place, '
-                                                '`only_osm` - displays OSM output only, '
-                                                '`favour_model` - OSM will be used to fill in regions considered as '
-                                                '"unknown" for the model, '
-                                                '`favour_osm` - model results will be used to fill in empty OSM data, '
-                                                '`mean_mixin` - model and OSM will simultaneously contribute to '
-                                                'overall classification',
-                                    default=FusionMode.ONLY_MODEL,
-                                    examples=[FusionMode.ONLY_MODEL])
+        le=1.0,
+    )
+    fusion_mode: FusionMode = Field(
+        description='Enables merging model results with OSM data: '
+        '`only_model` - no fusion with OSM will take place, '
+        '`only_osm` - displays OSM output only, '
+        '`favour_model` - OSM will be used to fill in regions considered as '
+        '"unknown" for the model, '
+        '`favour_osm` - model results will be used to fill in empty OSM data, '
+        '`mean_mixin` - model and OSM will simultaneously contribute to '
+        'overall classification',
+        default=FusionMode.ONLY_MODEL,
+        examples=[FusionMode.ONLY_MODEL],
+    )
 
 
 class PlatformHttpUtility(ABC):
-
-    def __init__(self, host: str, port: int, path: str, max_retries: int = 5):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        path: str,
+        max_retries: int = 5,
+    ):
         assert path[0] == path[-1] == '/', 'The path must start and end with a /'
         self.base_url = f'http://{host}:{port}{path}'
 
-        retries = Retry(total=max_retries,
-                        backoff_factor=0.1,
-                        status_forcelist=[500, 502, 503, 504])
+        retries = Retry(total=max_retries, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
 
         self.session = requests.Session()
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
@@ -98,8 +114,14 @@ class PlatformHttpUtility(ABC):
 
 
 class LulcUtility(PlatformHttpUtility):
-
-    def __init__(self, host: str, port: int, path: str, max_workers: int = 2, max_retries: int = 5):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        path: str,
+        max_workers: int = 2,
+        max_retries: int = 5,
+    ):
         """A wrapper class around the LULC Utility API.
 
         :param host: api host

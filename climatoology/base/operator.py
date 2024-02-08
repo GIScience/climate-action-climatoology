@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 
 class Concern(Enum):
     """Keywords that group plugins by topic."""
+
     CLIMATE_ACTION__GHG_EMISSION = 'ghg_emission'
     CLIMATE_ACTION__MITIGATION = 'mitigation'
     CLIMATE_ACTION__ADAPTION = 'adaption'
@@ -30,88 +31,114 @@ class Concern(Enum):
 
 
 class PluginAuthor(BaseModel):
-    name: str = Field(description='The author name.',
-                      examples=['John Doe'])
-    affiliation: Optional[str] = Field(description="The author's affiliation statement. Leave blank if you are a "
-                                                   'HeiGIT member.',
-                                       examples=['HeiGIT gGmbH'],
-                                       default=None)
-    website: Optional[HttpUrl] = Field(description="The name will be linked to this website. HeiGIT members who don't "
-                                                   'have a dedicated may link to the general team website '
-                                                   '(see example).',
-                                       examples=['https://heigit.org/heigit-team/'],
-                                       default=None)
+    name: str = Field(description='The author name.', examples=['John Doe'])
+    affiliation: Optional[str] = Field(
+        description="The author's affiliation statement. Leave blank if you are a " 'HeiGIT member.',
+        examples=['HeiGIT gGmbH'],
+        default=None,
+    )
+    website: Optional[HttpUrl] = Field(
+        description="The name will be linked to this website. HeiGIT members who don't "
+        'have a dedicated may link to the general team website '
+        '(see example).',
+        examples=['https://heigit.org/heigit-team/'],
+        default=None,
+    )
 
 
 class Info(BaseModel, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
-    name: str = Field(description='A short and concise name that can be used in the UI.',
-                      examples=['The Plugin'])
-    authors: List[PluginAuthor] = Field(description='A list of plugin authors that should be displayed in the plugin '
-                                                    'info panes. The list should have research-paper order (most '
-                                                    'contributions, descending)')
-    icon: str = Field(description='An image or icon that can be used in the UI in the form of a data URL. If the '
-                                  'input is a path, it will be automatically converted. Make sure the file is '
-                                  'committed to the repository and you have all rights to use it.',
-                      examples=['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBk'
-                                'SEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyM'
-                                'jIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxE'
-                                'B/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhM'
-                                'UEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmN'
-                                'kZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW1'
-                                '9jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgE'
-                                'CBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpK'
-                                'jU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKm'
-                                'qsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwa5ubi'
-                                '5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z'])
-    version: str = Field(description='The plugin version. You can provide a Version object.',
-                         examples=[str(Version(0, 0, 1)), 'alpha-centauri'])
-    concerns: List[Concern] = Field(description='A set of keywords that can be used to group multiple plugins.',
-                                    examples=[[Concern.CLIMATE_ACTION__GHG_EMISSION,
-                                               Concern.CLIMATE_ACTION__MITIGATION]])
-    purpose: str = Field(description='What will this plugin accomplish?',
-                         examples=['This plugin provides information on a special aspect of climate action.'])
-    methodology: str = Field(description='How does the operator achieve its goal?',
-                             examples=['This plugin uses a combination of data source A and method B to accomplish '
-                                       'the purpose.'])
-    sources: Optional[List[dict]] = Field(description='A list of sources that were used in the process or are related. '
-                                                      'Self-citations are welcome and even preferred! You can provide '
-                                                      'a path to a bib-tex file that will then be parsed '
-                                                      'automatically.',
-                                          examples=[[{
-                                              'pages': '14-15',
-                                              'volume': '2',
-                                              'journal': 'J. Geophys. Res.',
-                                              'year': '1954',
-                                              'title': "Nothing Particular in this Year's History",
-                                              'author': 'J. G. Smith and H. K. Weston',
-                                              'ENTRYTYPE': 'article',
-                                              'ID': 'smit54'
-                                          }]],
-                                          default=None)
-    plugin_id: Optional[str] = Field(description='Do not set! It will be overridden with the cleaned name.',
-                                     examples=['the_plugin_001'],
-                                     default=None)
-    operator_schema: Optional[dict] = Field(description='Do not set! It will be overridden by the plugin with the '
-                                                        'schematic description of the parameters necessary to '
-                                                        'initiate a computation.',
-                                            examples=[{'properties': {
-                                                'bool': {
-                                                    'description': 'A required boolean parameter.',
-                                                    'examples': [
-                                                        True
-                                                    ],
-                                                    'title': 'Boolean Input',
-                                                    'type': 'boolean'
-                                                }, 'required': [
-                                                    'bool',
-                                                ],
-                                                'title': 'ComputeInput',
-                                                'type': 'object'}}],
-                                            default=None)
-    library_version: str = Field(description='Do not set!',
-                                 default=str(climatoology.__version__))
+    name: str = Field(description='A short and concise name that can be used in the UI.', examples=['The Plugin'])
+    authors: List[PluginAuthor] = Field(
+        description='A list of plugin authors that should be displayed in the plugin '
+        'info panes. The list should have research-paper order (most '
+        'contributions, descending)'
+    )
+    icon: str = Field(
+        description='An image or icon that can be used in the UI in the form of a data URL. If the '
+        'input is a path, it will be automatically converted. Make sure the file is '
+        'committed to the repository and you have all rights to use it.',
+        examples=[
+            'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBk'
+            'SEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyM'
+            'jIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxE'
+            'B/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhM'
+            'UEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmN'
+            'kZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW1'
+            '9jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgE'
+            'CBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpK'
+            'jU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKm'
+            'qsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwa5ubi'
+            '5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z'
+        ],
+    )
+    version: str = Field(
+        description='The plugin version. You can provide a Version object.',
+        examples=[str(Version(0, 0, 1)), 'alpha-centauri'],
+    )
+    concerns: List[Concern] = Field(
+        description='A set of keywords that can be used to group multiple plugins.',
+        examples=[[Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION]],
+    )
+    purpose: str = Field(
+        description='What will this plugin accomplish?',
+        examples=['This plugin provides information on a special aspect of climate action.'],
+    )
+    methodology: str = Field(
+        description='How does the operator achieve its goal?',
+        examples=['This plugin uses a combination of data source A and method B to accomplish the purpose.'],
+    )
+    sources: Optional[List[dict]] = Field(
+        description='A list of sources that were used in the process or are related. '
+        'Self-citations are welcome and even preferred! You can provide '
+        'a path to a bib-tex file that will then be parsed '
+        'automatically.',
+        examples=[
+            [
+                {
+                    'pages': '14-15',
+                    'volume': '2',
+                    'journal': 'J. Geophys. Res.',
+                    'year': '1954',
+                    'title': "Nothing Particular in this Year's History",
+                    'author': 'J. G. Smith and H. K. Weston',
+                    'ENTRYTYPE': 'article',
+                    'ID': 'smit54',
+                }
+            ]
+        ],
+        default=None,
+    )
+    plugin_id: Optional[str] = Field(
+        description='Do not set! It will be overridden with the cleaned name.',
+        examples=['the_plugin_001'],
+        default=None,
+    )
+    operator_schema: Optional[dict] = Field(
+        description='Do not set! It will be overridden by the plugin with the '
+        'schematic description of the parameters necessary to '
+        'initiate a computation.',
+        examples=[
+            {
+                'properties': {
+                    'bool': {
+                        'description': 'A required boolean parameter.',
+                        'examples': [True],
+                        'title': 'Boolean Input',
+                        'type': 'boolean',
+                    },
+                    'required': [
+                        'bool',
+                    ],
+                    'title': 'ComputeInput',
+                    'type': 'object',
+                }
+            }
+        ],
+        default=None,
+    )
+    library_version: str = Field(description='Do not set!', default=str(climatoology.__version__))
 
     @field_validator(*['version', 'library_version'], mode='before')
     def _convert_version(cls, version: Any) -> str:
@@ -152,8 +179,9 @@ class Info(BaseModel, extra='forbid'):
 
     @model_validator(mode='after')
     def create_id(self) -> 'Info':
-        assert len(re.findall('[^a-zA-Z- ]', self.name)) == 0, ('Special characters and numbers are not allowed '
-                                                                'in the name.')
+        assert (
+            len(re.findall('[^a-zA-Z- ]', self.name)) == 0
+        ), 'Special characters and numbers are not allowed in the name.'
         self.plugin_id, _ = re.subn('[- ]', '_', self.name.lower())
         return self
 

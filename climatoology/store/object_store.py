@@ -61,15 +61,16 @@ class Storage(ABC):
 
 
 class MinioStorage(Storage):
-
-    def __init__(self,
-                 host: str,
-                 port: int,
-                 access_key: str,
-                 secret_key: str,
-                 secure: bool,
-                 bucket: str,
-                 file_cache: Path = Path('/tmp')):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        access_key: str,
+        secret_key: str,
+        secure: bool,
+        bucket: str,
+        file_cache: Path = Path('/tmp'),
+    ):
         """Create a MinIO connection instance.
 
         :param host: MinIO instance host
@@ -98,15 +99,17 @@ class MinioStorage(Storage):
             'Original-Filename': str(artifact.file_path.name),
             'Summary': artifact.summary,
             'Correlation-UUID': artifact.correlation_uuid,
-            'Store-ID': store_id
+            'Store-ID': store_id,
         }
         if artifact.description:
             metadata['Description'] = artifact.description
 
-        self.client.fput_object(bucket_name=self.__bucket,
-                                object_name=Storage.generate_object_name(artifact.correlation_uuid, store_id),
-                                file_path=str(artifact.file_path),
-                                metadata=metadata)
+        self.client.fput_object(
+            bucket_name=self.__bucket,
+            object_name=Storage.generate_object_name(artifact.correlation_uuid, store_id),
+            file_path=str(artifact.file_path),
+            metadata=metadata,
+        )
         return store_id
 
     def save_all(self, artifacts: List[_Artifact]) -> List[str]:
@@ -115,10 +118,12 @@ class MinioStorage(Storage):
     def list_all(self, correlation_uuid: UUID) -> List[_Artifact]:
         artifacts = []
 
-        objects = self.client.list_objects(bucket_name=self.__bucket,
-                                           prefix=str(correlation_uuid),
-                                           recursive=True,
-                                           include_user_meta=True)
+        objects = self.client.list_objects(
+            bucket_name=self.__bucket,
+            prefix=str(correlation_uuid),
+            recursive=True,
+            include_user_meta=True,
+        )
         for obj in objects:
             name = obj.metadata['X-Amz-Meta-Name']
             modality = ArtifactModality(obj.metadata['X-Amz-Meta-Modality'])
@@ -126,13 +131,15 @@ class MinioStorage(Storage):
             summary = obj.metadata['X-Amz-Meta-Summary']
             description = obj.metadata.get('X-Amz-Meta-Description')
             store_id = obj.metadata['X-Amz-Meta-Store-Id']
-            plugin_artifact = _Artifact(name=name,
-                                        modality=modality,
-                                        file_path=file_path,
-                                        summary=summary,
-                                        description=description,
-                                        correlation_uuid=correlation_uuid,
-                                        store_id=store_id)
+            plugin_artifact = _Artifact(
+                name=name,
+                modality=modality,
+                file_path=file_path,
+                summary=summary,
+                description=description,
+                correlation_uuid=correlation_uuid,
+                store_id=store_id,
+            )
             artifacts.append(plugin_artifact)
         log.debug(f'Found {len(artifacts)} artifacts for correlation_uuid {correlation_uuid}')
 
@@ -141,12 +148,13 @@ class MinioStorage(Storage):
     def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
         file_path = self.__file_cache / store_id
         try:
-            object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid,
-                                                       store_id=store_id)
+            object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
             log.debug(f'Download{object_name} from bucket {self.__bucket} to {file_path}')
-            self.client.fget_object(bucket_name=self.__bucket,
-                                    object_name=object_name,
-                                    file_path=file_path)
+            self.client.fget_object(
+                bucket_name=self.__bucket,
+                object_name=object_name,
+                file_path=file_path,
+            )
         except S3Error as e:
             if e.code == 'NoSuchKey':
                 return None

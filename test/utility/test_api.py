@@ -14,18 +14,21 @@ from climatoology.utility.exception import PlatformUtilityException
 @pytest.fixture()
 def mocked_client():
     with responses.RequestsMock() as rsps:
-        rsps.get('http://localhost:80/health',
-                 json={'status': 'ok'})
+        rsps.get('http://localhost:80/health', json={'status': 'ok'})
         yield rsps
 
 
-unit_a = LulcWorkUnit(area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
-                      start_date='2023-05-01',
-                      end_date='2023-06-01')
+unit_a = LulcWorkUnit(
+    area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
+    start_date='2023-05-01',
+    end_date='2023-06-01',
+)
 
-unit_b = LulcWorkUnit(area_coords=(8.0859375, 47.63578359086485, 8.26171875, 47.754097979680026),
-                      start_date='2023-05-01',
-                      end_date='2023-06-01')
+unit_b = LulcWorkUnit(
+    area_coords=(8.0859375, 47.63578359086485, 8.26171875, 47.754097979680026),
+    start_date='2023-05-01',
+    end_date='2023-06-01',
+)
 
 
 def test_lulc_when_passing_zero_units(mocked_client):
@@ -37,8 +40,7 @@ def test_lulc_when_passing_zero_units(mocked_client):
 
 def test_lulc_when_passing_single_unit(mocked_client):
     with open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster:
-        mocked_client.post('http://localhost:80/segment/',
-                           body=raster.read())
+        mocked_client.post('http://localhost:80/segment/', body=raster.read())
 
     operator = LulcUtility(host='localhost', port=80, path='/')
 
@@ -50,14 +52,20 @@ def test_lulc_when_passing_single_unit(mocked_client):
 
 
 def test_lulc_when_passing_multiple_units(mocked_client):
-    with (open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster_a,
-          open(f'{os.path.dirname(__file__)}/../resources/test_raster_b.tiff', 'rb') as raster_b):
-        mocked_client.post('http://localhost:80/segment/',
-                           match=[matchers.json_params_matcher(unit_a.model_dump(mode='json'))],
-                           body=raster_a.read())
-        mocked_client.post('http://localhost:80/segment/',
-                           match=[matchers.json_params_matcher(unit_b.model_dump(mode='json'))],
-                           body=raster_b.read())
+    with (
+        open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster_a,
+        open(f'{os.path.dirname(__file__)}/../resources/test_raster_b.tiff', 'rb') as raster_b,
+    ):
+        mocked_client.post(
+            'http://localhost:80/segment/',
+            match=[matchers.json_params_matcher(unit_a.model_dump(mode='json'))],
+            body=raster_a.read(),
+        )
+        mocked_client.post(
+            'http://localhost:80/segment/',
+            match=[matchers.json_params_matcher(unit_b.model_dump(mode='json'))],
+            body=raster_b.read(),
+        )
 
     operator = LulcUtility(host='localhost', port=80, path='/')
 

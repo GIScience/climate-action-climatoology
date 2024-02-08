@@ -56,7 +56,12 @@ class Broker(ABC):
         return f'{plugin_id}{QUEUE_SEPARATOR}{INFO_QUEUE}'
 
     @abstractmethod
-    def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus, message: str = None) -> None:
+    def publish_status_update(
+        self,
+        correlation_uuid: UUID,
+        status: ComputeCommandStatus,
+        message: str = None,
+    ) -> None:
         """Push a compute status update to the broker.
 
         :param correlation_uuid: The correlation uuid of the computation
@@ -86,14 +91,15 @@ class Broker(ABC):
 
 
 class AsyncRabbitMQ(Broker):
-
-    def __init__(self,
-                 host: str,
-                 port: int,
-                 user: str,
-                 password: str,
-                 connection_pool_max_size: int = 2,
-                 assert_plugin_version: bool = True):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        user: str,
+        password: str,
+        connection_pool_max_size: int = 2,
+        assert_plugin_version: bool = True,
+    ):
         """Initialise a AsyncRabbitMQ-broker wrapper.
 
         :param host: The host url
@@ -124,13 +130,16 @@ class AsyncRabbitMQ(Broker):
     def __await__(self):
         return self.async_init().__await__()
 
-    async def publish_status_update(self, correlation_uuid: UUID, status: ComputeCommandStatus,
-                                    message: str = None) -> None:
+    async def publish_status_update(
+        self, correlation_uuid: UUID, status: ComputeCommandStatus, message: str = None
+    ) -> None:
         log.debug(f'Sending compute update for {correlation_uuid}: {status.name} - {message}.')
-        compute_command = ComputeCommandResult(correlation_uuid=correlation_uuid,
-                                               status=status,
-                                               message=message,
-                                               timestamp=datetime.now())
+        compute_command = ComputeCommandResult(
+            correlation_uuid=correlation_uuid,
+            status=status,
+            message=message,
+            timestamp=datetime.now(),
+        )
         body = compute_command.model_dump_json().encode()
         async with self.connection_pool.acquire() as connection:
             async with connection.channel() as channel:
@@ -148,9 +157,11 @@ class AsyncRabbitMQ(Broker):
 
                 info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
                 await channel.default_exchange.publish(
-                    message=aio_pika.Message(body=info_command_body.model_dump_json().encode(),
-                                             reply_to=callback_queue.name),
-                    routing_key=self.get_info_queue(plugin_id=plugin_id))
+                    message=aio_pika.Message(
+                        body=info_command_body.model_dump_json().encode(), reply_to=callback_queue.name
+                    ),
+                    routing_key=self.get_info_queue(plugin_id=plugin_id),
+                )
 
                 try:
                     async with callback_queue.iterator(timeout=ttl) as queue_iter:
@@ -158,19 +169,22 @@ class AsyncRabbitMQ(Broker):
                             async with message.process():
                                 response = json.loads(message.body)
                                 info_return = Info(**response)
-                                if self.assert_plugin_version and \
-                                        not Version.parse(info_return.library_version).is_compatible(
-                                            climatoology.__version__):
-                                    raise ClimatoologyVersionMismatchException(f'Refusing to register plugin '
-                                                                               f'{info_return.name} for library '
-                                                                               f'version mismatch. '
-                                                                               f'Local: {climatoology.__version__}, '
-                                                                               f'Plugin: {info_return.version}')
+                                if self.assert_plugin_version and not Version.parse(
+                                    info_return.library_version
+                                ).is_compatible(climatoology.__version__):
+                                    raise ClimatoologyVersionMismatchException(
+                                        f'Refusing to register plugin '
+                                        f'{info_return.name} for library '
+                                        f'version mismatch. '
+                                        f'Local: {climatoology.__version__}, '
+                                        f'Plugin: {info_return.version}'
+                                    )
                                 return info_return
                 except TimeoutError as e:
                     raise InfoNotReceivedException(
                         f'The info request ({info_call_corr_uuid}) did not respond within the time '
-                        f'limit of {ttl} seconds.') from e
+                        f'limit of {ttl} seconds.'
+                    ) from e
 
     async def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
         log.debug(f"Requesting 'compute' from {plugin_id} under {correlation_uuid}.")
@@ -179,17 +193,16 @@ class AsyncRabbitMQ(Broker):
                 await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
 
                 command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
-                await channel.default_exchange.publish(aio_pika.Message(body=command.model_dump_json().encode()),
-                                                       routing_key=self.get_compute_queue(plugin_id))
+                await channel.default_exchange.publish(
+                    aio_pika.Message(body=command.model_dump_json().encode()),
+                    routing_key=self.get_compute_queue(plugin_id),
+                )
 
 
 class RabbitMQManagementAPI:
     """An interface class for the RabbitMQ management API."""
 
-    def __init__(self,
-                 api_url: str,
-                 user: str,
-                 password: str):
+    def __init__(self, api_url: str, user: str, password: str):
         self.api_url = api_url
         self.user = user
         self.password = password

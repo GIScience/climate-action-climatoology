@@ -24,10 +24,12 @@ class PlatformPlugin:
     The main plugin logic and workload is handled by the Operator.
     """
 
-    def __init__(self,
-                 operator: Operator,
-                 storage: Storage,
-                 broker: AsyncRabbitMQ):
+    def __init__(
+        self,
+        operator: Operator,
+        storage: Storage,
+        broker: AsyncRabbitMQ,
+    ):
         self.operator = operator
         self.storage = storage
         self.broker = broker
@@ -45,8 +47,9 @@ class PlatformPlugin:
         try:
             command = ComputeCommand.model_validate_json(message.body)
         except Exception as e:
-            logging.exception(f'Failed to parse compute message {message.correlation_id} with content '
-                              f'{message.body}', exc_info=e)
+            logging.exception(
+                f'Failed to parse compute message {message.correlation_id} with content {message.body}', exc_info=e
+            )
             return
         finally:
             await message.ack()
@@ -54,34 +57,42 @@ class PlatformPlugin:
         try:
             log.debug(f'Acquired compute request ({command.correlation_uuid})')
             log.debug(f'Computing with parameters {command.params}')
-            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                                    status=ComputeCommandStatus.IN_PROGRESS)
+            await self.broker.publish_status_update(
+                correlation_uuid=command.correlation_uuid, status=ComputeCommandStatus.IN_PROGRESS
+            )
 
             tic = time.perf_counter()
 
             with ComputationScope(command.correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(resources, command.params)
-                plugin_artifacts = [_Artifact(correlation_uuid=command.correlation_uuid,
-                                              **artifact.model_dump(exclude={'correlation_uuid'}))
-                                    for artifact in artifacts]
+                plugin_artifacts = [
+                    _Artifact(
+                        correlation_uuid=command.correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'})
+                    )
+                    for artifact in artifacts
+                ]
                 self.storage.save_all(plugin_artifacts)
 
             toc = time.perf_counter()
 
-            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                                    status=ComputeCommandStatus.COMPLETED,
-                                                    message=f'Took {toc - tic:0.4f} seconds')
+            await self.broker.publish_status_update(
+                correlation_uuid=command.correlation_uuid,
+                status=ComputeCommandStatus.COMPLETED,
+                message=f'Took {toc - tic:0.4f} seconds',
+            )
             log.debug(f'{command.correlation_uuid} successfully computed')
         except InputValidationError as e:
             log.warning(f'Input validation failed for correlation id {command.correlation_uuid}', exc_info=e)
-            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                                    status=ComputeCommandStatus.FAILED__WRONG_INPUT,
-                                                    message=str(e))
+            await self.broker.publish_status_update(
+                correlation_uuid=command.correlation_uuid,
+                status=ComputeCommandStatus.FAILED__WRONG_INPUT,
+                message=str(e),
+            )
         except Exception as e:
             log.warning(f'Computation failed for correlation id {command.correlation_uuid}', exc_info=e)
-            await self.broker.publish_status_update(correlation_uuid=command.correlation_uuid,
-                                                    status=ComputeCommandStatus.FAILED,
-                                                    message=str(e))
+            await self.broker.publish_status_update(
+                correlation_uuid=command.correlation_uuid, status=ComputeCommandStatus.FAILED, message=str(e)
+            )
         finally:
             await message.ack()
 
@@ -93,8 +104,9 @@ class PlatformPlugin:
 
         async with self.broker.connection_pool.acquire() as connection:
             async with connection.channel() as channel:
-                await channel.default_exchange.publish(message=aio_pika.Message(body=out_body),
-                                                       routing_key=message.properties.reply_to)
+                await channel.default_exchange.publish(
+                    message=aio_pika.Message(body=out_body), routing_key=message.properties.reply_to
+                )
                 await message.ack()
 
     async def run(self) -> None:

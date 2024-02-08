@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 
 class ArtifactModality(Enum):
     """Available artifact types."""
+
     MARKDOWN = 'MARKDOWN'
     TABLE = 'TABLE'
     IMAGE = 'IMAGE'
@@ -41,28 +42,37 @@ class _Artifact(BaseModel):
     assures format consistency and reduces necessary plugin code changes.
     """
 
-    name: str = Field(description='A short name for the artifact that could be used as an alias.',
-                      min_length=1,
-                      examples=['Nice Graphic'])
-    modality: ArtifactModality = Field(description='The type of artefact created.',
-                                       examples=[ArtifactModality.IMAGE])
-    file_path: Path = Field(description='The full path to the file that stores the artefact.',
-                            examples=['/tmp/7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'])
-    summary: str = Field(description='A short description of the artifact that could be used in a caption.',
-                         min_length=1,
-                         examples=['This image shows A.'])
-    description: Optional[str] = Field(description='A long description of the generated output that may help users '
-                                                   'better understand the artifact.',
-                                       min_length=1,
-                                       examples=['This image shows A and was taken from B by C because of D.'],
-                                       default=None)
-    correlation_uuid: Optional[UUID] = Field(description='Do not set! The correlation UUID for this call. Will be '
-                                                         'automatically set by the plugin.',
-                                             default=None)
-    store_id: Optional[str] = Field(description='Do not set! This is the pointer to the file in the artifactory store. '
-                                                'Will be automatically set.',
-                                    examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
-                                    default=None)
+    name: str = Field(
+        description='A short name for the artifact that could be used as an alias.',
+        min_length=1,
+        examples=['Nice Graphic'],
+    )
+    modality: ArtifactModality = Field(description='The type of artefact created.', examples=[ArtifactModality.IMAGE])
+    file_path: Path = Field(
+        description='The full path to the file that stores the artefact.',
+        examples=['/tmp/7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
+    )
+    summary: str = Field(
+        description='A short description of the artifact that could be used in a caption.',
+        min_length=1,
+        examples=['This image shows A.'],
+    )
+    description: Optional[str] = Field(
+        description='A long description of the generated output that may help users better understand the artifact.',
+        min_length=1,
+        examples=['This image shows A and was taken from B by C because of D.'],
+        default=None,
+    )
+    correlation_uuid: Optional[UUID] = Field(
+        description='Do not set! The correlation UUID for this call. Will be automatically set by the plugin.',
+        default=None,
+    )
+    store_id: Optional[str] = Field(
+        description='Do not set! This is the pointer to the file in the artifactory store. '
+        'Will be automatically set.',
+        examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
+        default=None,
+    )
 
 
 class ChartType(Enum):
@@ -73,36 +83,42 @@ class ChartType(Enum):
 
 
 class Chart2dData(BaseModel):
-    x: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(title='X values',
-                                                                               description='Data values on the X axis. '
-                                                                                           'Must be the same length as '
-                                                                                           'y values. Only one of both '
-                                                                                           'can be a nominal variable '
-                                                                                           '(string). For Pie-Charts, '
-                                                                                           'all values must be '
-                                                                                           'positive numbers. They '
-                                                                                           'will be interpreted as '
-                                                                                           'share, i.e. divided by '
-                                                                                           'the sum.',
-                                                                               examples=[['first', 'second', 'third']])
-    y: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(title='Y values',
-                                                                               description='Data values on the Y axis. '
-                                                                                           'Must be the same length as '
-                                                                                           'x values. Only one of both '
-                                                                                           'can be a nominal variable '
-                                                                                           '(string).',
-                                                                               examples=[[3, 2, 1]])
-    chart_type: ChartType = Field(title='Chart Type',
-                                  description='The type of chart to be created.',
-                                  examples=[ChartType.SCATTER])
-    color: Union[Color, List[Color]] = Field(title='Chart Color',
-                                             description='The color for the chart elements. If a list is given, it '
-                                                         'must be the same length as the data input. If only a single '
-                                                         'color is given, all elements will have the same color. Line-'
-                                                         'Charts accept only a single color (one line=one color).',
-                                             examples=[['#590d08', '#590d08', '#590d08']],
-                                             default='#590d08',
-                                             validate_default=True)
+    x: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(
+        title='X values',
+        description='Data values on the X axis. '
+        'Must be the same length as '
+        'y values. Only one of both '
+        'can be a nominal variable '
+        '(string). For Pie-Charts, '
+        'all values must be '
+        'positive numbers. They '
+        'will be interpreted as '
+        'share, i.e. divided by '
+        'the sum.',
+        examples=[['first', 'second', 'third']],
+    )
+    y: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(
+        title='Y values',
+        description='Data values on the Y axis. '
+        'Must be the same length as '
+        'x values. Only one of both '
+        'can be a nominal variable '
+        '(string).',
+        examples=[[3, 2, 1]],
+    )
+    chart_type: ChartType = Field(
+        title='Chart Type', description='The type of chart to be created.', examples=[ChartType.SCATTER]
+    )
+    color: Union[Color, List[Color]] = Field(
+        title='Chart Color',
+        description='The color for the chart elements. If a list is given, it '
+        'must be the same length as the data input. If only a single '
+        'color is given, all elements will have the same color. Line-'
+        'Charts accept only a single color (one line=one color).',
+        examples=[['#590d08', '#590d08', '#590d08']],
+        default='#590d08',
+        validate_default=True,
+    )
 
     @model_validator(mode='after')
     def check_length(self) -> 'Chart2dData':
@@ -111,15 +127,17 @@ class Chart2dData(BaseModel):
         if self.chart_type == ChartType.LINE:
             assert isinstance(self.color, Color), 'Line charts can only have a single color for the line.'
         else:
-            assert isinstance(self.color, Color) or (len(self.color) == len(self.x)), ('Data and color lists must be '
-                                                                                       'the same length.')
+            assert isinstance(self.color, Color) or (
+                len(self.color) == len(self.x)
+            ), 'Data and color lists must be the same length.'
 
         return self
 
     @model_validator(mode='after')
     def check_type(self) -> 'Chart2dData':
-        assert (isinstance(self.x[0], float) or isinstance(self.y[0],
-                                                           float)), 'Only one dimension can be nominal (a str).'
+        assert isinstance(self.x[0], float) or isinstance(
+            self.y[0], float
+        ), 'Only one dimension can be nominal (a str).'
         return self
 
     @model_validator(mode='after')
@@ -139,11 +157,9 @@ class Chart2dData(BaseModel):
             return [c.as_hex() for c in co]
 
 
-def create_markdown_artifact(text: str,
-                             resources: ComputationResources,
-                             name: str,
-                             tl_dr: str,
-                             filename: str = uuid.uuid4()) -> _Artifact:
+def create_markdown_artifact(
+    text: str, resources: ComputationResources, name: str, tl_dr: str, filename: str = uuid.uuid4()
+) -> _Artifact:
     """Create an artifact from text supporting Markdown formatting.
 
     You may use raw text or add any formatting to style your text using e.g. headings, emphasis or links.
@@ -161,21 +177,20 @@ def create_markdown_artifact(text: str,
     with open(file_path, 'x') as out_file:
         out_file.write(text)
 
-    result = _Artifact(name=name,
-                       modality=ArtifactModality.MARKDOWN,
-                       file_path=file_path,
-                       summary=tl_dr)
+    result = _Artifact(name=name, modality=ArtifactModality.MARKDOWN, file_path=file_path, summary=tl_dr)
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
 
 
-def create_table_artifact(data: DataFrame,
-                          title: str,
-                          caption: str,
-                          resources: ComputationResources,
-                          description: str = None,
-                          filename: str = uuid.uuid4()) -> _Artifact:
+def create_table_artifact(
+    data: DataFrame,
+    title: str,
+    caption: str,
+    resources: ComputationResources,
+    description: str = None,
+    filename: str = uuid.uuid4(),
+) -> _Artifact:
     """Create an artifact from a data frame.
 
     This will create a CSV file. Any index will be written as a normal column.
@@ -192,28 +207,24 @@ def create_table_artifact(data: DataFrame,
     log.debug(f'Writing table {file_path}')
 
     data = data.reset_index()
-    data.to_csv(file_path,
-                header=True,
-                index=False,
-                index_label=False,
-                mode='x')
+    data.to_csv(file_path, header=True, index=False, index_label=False, mode='x')
 
-    result = _Artifact(name=title,
-                       modality=ArtifactModality.TABLE,
-                       file_path=file_path,
-                       summary=caption,
-                       description=description)
+    result = _Artifact(
+        name=title, modality=ArtifactModality.TABLE, file_path=file_path, summary=caption, description=description
+    )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
 
 
-def create_image_artifact(image: Image,
-                          title: str,
-                          caption: str,
-                          resources: ComputationResources,
-                          description: str = None,
-                          filename: str = uuid.uuid4()) -> _Artifact:
+def create_image_artifact(
+    image: Image,
+    title: str,
+    caption: str,
+    resources: ComputationResources,
+    description: str = None,
+    filename: str = uuid.uuid4(),
+) -> _Artifact:
     """Create an artifact from a pillow image.
 
     This will create a PNG file.
@@ -231,26 +242,24 @@ def create_image_artifact(image: Image,
 
     assert image.mode in ('1', 'L', 'LA', 'I', 'P', 'RGB', 'RGBA'), f'Image mode {image.mode} not supported.'
 
-    image.save(file_path,
-               format='PNG',
-               optimize=True)
+    image.save(file_path, format='PNG', optimize=True)
 
-    result = _Artifact(name=title,
-                       modality=ArtifactModality.IMAGE,
-                       file_path=file_path,
-                       summary=caption,
-                       description=description)
+    result = _Artifact(
+        name=title, modality=ArtifactModality.IMAGE, file_path=file_path, summary=caption, description=description
+    )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
 
 
-def create_chart_artifact(data: Chart2dData,
-                          title: str,
-                          caption: str,
-                          resources: ComputationResources,
-                          description: str = None,
-                          filename: str = uuid.uuid4()) -> _Artifact:
+def create_chart_artifact(
+    data: Chart2dData,
+    title: str,
+    caption: str,
+    resources: ComputationResources,
+    description: str = None,
+    filename: str = uuid.uuid4(),
+) -> _Artifact:
     """Create a chart artifact.
 
     This will create a JSON file holding all information required to plot a simple 2d chart.
@@ -268,27 +277,25 @@ def create_chart_artifact(data: Chart2dData,
 
     with open(file_path, 'x') as out_file:
         chart_data = data.model_dump(mode='json')
-        json.dump(chart_data,
-                  out_file,
-                  indent=4)
+        json.dump(chart_data, out_file, indent=4)
 
-    result = _Artifact(name=title,
-                       modality=ArtifactModality.CHART,
-                       file_path=file_path,
-                       summary=caption,
-                       description=description)
+    result = _Artifact(
+        name=title, modality=ArtifactModality.CHART, file_path=file_path, summary=caption, description=description
+    )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
 
 
-def create_geojson_artifact(features: GeoSeries,
-                            layer_name: str,
-                            caption: str,
-                            resources: ComputationResources,
-                            description: str = None,
-                            color: Union[List[Color], Color] = Color('#590d08'),
-                            filename: str = uuid.uuid4()) -> _Artifact:
+def create_geojson_artifact(
+    features: GeoSeries,
+    layer_name: str,
+    caption: str,
+    resources: ComputationResources,
+    description: str = None,
+    color: Union[List[Color], Color] = Color('#590d08'),
+    filename: str = uuid.uuid4(),
+) -> _Artifact:
     """Create a vector data artifact.
 
     This will create a GeoJSON file holding all information required to plot a simple map layer.
@@ -315,59 +322,66 @@ def create_geojson_artifact(features: GeoSeries,
 
     features = features.reset_index(drop=True)
 
-    gdf = GeoDataFrame({'color': color},
-                       geometry=features)
+    gdf = GeoDataFrame({'color': color}, geometry=features)
 
     with open(file_path, 'x') as out_file:
-        json_str = gdf.to_json(show_bbox=True,
-                               to_wgs84=True,
-                               indent=4)
+        json_str = gdf.to_json(show_bbox=True, to_wgs84=True, indent=4)
         out_file.write(json_str)
 
-    result = _Artifact(name=layer_name,
-                       modality=ArtifactModality.MAP_LAYER_GEOJSON,
-                       file_path=file_path,
-                       summary=caption,
-                       description=description)
+    result = _Artifact(
+        name=layer_name,
+        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        file_path=file_path,
+        summary=caption,
+        description=description,
+    )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
 
 
 class RasterInfo(BaseModel, arbitrary_types_allowed=True):
-    data: ArrayLike = Field(title='Input data',
-                            description='The array of raster values to write to the image. Must be 2d or 3d.',
-                            examples=[[[1, 1], [1, 1]]])
-    crs: CRS = Field(title='CRS',
-                     description='The coordinate reference system.',
-                     examples=[CRS({'init': 'epsg:4326'}).to_string()])
-    transformation: Affine = Field(title='Transformation',
-                                   description='An affine transformation. This is best read from an existing image or '
-                                               'using https://github.com/rasterio/affine',
-                                   examples=[Affine.identity()])
-    colormap: Optional[Dict[Number, conlist(item_type=conint(ge=0, le=255),
-                                            min_length=3,
-                                            max_length=4)]] = Field(title='Colormap',
-                                                                    description='An optional colormap for easy '
-                                                                                'display. It will be applied to the '
-                                                                                'first layer of the image and '
-                                                                                'resolves all possible array data '
-                                                                                'values (key) to the respective '
-                                                                                'RGB-color (value).',
-                                                                    examples=[{1: Color('red').as_rgb_tuple()}],
-                                                                    default=None)
-    nodata: Number = Field(title='No-Data Value',
-                           description='The array values that signifies no-data in the raster.',
-                           examples=[0],
-                           default=0)
+    data: ArrayLike = Field(
+        title='Input data',
+        description='The array of raster values to write to the image. Must be 2d or 3d.',
+        examples=[[[1, 1], [1, 1]]],
+    )
+    crs: CRS = Field(
+        title='CRS', description='The coordinate reference system.', examples=[CRS({'init': 'epsg:4326'}).to_string()]
+    )
+    transformation: Affine = Field(
+        title='Transformation',
+        description='An affine transformation. This is best read from an existing image or '
+        'using https://github.com/rasterio/affine',
+        examples=[Affine.identity()],
+    )
+    colormap: Optional[Dict[Number, conlist(item_type=conint(ge=0, le=255), min_length=3, max_length=4)]] = Field(
+        title='Colormap',
+        description='An optional colormap for easy '
+        'display. It will be applied to the '
+        'first layer of the image and '
+        'resolves all possible array data '
+        'values (key) to the respective '
+        'RGB-color (value).',
+        examples=[{1: Color('red').as_rgb_tuple()}],
+        default=None,
+    )
+    nodata: Number = Field(
+        title='No-Data Value',
+        description='The array values that signifies no-data in the raster.',
+        examples=[0],
+        default=0,
+    )
 
 
-def create_geotiff_artifact(raster_info: RasterInfo,
-                            layer_name: str,
-                            caption: str,
-                            resources: ComputationResources,
-                            description: str = None,
-                            filename: str = uuid.uuid4()) -> _Artifact:
+def create_geotiff_artifact(
+    raster_info: RasterInfo,
+    layer_name: str,
+    caption: str,
+    resources: ComputationResources,
+    description: str = None,
+    filename: str = uuid.uuid4(),
+) -> _Artifact:
     """Create a raster data artifact.
 
     This will create a GeoTIFF file holding all information required to plot a simple map layer.
@@ -411,7 +425,7 @@ def create_geotiff_artifact(raster_info: RasterInfo,
         'crs': raster_info.crs,
         'nodata': raster_info.nodata,
         'photometric': 'RGB',
-        'transform': raster_info.transformation
+        'transform': raster_info.transformation,
     }
 
     with rasterio.open(file_path, mode='w', **DefaultGTiffProfile(**profile)) as out_map_file:
@@ -419,11 +433,13 @@ def create_geotiff_artifact(raster_info: RasterInfo,
         if raster_info.colormap:
             out_map_file.write_colormap(1, raster_info.colormap)
 
-    result = _Artifact(name=layer_name,
-                       modality=ArtifactModality.MAP_LAYER_GEOTIFF,
-                       file_path=file_path,
-                       summary=caption,
-                       description=description)
+    result = _Artifact(
+        name=layer_name,
+        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        file_path=file_path,
+        summary=caption,
+        description=description,
+    )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
