@@ -410,3 +410,13 @@ def test_rasterinfo_from_rastario(default_computation_resources, general_uuid):
         )
 
     assert generated_info
+
+
+def test_three_instance_chart2ddata():
+    """Assert that Chart2dDate can be created with exactly three elements.
+
+    This threw a cryptic TypeError if pydantic checks for Color before checking for List[Color].
+    """
+    assert Chart2dData(
+        x=[1, 2, 3], y=[1, 2, 3], chart_type=ChartType.BAR, color=[Color('red'), Color('green'), Color('blue')]
+    )

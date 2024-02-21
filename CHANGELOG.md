@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- an issue where `Chart2dData` could not be created with exactly 3 or 4 data and color items
+
 ---
 
 ## [3.0.3] - 2024-02-01

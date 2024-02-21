@@ -109,7 +109,7 @@ class Chart2dData(BaseModel):
     chart_type: ChartType = Field(
         title='Chart Type', description='The type of chart to be created.', examples=[ChartType.SCATTER]
     )
-    color: Union[Color, List[Color]] = Field(
+    color: Union[List[Color], Color] = Field(
         title='Chart Color',
         description='The color for the chart elements. If a list is given, it '
         'must be the same length as the data input. If only a single '
