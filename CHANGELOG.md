@@ -2,9 +2,13 @@
 
 ## [Unreleased]
 
+## [3.1.0]
+
 ### Added
 
 - the class description endpoint to the `LulcUtility`
+- `MOBILITY_PEDESTRIAN` concern for the walkability plugin
+- [ruff](https://docs.astral.sh/ruff/) formatting pre-commit hook ([#60](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/60))
 
 ### Fixed
 
