@@ -3,12 +3,14 @@ from pathlib import Path
 from typing import List
 
 import pytest
+import responses
 from pydantic import BaseModel
 from semver import Version
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.operator import Info, Concern, Operator, PluginAuthor
+from climatoology.utility.api import HealthCheck
 
 
 @pytest.fixture
@@ -73,3 +75,10 @@ def default_operator(default_info):
 def default_computation_resources(general_uuid) -> ComputationResources:
     with ComputationScope(general_uuid) as resources:
         yield resources
+
+
+@pytest.fixture
+def mocked_client():
+    with responses.RequestsMock() as rsps:
+        rsps.get('http://localhost:80/health', json=HealthCheck().model_dump())
+        yield rsps

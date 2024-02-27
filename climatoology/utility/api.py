@@ -2,14 +2,14 @@ import logging
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from enum import Enum
 from io import BytesIO
-from typing import Tuple, List, ContextManager, Optional
+from typing import Optional, Tuple, List, ContextManager, Dict
 
 import rasterio as rio
 import requests
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field, model_validator, confloat
 from rasterio.merge import merge
 from requests.adapters import HTTPAdapter
 from tqdm import tqdm
@@ -18,6 +18,10 @@ from urllib3 import Retry
 from climatoology.utility.exception import PlatformUtilityException
 
 log = logging.getLogger(__name__)
+
+
+class HealthCheck(BaseModel):
+    status: str = 'ok'
 
 
 class FusionMode(Enum):
@@ -30,11 +34,39 @@ class FusionMode(Enum):
     MEAN_MIXIN = 'mean_mixin'
 
 
+class LabelDescriptor(BaseModel):
+    """Segmentation label definition."""
+
+    name: str = Field(title='Name', description='Name of the segmentation label.', examples=['Forest'])
+    description: Optional[str] = Field(
+        title='Description',
+        description='A concise label description or caption.',
+        examples=['Areas with a tree cover of more than 80% and a continuous area of more than 25ha'],
+        default=None,
+    )
+    osm_filter: Optional[str] = Field(
+        title='OSM Filter',
+        description='The OSM filter statement that will extract all elements that fit '
+        'the description of this label.',
+        examples=['landuse=forest or natural=wood'],
+        default=None,
+    )
+    raster_value: int = Field(
+        title='Raster Value', description='The numeric value in the raster that represents this label.', examples=[1]
+    )
+    color: Tuple[int, int, int] = Field(
+        title='Color Hex-Code', description='The RGB-color values of the label', examples=[(255, 0, 0)]
+    )
+
+
 class LulcWorkUnit(BaseModel):
     """LULC area of interest."""
 
-    area_coords: Tuple[float, float, float, float] = Field(
-        description='Bounding box coordinates in WGS 84 (left, bottom, right, top)',
+    area_coords: Tuple[
+        confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
+    ] = Field(
+        title='Area Coordinates',
+        description='Bounding box coordinates in WGS 84 (west, south, east, north)',
         examples=[
             [
                 12.304687500000002,
@@ -44,7 +76,8 @@ class LulcWorkUnit(BaseModel):
             ]
         ],
     )
-    start_date: Optional[str] = Field(
+    start_date: Optional[date] = Field(
+        title='Start Date',
         description='Lower bound (inclusive) of remote sensing imagery acquisition date (UTC). '
         'The model uses an image stack of multiple acquisition times for predictions. '
         'Larger time intervals will improve the prediction accuracy'
@@ -52,23 +85,24 @@ class LulcWorkUnit(BaseModel):
         examples=['2023-05-01'],
         default=None,
     )
-    end_date: str = Field(
+    end_date: date = Field(
+        title='End Date',
         description='Upper bound (inclusive) of remote sensing imagery acquisition date (UTC).'
         "Defaults to today's date"
         'In case `fusion_mode` has been declared to value different than `only_model`'
         'the `end_date` will also be used to acquire OSM data',
         examples=['2023-06-01'],
-        default=str(datetime.now().strftime('%Y-%m-%d')),
+        default=datetime.now().date(),
     )
-    threshold: float = Field(
+    threshold: confloat(ge=0.0, le=1.0) = Field(
+        title='Threshold',
         description='Not exceeding this value by the class prediction score results in the recognition of the result '
         'as "unknown"',
         default=0,
         examples=[0.75],
-        ge=0.0,
-        le=1.0,
     )
     fusion_mode: FusionMode = Field(
+        title='Fusion Mode',
         description='Enables merging model results with OSM data: '
         '`only_model` - no fusion with OSM will take place, '
         '`only_osm` - displays OSM output only, '
@@ -80,6 +114,12 @@ class LulcWorkUnit(BaseModel):
         default=FusionMode.ONLY_MODEL,
         examples=[FusionMode.ONLY_MODEL],
     )
+
+    @model_validator(mode='after')
+    def minus_week(self) -> 'LulcWorkUnit':
+        if not self.start_date:
+            self.start_date = self.end_date - timedelta(days=7)
+        return self
 
 
 class PlatformHttpUtility(ABC):
@@ -106,9 +146,9 @@ class PlatformHttpUtility(ABC):
             url = f'{self.base_url}health'
             response = self.session.get(url=url)
             response.raise_for_status()
-            assert response.json().get('status') == 'ok'
+            assert response.json().get('status') == HealthCheck().status
         except Exception as e:
-            logging.error(f'{self.__class__.__name__} API not reachable', exc_info=e)
+            log.error(f'{self.__class__.__name__} API not reachable', exc_info=e)
             return False
         return True
 
@@ -189,3 +229,10 @@ class LulcUtility(PlatformHttpUtility):
                 with memfile.open() as dataset:
                     log.debug('Serving LULC classification')
                     yield dataset
+
+    def get_class_legend(self) -> Dict[str, LabelDescriptor]:
+        url = f'{self.base_url}segment/describe'
+        response = self.session.get(url=url)
+        response.raise_for_status()
+
+        return {name: LabelDescriptor(**label) for name, label in response.json().items()}

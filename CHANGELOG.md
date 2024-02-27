@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- the class description endpoint to the `LulcUtility`
+
 ### Fixed
 
 - an issue where `Chart2dData` could not be created with exactly 3 or 4 data and color items
