@@ -1,18 +1,23 @@
 unit_tests:
   stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   image:
     name: python:3.11.5
   variables:
     PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
   cache:
+    key: $CI_COMMIT_REF_NAME
     paths:
       - $PRE_COMMIT_HOME
       - .venv
   before_script:
-    - pip install poetry
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.gistools.geog.uni-heidelberg.de".insteadOf "ssh://git@gitlab.gistools.geog.uni-heidelberg.de:2022"
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - pip install poetry==1.7.1
     - poetry config virtualenvs.in-project true
-    - poetry install
-    - source `poetry env info --path`/bin/activate
+    - poetry install --with test,dev
   script:
     - poetry run pre-commit run --all-files
     - poetry run pytest
