@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- GNU LGPLv3 License
+
 ## [3.1.0]
 
 ### Added
