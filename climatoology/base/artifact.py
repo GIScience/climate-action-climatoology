@@ -145,8 +145,6 @@ class Chart2dData(BaseModel):
         if self.chart_type == ChartType.PIE:
             assert isinstance(self.y[0], float), 'Pie-chart Y-Axis must be numeric.'
             assert all(val >= 0 for val in self.y), 'Pie-chart Y-Data must be all positive.'
-            y_sum = sum(self.y)
-            self.y = [val / y_sum for val in self.y]
         return self
 
     @field_serializer('color')

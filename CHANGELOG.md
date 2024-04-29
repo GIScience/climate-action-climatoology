@@ -6,6 +6,10 @@
 
 - GNU LGPLv3 License
 
+### Changed
+
+- `Chart2dData` no longer normalises pie-chart y-values to sum to 1 ([#73](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/73))
+
 ## [3.1.0]
 
 ### Added

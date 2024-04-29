@@ -77,6 +77,14 @@ def test_chart_check_data():
             chart_type=ChartType.PIE,
         )
 
+    data = Chart2dData(
+        x=[1, 2],
+        y=[1, 2],
+        chart_type=ChartType.PIE,
+    )
+    assert data.x == [1, 2]
+    assert data.y == [1, 2]
+
 
 def test_create_markdown_artifact(default_computation_resources, general_uuid):
     expected_artifact = _Artifact(
