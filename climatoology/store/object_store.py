@@ -1,7 +1,10 @@
+import json
 import logging
 import uuid
 from abc import abstractmethod, ABC
+from enum import Enum
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import List, Optional
 from uuid import UUID
 
@@ -10,6 +13,14 @@ from minio import Minio, S3Error
 from climatoology.base.artifact import ArtifactModality, _Artifact
 
 log = logging.getLogger(__name__)
+
+
+class DataGroup(Enum):
+    DATA = 'DATA'
+    METADATA = 'METADATA'
+
+
+COMPUTATION_INFO_FILENAME: str = 'metadata.json'
 
 
 class Storage(ABC):
@@ -90,27 +101,47 @@ class MinioStorage(Storage):
         self.__file_cache = file_cache
 
     def save(self, artifact: _Artifact) -> str:
-        store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
-        log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} at {store_id}')
+        if artifact.modality == ArtifactModality.COMPUTATION_INFO:
+            store_id = COMPUTATION_INFO_FILENAME
+        else:
+            store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
+        artifact.store_id = store_id
 
-        metadata = {
-            'Name': artifact.name,
-            'Modality': artifact.modality.name,
-            'Original-Filename': str(artifact.file_path.name),
-            'Summary': artifact.summary,
-            'Correlation-UUID': artifact.correlation_uuid,
-            'Store-ID': store_id,
-        }
-        if artifact.description:
-            metadata['Description'] = artifact.description
+        object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id)
+        metadata_object_name = f'{object_name}.metadata.json'
+
+        log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} at {store_id}')
 
         self.client.fput_object(
             bucket_name=self.__bucket,
-            object_name=Storage.generate_object_name(artifact.correlation_uuid, store_id),
+            object_name=object_name,
             file_path=str(artifact.file_path),
-            metadata=metadata,
+            metadata={
+                'Type': DataGroup.DATA,
+                'Metadata-Object-Name': metadata_object_name,
+            },
         )
+
+        self.save_metadata(artifact, metadata_object_name, object_name)
+
         return store_id
+
+    def save_metadata(self, artifact: _Artifact, metadata_object_name: str, object_name: str) -> None:
+        metadata = artifact.model_dump(exclude={'file_path'}, mode='json')
+        metadata['file_path'] = str(artifact.file_path.name)
+
+        with NamedTemporaryFile(mode='x') as metadata_file:
+            json.dump(metadata, metadata_file, indent=4)
+
+            self.client.fput_object(
+                bucket_name=self.__bucket,
+                object_name=metadata_object_name,
+                file_path=metadata_file.name,
+                metadata={
+                    'Type': DataGroup.METADATA,
+                    'Data-Object-Name': object_name,
+                },
+            )
 
     def save_all(self, artifacts: List[_Artifact]) -> List[str]:
         return [self.save(artifact) for artifact in artifacts]
@@ -125,22 +156,20 @@ class MinioStorage(Storage):
             include_user_meta=True,
         )
         for obj in objects:
-            name = obj.metadata['X-Amz-Meta-Name']
-            modality = ArtifactModality(obj.metadata['X-Amz-Meta-Modality'])
-            file_path = obj.metadata['X-Amz-Meta-Original-Filename']
-            summary = obj.metadata['X-Amz-Meta-Summary']
-            description = obj.metadata.get('X-Amz-Meta-Description')
-            store_id = obj.metadata['X-Amz-Meta-Store-Id']
-            plugin_artifact = _Artifact(
-                name=name,
-                modality=modality,
-                file_path=file_path,
-                summary=summary,
-                description=description,
-                correlation_uuid=correlation_uuid,
-                store_id=store_id,
-            )
-            artifacts.append(plugin_artifact)
+            if obj.metadata['X-Amz-Meta-Type'] == DataGroup.METADATA.value:
+                try:
+                    metadata = self.client.get_object(
+                        bucket_name=self.__bucket,
+                        object_name=obj.object_name,
+                    )
+                    plugin_artifact = _Artifact.model_validate(metadata.json())
+                    if plugin_artifact.modality == ArtifactModality.COMPUTATION_INFO:
+                        continue
+                    artifacts.append(plugin_artifact)
+                finally:
+                    metadata.close()
+                    metadata.release_conn()
+
         log.debug(f'Found {len(artifacts)} artifacts for correlation_uuid {correlation_uuid}')
 
         return artifacts
@@ -153,7 +182,7 @@ class MinioStorage(Storage):
             self.client.fget_object(
                 bucket_name=self.__bucket,
                 object_name=object_name,
-                file_path=file_path,
+                file_path=str(file_path),
             )
         except S3Error as e:
             if e.code == 'NoSuchKey':

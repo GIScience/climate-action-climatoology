@@ -5,6 +5,11 @@
 ### Added
 
 - GNU LGPLv3 License
+- Computation metadata is now stored in a separate file together with the `_Artifact` files in the object store to make each object store computation directory information-complete
+
+### Changed
+
+- `_Artifact` metadata is now written to and read from separate files in the object store circumventing the limitations of the object-stores metadata functionality ([#46](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/46))
 
 ### Changed
 

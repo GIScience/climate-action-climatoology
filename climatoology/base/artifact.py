@@ -33,6 +33,7 @@ class ArtifactModality(Enum):
     CHART = 'CHART'
     MAP_LAYER_GEOJSON = 'MAP_LAYER_GEOJSON'
     MAP_LAYER_GEOTIFF = 'MAP_LAYER_GEOTIFF'
+    COMPUTATION_INFO = 'COMPUTATION_INFO'
 
 
 class _Artifact(BaseModel):

@@ -1,20 +1,35 @@
 import asyncio
+import datetime
 import logging
+import tempfile
 import time
-from typing import Optional
+from pathlib import Path
+from typing import Optional, List
+from uuid import UUID
 
 import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
+from pydantic import BaseModel
 
-from climatoology.base.artifact import _Artifact
+from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
-from climatoology.base.operator import Operator
+from climatoology.base.operator import Operator, Info
 from climatoology.broker.message_broker import AsyncRabbitMQ
-from climatoology.store.object_store import Storage
+from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
 from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)
+
+
+class ComputationInfo(BaseModel):
+    correlation_uuid: UUID
+    timestamp: datetime.datetime
+    params: dict
+    artifacts: Optional[List[_Artifact]] = []
+    plugin_info: Info
+    status: ComputeCommandStatus
+    message: Optional[str] = '-'
 
 
 class PlatformPlugin:
@@ -61,10 +76,16 @@ class PlatformPlugin:
                 correlation_uuid=command.correlation_uuid, status=ComputeCommandStatus.IN_PROGRESS
             )
 
-            tic = time.perf_counter()
-
             with ComputationScope(command.correlation_uuid) as resources:
+                tic = time.perf_counter()
                 artifacts = self.operator.compute_unsafe(resources, command.params)
+                toc = time.perf_counter()
+
+                for artifact in artifacts:
+                    assert (
+                        artifact.modality != ArtifactModality.COMPUTATION_INFO
+                    ), 'Computation-info files are not allowed as plugin result'
+
                 plugin_artifacts = [
                     _Artifact(
                         correlation_uuid=command.correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'})
@@ -73,7 +94,16 @@ class PlatformPlugin:
                 ]
                 self.storage.save_all(plugin_artifacts)
 
-            toc = time.perf_counter()
+                self._save_computation_info(
+                    ComputationInfo(
+                        correlation_uuid=command.correlation_uuid,
+                        timestamp=datetime.datetime.now(),
+                        params=command.params,
+                        artifacts=plugin_artifacts,
+                        plugin_info=self.operator.info_enriched(),
+                        status=ComputeCommandStatus.COMPLETED,
+                    )
+                )
 
             await self.broker.publish_status_update(
                 correlation_uuid=command.correlation_uuid,
@@ -95,6 +125,24 @@ class PlatformPlugin:
             )
         finally:
             await message.ack()
+
+    def _save_computation_info(self, computation_info: ComputationInfo) -> str:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(Path(temp_dir) / COMPUTATION_INFO_FILENAME, 'x') as out_file:
+                log.debug(f'Writing metadata file {out_file}')
+
+                out_file.write(computation_info.model_dump_json(indent=4))
+
+                result = _Artifact(
+                    name='Computation Info',
+                    modality=ArtifactModality.COMPUTATION_INFO,
+                    file_path=Path(out_file.name),
+                    summary=f'Computation information of correlation_uuid {computation_info.correlation_uuid}',
+                    correlation_uuid=computation_info.correlation_uuid,
+                )
+                log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+                return self.storage.save(result)
 
     async def __info_callback(self, message):
         command: InfoCommand = InfoCommand.model_validate_json(message.body)
