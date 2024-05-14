@@ -15,6 +15,10 @@
 
 - `Chart2dData` no longer normalises pie-chart y-values to sum to 1 ([#73](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/73))
 
+### Fixed
+
+- Prevent compute request messages from being acknowledged twice towards the broker during computation, causing an error ([#69](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/69))
+
 ## [3.1.0]
 
 ### Added

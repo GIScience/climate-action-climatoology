@@ -65,7 +65,7 @@ class PlatformPlugin:
             logging.exception(
                 f'Failed to parse compute message {message.correlation_id} with content {message.body}', exc_info=e
             )
-            await message.nack()
+            await message.nack(requeue=False)
             return
 
         try:
@@ -118,13 +118,13 @@ class PlatformPlugin:
                 status=ComputeCommandStatus.FAILED__WRONG_INPUT,
                 message=str(e),
             )
-            await message.nack()
+            await message.nack(requeue=False)
         except Exception as e:
             log.warning(f'Computation failed for correlation id {command.correlation_uuid}', exc_info=e)
             await self.broker.publish_status_update(
                 correlation_uuid=command.correlation_uuid, status=ComputeCommandStatus.FAILED, message=str(e)
             )
-            await message.nack()
+            await message.nack(requeue=False)
 
     def _save_computation_info(self, computation_info: ComputationInfo) -> str:
         with tempfile.TemporaryDirectory() as temp_dir:
