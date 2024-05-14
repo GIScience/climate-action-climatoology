@@ -161,12 +161,16 @@ class PlatformPlugin:
         log.debug('Running plugin loop')
 
         async with self.broker.connection_pool.acquire() as connection:
-            async with connection.channel() as channel:
-                await channel.set_qos(prefetch_count=1)
+            channel = await connection.channel()
 
-                compute_queue = await channel.declare_queue(name=self.compute_queue_name, durable=True)
-                info_queue = await channel.declare_queue(name=self.info_queue_name)
+        try:
+            await channel.set_qos(prefetch_count=1)
 
-                await self.broker.loop.create_task(compute_queue.consume(self.__compute_callback))
-                await self.broker.loop.create_task(info_queue.consume(self.__info_callback))
-                await asyncio.Future()
+            compute_queue = await channel.declare_queue(name=self.compute_queue_name, durable=True)
+            info_queue = await channel.declare_queue(name=self.info_queue_name)
+
+            await self.broker.loop.create_task(compute_queue.consume(self.__compute_callback))
+            await self.broker.loop.create_task(info_queue.consume(self.__info_callback))
+            await asyncio.Future()
+        finally:
+            await channel.close()

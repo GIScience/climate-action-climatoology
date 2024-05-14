@@ -142,61 +142,69 @@ class AsyncRabbitMQ(Broker):
         )
         body = compute_command.model_dump_json().encode()
         async with self.connection_pool.acquire() as connection:
-            async with connection.channel() as channel:
-                exchange = await channel.declare_exchange(self.get_status_exchange(), type=ExchangeType.FANOUT)
-                await exchange.publish(routing_key='', message=aio_pika.Message(body=body))
+            channel = await connection.channel()
+
+        try:
+            exchange = await channel.declare_exchange(self.get_status_exchange(), type=ExchangeType.FANOUT)
+            await exchange.publish(routing_key='', message=aio_pika.Message(body=body))
+        finally:
+            await channel.close()
 
     async def request_info(self, plugin_id: str, ttl: int = 3) -> Info:
         log.debug(f"Requesting 'info' from {plugin_id}.")
         info_call_corr_uuid = uuid.uuid4()
         async with self.connection_pool.acquire() as connection:
-            async with connection.channel() as channel:
-                await channel.set_qos(prefetch_count=1)
+            channel = await connection.channel()
 
-                callback_queue = await channel.declare_queue(exclusive=True, auto_delete=True)
+        await channel.set_qos(prefetch_count=1)
 
-                info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
-                await channel.default_exchange.publish(
-                    message=aio_pika.Message(
-                        body=info_command_body.model_dump_json().encode(), reply_to=callback_queue.name
-                    ),
-                    routing_key=self.get_info_queue(plugin_id=plugin_id),
-                )
+        callback_queue = await channel.declare_queue(exclusive=True, auto_delete=True)
 
-                try:
-                    async with callback_queue.iterator(timeout=ttl) as queue_iter:
-                        async for message in queue_iter:
-                            async with message.process():
-                                response = json.loads(message.body)
-                                info_return = Info(**response)
-                                if self.assert_plugin_version and not Version.parse(
-                                    info_return.library_version
-                                ).is_compatible(climatoology.__version__):
-                                    raise ClimatoologyVersionMismatchException(
-                                        f'Refusing to register plugin '
-                                        f'{info_return.name} for library '
-                                        f'version mismatch. '
-                                        f'Local: {climatoology.__version__}, '
-                                        f'Plugin: {info_return.version}'
-                                    )
-                                return info_return
-                except TimeoutError as e:
-                    raise InfoNotReceivedException(
-                        f'The info request ({info_call_corr_uuid}) did not respond within the time '
-                        f'limit of {ttl} seconds.'
-                    ) from e
+        info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
+        await channel.default_exchange.publish(
+            message=aio_pika.Message(body=info_command_body.model_dump_json().encode(), reply_to=callback_queue.name),
+            routing_key=self.get_info_queue(plugin_id=plugin_id),
+        )
+
+        try:
+            async with callback_queue.iterator(timeout=ttl) as queue_iter:
+                async for message in queue_iter:
+                    async with message.process():
+                        response = json.loads(message.body)
+                        info_return = Info(**response)
+                        if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
+                            climatoology.__version__
+                        ):
+                            raise ClimatoologyVersionMismatchException(
+                                f'Refusing to register plugin '
+                                f'{info_return.name} for library '
+                                f'version mismatch. '
+                                f'Local: {climatoology.__version__}, '
+                                f'Plugin: {info_return.version}'
+                            )
+                        return info_return
+        except TimeoutError as e:
+            raise InfoNotReceivedException(
+                f'The info request ({info_call_corr_uuid}) did not respond within the time ' f'limit of {ttl} seconds.'
+            ) from e
+        finally:
+            await channel.close()
 
     async def send_compute(self, plugin_id: str, params: dict, correlation_uuid: UUID):
         log.debug(f"Requesting 'compute' from {plugin_id} under {correlation_uuid}.")
         async with self.connection_pool.acquire() as connection:
-            async with connection.channel() as channel:
-                await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
+            channel = await connection.channel()
 
-                command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
-                await channel.default_exchange.publish(
-                    aio_pika.Message(body=command.model_dump_json().encode()),
-                    routing_key=self.get_compute_queue(plugin_id),
-                )
+        try:
+            await channel.declare_queue(self.get_compute_queue(plugin_id), durable=True)
+
+            command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
+            await channel.default_exchange.publish(
+                aio_pika.Message(body=command.model_dump_json().encode()),
+                routing_key=self.get_compute_queue(plugin_id),
+            )
+        finally:
+            await channel.close()
 
 
 class RabbitMQManagementAPI:

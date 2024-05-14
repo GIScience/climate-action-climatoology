@@ -49,7 +49,7 @@ def broker():
         assert_plugin_version=False,
     )
     mock.acquire = ctx
-    mock.channel = ctx
+    mock.channel = AsyncMock()
 
     broker.connection_pool = mock
 
@@ -59,10 +59,13 @@ def broker():
 @pytest.mark.asyncio
 async def test_publish_status_update(broker):
     async with broker.connection_pool.acquire() as connection:
-        async with connection.channel() as channel:
-            await broker.publish_status_update(uuid.uuid4(), ComputeCommandStatus.COMPLETED, 'success')
-            exchange = await channel.declare_exchange()
-            exchange.publish.assert_called_once()
+        channel = await connection.channel()
+
+    await broker.publish_status_update(uuid.uuid4(), ComputeCommandStatus.COMPLETED, 'success')
+    exchange = await channel.declare_exchange()
+    exchange.publish.assert_called_once()
+
+    await channel.close()
 
 
 def iterator(body: str):
@@ -97,32 +100,39 @@ def iterator(body: str):
 @pytest.mark.asyncio
 async def test_request_info(broker, default_info):
     async with broker.connection_pool.acquire() as connection:
-        async with connection.channel() as channel:
-            queue_mock = AsyncMock()
-            queue_mock.iterator = iterator(default_info.model_dump_json())
-            channel.declare_queue.return_value = queue_mock
+        channel = await connection.channel()
 
-            info = await broker.request_info(plugin_id='test_plugin')
-            assert info == default_info
+        queue_mock = AsyncMock()
+        queue_mock.iterator = iterator(default_info.model_dump_json())
+        channel.declare_queue.return_value = queue_mock
+
+        info = await broker.request_info(plugin_id='test_plugin')
+        assert info == default_info
+        channel.close()
 
 
 @pytest.mark.asyncio
 async def test_request_info_plugin_version_assert(broker, default_info):
     broker.assert_plugin_version = True
     async with broker.connection_pool.acquire() as connection:
-        async with connection.channel() as channel:
-            queue_mock = AsyncMock()
-            queue_mock.iterator = iterator(default_info.model_dump_json())
-            channel.declare_queue.return_value = queue_mock
+        channel = await connection.channel()
 
-            with pytest.raises(ClimatoologyVersionMismatchException):
-                await broker.request_info(plugin_id='test_plugin')
+    queue_mock = AsyncMock()
+    queue_mock.iterator = iterator(default_info.model_dump_json())
+    channel.declare_queue.return_value = queue_mock
+
+    with pytest.raises(ClimatoologyVersionMismatchException):
+        await broker.request_info(plugin_id='test_plugin')
+
+    await channel.close()
 
 
 @pytest.mark.asyncio
 async def test_send_compute(broker):
     async with broker.connection_pool.acquire() as connection:
-        async with connection.channel() as channel:
-            await broker.send_compute(plugin_id='test_plugin', params={}, correlation_uuid=uuid.uuid4())
-            mocked_exchange = channel.default_exchange
-            mocked_exchange.publish.assert_called_once()
+        channel = await connection.channel()
+
+    await broker.send_compute(plugin_id='test_plugin', params={}, correlation_uuid=uuid.uuid4())
+    mocked_exchange = channel.default_exchange
+    mocked_exchange.publish.assert_called_once()
+    await channel.close()
