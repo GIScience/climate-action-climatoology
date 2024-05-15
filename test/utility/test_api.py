@@ -6,9 +6,11 @@ import rasterio
 from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
+from shapely import Polygon, unary_union, difference
+from shapely import geometry
 
-from climatoology.utility.exception import PlatformUtilityException
 from climatoology.utility.api import LulcWorkUnit, LulcUtility, LabelDescriptor
+from climatoology.utility.exception import PlatformUtilityException
 
 unit_a = LulcWorkUnit(
     area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
@@ -106,3 +108,13 @@ def test_legend_retrieval(mocked_client):
     computed_result = operator.get_class_legend()
 
     assert expected_result == computed_result
+
+
+@pytest.mark.parametrize('max_unit_size', [500, 1500, 2500, 5000])
+def test_adjust_work_unit(max_unit_size):
+    origin_area = geometry.box(*unit_a.area_coords)
+
+    units = LulcUtility.adjust_work_units([unit_a], max_unit_size=max_unit_size)
+    adjusted_area = unary_union([geometry.box(*u.area_coords) for u in units])
+
+    assert difference(origin_area, adjusted_area) == Polygon()

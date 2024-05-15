@@ -12,6 +12,7 @@ import requests
 from pydantic import BaseModel, Field, model_validator, confloat
 from rasterio.merge import merge
 from requests.adapters import HTTPAdapter
+from sentinelhub import bbox_to_dimensions, BBox, CRS, BBoxSplitter
 from tqdm import tqdm
 from urllib3 import Retry
 
@@ -188,13 +189,16 @@ class LulcUtility(PlatformHttpUtility):
             return rio.open(BytesIO(response.content), mode='r')
 
     @contextmanager
-    def compute_raster(self, units: List[LulcWorkUnit]) -> ContextManager[rio.DatasetReader]:
+    def compute_raster(self, units: List[LulcWorkUnit], max_unit_size: int = 2500) -> ContextManager[rio.DatasetReader]:
         """Generate a remote sensing-based LULC classification.
 
         :param units: Areas of interest
+        :param max_unit_size: Size in pixels used to determine whether the unit has to be split to meet external service processing requirements. The value applies to both height and width.
         :return: An opened geo-tiff file within a context manager. Use it as `with compute_raster(units) as lulc:`
         """
         assert len(units) > 0
+
+        units = self.adjust_work_units(units, max_unit_size)
 
         with tqdm(total=len(units)) as pbar:
             slices = []
@@ -236,3 +240,26 @@ class LulcUtility(PlatformHttpUtility):
         response.raise_for_status()
 
         return {name: LabelDescriptor(**label) for name, label in response.json().items()}
+
+    @staticmethod
+    def adjust_work_units(units: List[LulcWorkUnit], max_unit_size: int = 2500) -> List[LulcWorkUnit]:
+        def split(unit):
+            bbox = BBox(unit.area_coords, crs=CRS.WGS84)
+            h, w = bbox_to_dimensions(bbox, resolution=10)
+            if h > max_unit_size or w > max_unit_size:
+                return [
+                    split(unit.model_copy(update={'area_coords': list(b)}, deep=True))
+                    for b in BBoxSplitter([bbox], CRS.WGS84, (2, 2)).bbox_list
+                ]
+            else:
+                return [unit]
+
+        def flatten(iterable):
+            for outer_i in iterable:
+                if isinstance(outer_i, list):
+                    for inner_i in flatten(outer_i):
+                        yield inner_i
+                else:
+                    yield outer_i
+
+        return list(flatten(map(split, units)))
