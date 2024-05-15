@@ -49,6 +49,11 @@ class _Artifact(BaseModel):
         examples=['Nice Graphic'],
     )
     modality: ArtifactModality = Field(description='The type of artefact created.', examples=[ArtifactModality.IMAGE])
+    primary: bool = Field(
+        description='Is this a primary artifact or does it exhibit additional or contextual information?',
+        examples=[True],
+        default=True,
+    )
     file_path: Path = Field(
         description='The full path to the file that stores the artefact.',
         examples=['/tmp/7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
@@ -157,7 +162,12 @@ class Chart2dData(BaseModel):
 
 
 def create_markdown_artifact(
-    text: str, resources: ComputationResources, name: str, tl_dr: str, filename: str = uuid.uuid4()
+    text: str,
+    resources: ComputationResources,
+    name: str,
+    tl_dr: str,
+    primary: bool = True,
+    filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create an artifact from text supporting Markdown formatting.
 
@@ -166,6 +176,7 @@ def create_markdown_artifact(
     :param text: Text that can contain Markdown formatting.
     :param name: A potential heading for the text.
     :param tl_dr: A summary of the text.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param resources: The computation resources for this plugin.
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
@@ -176,7 +187,13 @@ def create_markdown_artifact(
     with open(file_path, 'x') as out_file:
         out_file.write(text)
 
-    result = _Artifact(name=name, modality=ArtifactModality.MARKDOWN, file_path=file_path, summary=tl_dr)
+    result = _Artifact(
+        name=name,
+        modality=ArtifactModality.MARKDOWN,
+        file_path=file_path,
+        summary=tl_dr,
+        primary=primary,
+    )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
@@ -187,6 +204,7 @@ def create_table_artifact(
     title: str,
     caption: str,
     resources: ComputationResources,
+    primary: bool = True,
     description: str = None,
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -199,6 +217,7 @@ def create_table_artifact(
     :param caption: Caption of the table that describes the content.
     :param description: A longer description of the table content.
     :param resources: The computation resources for this plugin.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
@@ -209,7 +228,12 @@ def create_table_artifact(
     data.to_csv(file_path, header=True, index=False, index_label=False, mode='x')
 
     result = _Artifact(
-        name=title, modality=ArtifactModality.TABLE, file_path=file_path, summary=caption, description=description
+        name=title,
+        modality=ArtifactModality.TABLE,
+        file_path=file_path,
+        summary=caption,
+        description=description,
+        primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -221,6 +245,7 @@ def create_image_artifact(
     title: str,
     caption: str,
     resources: ComputationResources,
+    primary: bool = True,
     description: str = None,
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -233,6 +258,7 @@ def create_image_artifact(
     :param caption: Caption of the image that describes the content.
     :param description: A longer description of the image content.
     :param resources: The computation resources for this plugin.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
@@ -244,7 +270,12 @@ def create_image_artifact(
     image.save(file_path, format='PNG', optimize=True)
 
     result = _Artifact(
-        name=title, modality=ArtifactModality.IMAGE, file_path=file_path, summary=caption, description=description
+        name=title,
+        modality=ArtifactModality.IMAGE,
+        file_path=file_path,
+        summary=caption,
+        description=description,
+        primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -256,6 +287,7 @@ def create_chart_artifact(
     title: str,
     caption: str,
     resources: ComputationResources,
+    primary: bool = True,
     description: str = None,
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -268,6 +300,7 @@ def create_chart_artifact(
     :param caption: Caption for the resulting plot that describes the content.
     :param description: A longer description of the chart content.
     :param resources: The computation resources of the plugin.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
@@ -279,7 +312,12 @@ def create_chart_artifact(
         json.dump(chart_data, out_file, indent=4)
 
     result = _Artifact(
-        name=title, modality=ArtifactModality.CHART, file_path=file_path, summary=caption, description=description
+        name=title,
+        modality=ArtifactModality.CHART,
+        file_path=file_path,
+        summary=caption,
+        description=description,
+        primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -291,6 +329,7 @@ def create_geojson_artifact(
     layer_name: str,
     caption: str,
     resources: ComputationResources,
+    primary: bool = True,
     description: str = None,
     color: Union[List[Color], Color] = Color('#590d08'),
     filename: str = uuid.uuid4(),
@@ -306,6 +345,7 @@ def create_geojson_artifact(
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
     :param resources: The computation resources of the plugin.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
@@ -333,6 +373,7 @@ def create_geojson_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -378,6 +419,7 @@ def create_geotiff_artifact(
     layer_name: str,
     caption: str,
     resources: ComputationResources,
+    primary: bool = True,
     description: str = None,
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -390,6 +432,7 @@ def create_geotiff_artifact(
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
     :param resources: The computation resources of the plugin.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
@@ -438,6 +481,7 @@ def create_geotiff_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 

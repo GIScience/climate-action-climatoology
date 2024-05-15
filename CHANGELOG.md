@@ -6,13 +6,11 @@
 
 - GNU LGPLv3 License
 - Computation metadata is now stored in a separate file together with the `_Artifact` files in the object store to make each object store computation directory information-complete
+- `primary` boolean attribute to the `_Artifact` to distinguish between the main outputs of a plugin and additional information ([#81](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/81)).
 
 ### Changed
 
 - `_Artifact` metadata is now written to and read from separate files in the object store circumventing the limitations of the object-stores metadata functionality ([#46](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/46))
-
-### Changed
-
 - `Chart2dData` no longer normalises pie-chart y-values to sum to 1 ([#73](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/73))
 
 ### Fixed
