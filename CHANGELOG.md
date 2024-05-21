@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2024-05-21
+
 ### Added
 
 - GNU LGPLv3 License
@@ -18,7 +20,7 @@
 
 - Prevent compute request messages from being acknowledged twice towards the broker during computation, causing an error ([#69](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/69))
 
-## [3.1.0]
+## [3.1.0] - 2024-02-27
 
 ### Added
 
