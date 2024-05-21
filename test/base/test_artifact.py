@@ -7,7 +7,7 @@ import pytest
 import rasterio
 from PIL import Image
 from affine import Affine
-from geopandas import GeoSeries
+from geopandas import GeoDataFrame
 from pandas import DataFrame
 from pydantic import ValidationError
 from pydantic_extra_types.color import Color
@@ -26,6 +26,9 @@ from climatoology.base.artifact import (
     create_geojson_artifact,
     create_geotiff_artifact,
     RasterInfo,
+    ContinuousLegendData,
+    AttachmentType,
+    Legend,
 )
 
 
@@ -215,7 +218,8 @@ EXPECTED_GEOJSON = """{
             "id": "0",
             "type": "Feature",
             "properties": {
-                "color": "#fff"
+                "color": "#fff",
+                "label": "White a"
             },
             "geometry": {
                 "type": "Point",
@@ -235,7 +239,8 @@ EXPECTED_GEOJSON = """{
             "id": "1",
             "type": "Feature",
             "properties": {
-                "color": "#fff"
+                "color": "#000",
+                "label": "Black b"
             },
             "geometry": {
                 "type": "Point",
@@ -255,7 +260,8 @@ EXPECTED_GEOJSON = """{
             "id": "2",
             "type": "Feature",
             "properties": {
-                "color": "#fff"
+                "color": "#0f0",
+                "label": "Green c"
             },
             "geometry": {
                 "type": "Point",
@@ -287,25 +293,38 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.geojson'),
         summary='Vector caption',
+        attachments={
+            AttachmentType.LEGEND: Legend(
+                legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}
+            )
+        },
     )
-    method_input = GeoSeries(
-        data=[Point(1, 1), Point(2, 2), Point(3, 3)],
+
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'label': ['White a', 'Black b', 'Green c'],
+            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+        },
         crs='EPSG:4326',
     )
 
     generated_artifact = create_geojson_artifact(
-        method_input,
+        features=method_input.geometry,
+        color=method_input.color.tolist(),
+        label=method_input.label.tolist(),
         layer_name='Test Vector',
         caption='Vector caption',
-        color=Color((255, 255, 255)),
         resources=default_computation_resources,
         filename=general_uuid,
     )
+
+    assert generated_artifact == expected_artifact
+
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
 
-    assert generated_artifact == expected_artifact
-    assert generated_content == EXPECTED_GEOJSON
+        assert generated_content == EXPECTED_GEOJSON
 
 
 def test_create_geojson_artifact_multiindex(default_computation_resources, general_uuid):
@@ -314,31 +333,88 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.geojson'),
         summary='Vector caption',
+        attachments={
+            AttachmentType.LEGEND: Legend(
+                legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}
+            )
+        },
     )
 
     index = pd.MultiIndex.from_tuples(
         [('bar', 'one'), ('bar', 'two'), ('baz', 'one')],
         names=['first', 'second'],
     )
-    method_input = GeoSeries(
-        data=[Point(1, 1), Point(2, 2), Point(3, 3)],
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'label': ['White a', 'Black b', 'Green c'],
+            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+        },
         crs='EPSG:4326',
         index=index,
     )
 
     generated_artifact = create_geojson_artifact(
-        method_input,
+        features=method_input.geometry,
         layer_name='Test Vector',
         caption='Vector caption',
-        color=Color((255, 255, 255)),
+        color=method_input.color.tolist(),
+        label=method_input.label.tolist(),
         resources=default_computation_resources,
         filename=general_uuid,
     )
+
+    assert generated_artifact == expected_artifact
+
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
 
+        assert generated_content == EXPECTED_GEOJSON
+
+
+def test_create_geojson_artifact_continuous_legend(default_computation_resources, general_uuid):
+    expected_artifact = _Artifact(
+        name='Test Vector',
+        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.geojson'),
+        summary='Vector caption',
+        attachments={
+            AttachmentType.LEGEND: Legend(
+                legend_data=ContinuousLegendData(
+                    cmap_name='seismic', ticks={'Black b': 0.0, 'Green c': 0.5, 'White a': 1.0}
+                )
+            )
+        },
+    )
+
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'label': ['White a', 'Black b', 'Green c'],
+            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+        },
+        crs='EPSG:4326',
+    )
+
+    legend = ContinuousLegendData(cmap_name='seismic', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
+
+    generated_artifact = create_geojson_artifact(
+        features=method_input.geometry,
+        color=method_input.color.tolist(),
+        label=method_input.label.tolist(),
+        layer_name='Test Vector',
+        caption='Vector caption',
+        resources=default_computation_resources,
+        filename=general_uuid,
+        legend_data=legend,
+    )
+
     assert generated_artifact == expected_artifact
-    assert generated_content == EXPECTED_GEOJSON
+
+    with open(generated_artifact.file_path, 'r') as test_file:
+        generated_content = test_file.read()
+
+        assert generated_content == EXPECTED_GEOJSON
 
 
 def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid):
@@ -347,7 +423,9 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
+        attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#0f0')})},
     )
+
     method_input = RasterInfo(
         data=np.ones(shape=(4, 5), dtype=float),
         crs=CRS({'init': 'epsg:4326'}),
@@ -370,9 +448,83 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
         filename=general_uuid,
     )
 
+    assert generated_artifact == expected_artifact
+
     generated_content = rasterio.open(generated_artifact.file_path)
+    assert (generated_content.read() == method_input.data).all()
+
+
+def test_create_geotiff_with_legend_data(default_computation_resources, general_uuid):
+    expected_artifact = _Artifact(
+        name='Test Raster',
+        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
+        summary='Raster caption',
+        attachments={AttachmentType.LEGEND: Legend(legend_data={'A': Color('#f00')})},
+    )
+
+    method_input = RasterInfo(
+        data=np.ones(shape=(4, 5), dtype=float),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap={1: (0, 255, 0)},
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=general_uuid,
+        legend_data={'A': Color('red')},
+    )
 
     assert generated_artifact == expected_artifact
+
+    generated_content = rasterio.open(generated_artifact.file_path)
+    assert (generated_content.read() == method_input.data).all()
+
+
+def test_create_geotiff_without_legend(default_computation_resources, general_uuid):
+    expected_artifact = _Artifact(
+        name='Test Raster',
+        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
+        summary='Raster caption',
+        attachments={},
+    )
+
+    method_input = RasterInfo(
+        data=np.ones(shape=(4, 5), dtype=float),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=general_uuid,
+    )
+
+    assert generated_artifact == expected_artifact
+
+    generated_content = rasterio.open(generated_artifact.file_path)
     assert (generated_content.read() == method_input.data).all()
 
 
@@ -382,7 +534,9 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
+        attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#0f0')})},
     )
+
     method_input = RasterInfo(
         data=np.ones(shape=(3, 4, 5), dtype=float),
         crs=CRS({'init': 'epsg:4326'}),
@@ -405,9 +559,9 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
         filename=general_uuid,
     )
 
-    generated_content = rasterio.open(generated_artifact.file_path)
-
     assert generated_artifact == expected_artifact
+
+    generated_content = rasterio.open(generated_artifact.file_path)
     assert (generated_content.read() == method_input.data).all()
 
 

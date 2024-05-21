@@ -7,6 +7,7 @@
 - GNU LGPLv3 License
 - Computation metadata is now stored in a separate file together with the `_Artifact` files in the object store to make each object store computation directory information-complete
 - `primary` boolean attribute to the `_Artifact` to distinguish between the main outputs of a plugin and additional information ([#81](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/81)).
+- map legend information can now be stored alongside the geodata ([#55](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/55))
 
 ### Changed
 

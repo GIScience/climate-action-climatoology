@@ -4,7 +4,7 @@ import uuid
 from enum import Enum
 from numbers import Number
 from pathlib import Path
-from typing import Optional, Union, List, Dict
+from typing import Optional, Union, List, Dict, Any
 from uuid import UUID
 
 import numpy as np
@@ -14,7 +14,17 @@ from affine import Affine
 from geopandas import GeoSeries, GeoDataFrame
 from numpy.typing import ArrayLike
 from pandas import DataFrame
-from pydantic import BaseModel, Field, model_validator, conlist, field_serializer, conint
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+    conlist,
+    field_serializer,
+    conint,
+    confloat,
+    field_validator,
+    computed_field,
+)
 from pydantic_extra_types.color import Color
 from rasterio import CRS
 from rasterio.profiles import DefaultGTiffProfile
@@ -22,6 +32,72 @@ from rasterio.profiles import DefaultGTiffProfile
 from climatoology.base.computation import ComputationResources
 
 log = logging.getLogger(__name__)
+
+ACCEPTABLE_COLORMAPS = (
+    'plasma',
+    'binary',
+    'RdYlGn',
+    'seismic',
+    'terrain',
+)  # extend from https://matplotlib.org/stable/users/explain/colors/colormaps.html at will
+
+
+class LegendType(Enum):
+    DISCRETE = 'DISCRETE'
+    CONTINUOUS = 'CONTINUOUS'
+
+
+class ContinuousLegendData(BaseModel):
+    cmap_name: str = Field(
+        title='Color Map Name',
+        description='The name of the colormap the colors where picked from. Must be a matplotlib colormap, '
+        'see https://matplotlib.org/stable/users/explain/colors/colormaps.html.',
+        examples=['seismic'],
+    )
+    ticks: Dict[str, confloat(ge=0, le=1)] = Field(
+        title='Ticks',
+        description='Label and location of the legend ticks. The key represents the label the tick should have. It can '
+        'be a data value (e.g. 0.5), a data value string (e.g. 0.5°C) or a string (e.g. '
+        '`low temperature`). The value defines the location of the ticks between 0 (lowest) and 1 '
+        '(highest value on the legend scale).',
+        examples=[
+            {'low': 0, 'high': 1},
+        ],
+    )
+
+    @field_validator('cmap_name')
+    def must_be_valid_cmap_name(cls, v: str) -> str:
+        if v.removesuffix('_r') not in ACCEPTABLE_COLORMAPS:
+            raise ValueError(f'{v} is not among the accepted colormaps.')
+        return v
+
+
+class Legend(BaseModel):
+    legend_data: Union[Dict[str, Color], ContinuousLegendData] = Field(
+        title='Legend Data',
+        description='The data that is required to plot the legend. For discrete legends, all unique values with their '
+        'respective color must be given. For continuous legends, a continuous legend object is required.',
+        examples=[
+            {'The black void', Color('black').as_hex()},
+            ContinuousLegendData(cmap_name='seismic', ticks={'low': 0, 'high': 1}),
+        ],
+    )
+
+    @computed_field()
+    def legend_type(self) -> LegendType:
+        if isinstance(self.legend_data, dict):
+            return LegendType.DISCRETE
+        elif isinstance(self.legend_data, ContinuousLegendData):
+            return LegendType.CONTINUOUS
+        else:
+            raise ValueError(f'Legend data type {type(self.legend_data)} not supported')
+
+    @field_serializer('legend_data')
+    def serialize_color(self, co: Union[Dict[str, Color], ContinuousLegendData], _info):
+        if isinstance(co, dict):
+            return {lab: c.as_hex() for lab, c in co.items()}
+        else:
+            return co.model_dump()
 
 
 class ArtifactModality(Enum):
@@ -34,6 +110,10 @@ class ArtifactModality(Enum):
     MAP_LAYER_GEOJSON = 'MAP_LAYER_GEOJSON'
     MAP_LAYER_GEOTIFF = 'MAP_LAYER_GEOTIFF'
     COMPUTATION_INFO = 'COMPUTATION_INFO'
+
+
+class AttachmentType(Enum):
+    LEGEND = 'LEGEND'
 
 
 class _Artifact(BaseModel):
@@ -78,6 +158,11 @@ class _Artifact(BaseModel):
         'Will be automatically set.',
         examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
         default=None,
+    )
+    attachments: Dict[AttachmentType, Any] = Field(
+        description='Additional information or files that are linked to this artifact.',
+        examples=[{AttachmentType.LEGEND: Legend(legend_data={'The red object': Color('red')})}],
+        default={},
     )
 
 
@@ -328,10 +413,12 @@ def create_geojson_artifact(
     features: GeoSeries,
     layer_name: str,
     caption: str,
+    color: List[Color],
+    label: List[str],
     resources: ComputationResources,
     primary: bool = True,
+    legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
-    color: Union[List[Color], Color] = Color('#590d08'),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create a vector data artifact.
@@ -339,33 +426,40 @@ def create_geojson_artifact(
     This will create a GeoJSON file holding all information required to plot a simple map layer.
 
     :param features: The Geodata. Must have a CRS set.
-    :param color: Color of the features. Will be applied to surfaces, lines and points. Must be either a single color
-    or the same length as the features.
+    :param color: Color of the features. Will be applied to surfaces, lines and points. Must be the same length as the
+    features.
+    :param label: Label of the features. Must be the same length as the features.
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
+    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinousLegendData
+    type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
+    distinct legend will be created from the unique combinations of labels and colors.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.geojson'
-    log.debug(f'Writing vector dataset {file_path}')
+    log.debug(f'Writing vector dataset {file_path}.')
 
-    if not isinstance(color, List):
-        color = [color] * features.size
-    assert len(color) == features.size, 'The number of colors given does not match the number of features given.'
+    assert len(color) == features.size, 'The number of colors does not match the number of features.'
     color = [color.as_hex() for color in color]
+
+    assert len(label) == features.size, 'The number of labels does not match the number of features.'
 
     assert features.crs, 'CRS must be set.'
 
-    features = features.reset_index(drop=True)
-
-    gdf = GeoDataFrame({'color': color}, geometry=features)
+    gdf = GeoDataFrame({'color': color, 'label': label}, geometry=features.reset_index(drop=True))
 
     with open(file_path, 'x') as out_file:
         json_str = gdf.to_json(show_bbox=True, to_wgs84=True, indent=4)
         out_file.write(json_str)
+
+    if not legend_data:
+        legend_df = gdf.groupby(['color', 'label']).size().index.to_frame(index=False)
+        legend_df = legend_df.set_index('label')
+        legend_data = legend_df.to_dict()['color']
 
     result = _Artifact(
         name=layer_name,
@@ -374,7 +468,9 @@ def create_geojson_artifact(
         summary=caption,
         description=description,
         primary=primary,
+        attachments={AttachmentType.LEGEND: Legend(legend_data=legend_data)},
     )
+
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
@@ -387,7 +483,9 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
         examples=[[[1, 1], [1, 1]]],
     )
     crs: CRS = Field(
-        title='CRS', description='The coordinate reference system.', examples=[CRS({'init': 'epsg:4326'}).to_string()]
+        title='CRS',
+        description='The coordinate reference system.',
+        examples=[CRS({'init': 'epsg:4326'}).to_string()],
     )
     transformation: Affine = Field(
         title='Transformation',
@@ -420,6 +518,7 @@ def create_geotiff_artifact(
     caption: str,
     resources: ComputationResources,
     primary: bool = True,
+    legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -431,13 +530,16 @@ def create_geotiff_artifact(
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
+    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinousLegendData type.
+    For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a distinct
+    legend will be created from the colormap, if it exists.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.tiff'
-    log.debug(f'Writing raster dataset {file_path}')
+    log.debug(f'Writing raster dataset {file_path}.')
 
     data_array = np.array(raster_info.data)
 
@@ -475,6 +577,15 @@ def create_geotiff_artifact(
         if raster_info.colormap:
             out_map_file.write_colormap(1, raster_info.colormap)
 
+    legend = None
+    if legend_data:
+        legend = Legend(legend_data=legend_data)
+    elif raster_info.colormap:
+        legend_data = {
+            str(k): Color(v if len(v) == 3 else (v[0], v[1], v[2], v[3] / 255)) for k, v in raster_info.colormap.items()
+        }
+        legend = Legend(legend_data=legend_data)
+
     result = _Artifact(
         name=layer_name,
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
@@ -482,7 +593,9 @@ def create_geotiff_artifact(
         summary=caption,
         description=description,
         primary=primary,
+        attachments={AttachmentType.LEGEND: legend} if legend else {},
     )
+
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result

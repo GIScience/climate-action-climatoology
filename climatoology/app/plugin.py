@@ -77,7 +77,7 @@ class PlatformPlugin:
 
             with ComputationScope(command.correlation_uuid) as resources:
                 tic = time.perf_counter()
-                artifacts = self.operator.compute_unsafe(resources, command.params)
+                artifacts = list(filter(None, self.operator.compute_unsafe(resources, command.params)))
                 toc = time.perf_counter()
 
                 for artifact in artifacts:
