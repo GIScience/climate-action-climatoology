@@ -39,7 +39,7 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
         object_name=f'{general_uuid}/{store_id}',
         file_path=str(default_artifact.file_path),
         metadata={
-            'Type': DataGroup.DATA,
+            'Type': DataGroup.DATA.value,
             'Metadata-Object-Name': f'{general_uuid}/{store_id}.metadata.json',
         },
     )
@@ -49,7 +49,7 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
         object_name=f'{general_uuid}/{store_id}.metadata.json',
         file_path='/tmp/tmpaaaaaaaa',
         metadata={
-            'Type': DataGroup.METADATA,
+            'Type': DataGroup.METADATA.value,
             'Data-Object-Name': f'{general_uuid}/{store_id}',
         },
     )

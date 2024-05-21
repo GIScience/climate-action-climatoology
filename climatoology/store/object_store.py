@@ -117,7 +117,7 @@ class MinioStorage(Storage):
             object_name=object_name,
             file_path=str(artifact.file_path),
             metadata={
-                'Type': DataGroup.DATA,
+                'Type': DataGroup.DATA.value,
                 'Metadata-Object-Name': metadata_object_name,
             },
         )
@@ -132,13 +132,14 @@ class MinioStorage(Storage):
 
         with NamedTemporaryFile(mode='x') as metadata_file:
             json.dump(metadata, metadata_file, indent=4)
+            metadata_file.flush()
 
             self.client.fput_object(
                 bucket_name=self.__bucket,
                 object_name=metadata_object_name,
                 file_path=metadata_file.name,
                 metadata={
-                    'Type': DataGroup.METADATA,
+                    'Type': DataGroup.METADATA.value,
                     'Data-Object-Name': object_name,
                 },
             )
