@@ -56,6 +56,19 @@ def test_minio_save(mocked_client, general_uuid, default_artifact):
     assert mocked_client['minio_client']().fput_object.call_count == 2
 
 
+def test_minio_save_special_character_filename(mocked_client, general_uuid, default_artifact):
+    artifact = _Artifact(
+        name='test_name',
+        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        file_path=Path(__file__).parent.parent / 'test_äöüfile.tiff',
+        summary='Test summary',
+    )
+    with patch.object(tempfile._RandomNameSequence, attribute='characters', new='a') as _:
+        store_id = mocked_client['minio_storage'].save(artifact)
+
+    assert store_id.endswith('_test_file.tiff')
+
+
 def test_minio_save_all(mocked_client, general_uuid, default_artifact):
     second_correlation_uuid = uuid.uuid4()
     second_plugin_artifact = _Artifact(

@@ -104,7 +104,8 @@ class MinioStorage(Storage):
         if artifact.modality == ArtifactModality.COMPUTATION_INFO:
             store_id = COMPUTATION_INFO_FILENAME
         else:
-            store_id = f'{uuid.uuid4()}_{artifact.file_path.name}'
+            cleaned_filename = artifact.file_path.name.encode(encoding='ascii', errors='ignore').decode()
+            store_id = f'{uuid.uuid4()}_{cleaned_filename}'
         artifact.store_id = store_id
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id)
