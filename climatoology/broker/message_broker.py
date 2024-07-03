@@ -122,8 +122,14 @@ class AsyncRabbitMQ(Broker):
         self.assert_plugin_version = assert_plugin_version
 
     async def async_init(self):
-        async def get_connection():
-            return await aio_pika.connect(host=self.host, port=self.port, login=self.user, password=self.password)
+        async def get_connection(heartbeat_timeout: int = 1800):
+            return await aio_pika.connect(
+                host=self.host,
+                port=self.port,
+                login=self.user,
+                password=self.password,
+                client_properties={'heartbeat': heartbeat_timeout},
+            )
 
         self.connection_pool: Pool = Pool(get_connection, max_size=self.connection_pool_max_size, loop=self.loop)
 
