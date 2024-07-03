@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.0.1] - 2024-07-03
+
+### Fixed
+
+- artifact upload failures due to the limitations of the object store metadata when artifact filenames contained non-ASCII characters
+- a failure of plugins to acknowledge a compute request if the compute run took more than 3 minutes by increasing the heartbeat timeout to 30min ([#100](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/100))
+
 ## [4.0.0] - 2024-05-21
 
 ### Added
