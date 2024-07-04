@@ -9,7 +9,7 @@ from responses import matchers
 from shapely import Polygon, unary_union, difference
 from shapely import geometry
 
-from climatoology.utility.api import LulcWorkUnit, LulcUtility, LabelDescriptor
+from climatoology.utility.api import LulcWorkUnit, LulcUtility, LabelDescriptor, LabelResponse
 from climatoology.utility.exception import PlatformUtilityException
 
 unit_a = LulcWorkUnit(
@@ -85,26 +85,51 @@ def test_legend_retrieval(mocked_client):
     mocked_client.get(
         'http://localhost:80/segment/describe',
         json={
-            'class1': {
-                'name': 'class1',
-                'description': 'description',
-                'osm_filter': 'landuse=nothing',
-                'raster_value': 1,
-                'color': [255, 255, 255],
-            }
+            'osm': {
+                'class1': {
+                    'name': 'class1',
+                    'description': 'description',
+                    'osm_ref': None,
+                    'osm_filter': 'landuse=nothing',
+                    'raster_value': 1,
+                    'color': [255, 255, 255],
+                }
+            },
+            'corine': {
+                'class1': {
+                    'name': 'class1',
+                    'description': 'description',
+                    'osm_ref': 'class1',
+                    'osm_filter': 'landuse=nothing',
+                    'raster_value': 1,
+                    'color': [255, 255, 255],
+                }
+            },
         },
     )
     operator = LulcUtility(host='localhost', port=80, path='/')
 
-    expected_result = {
-        'class1': LabelDescriptor(
-            name='class1',
-            description='description',
-            osm_filter='landuse=nothing',
-            raster_value=1,
-            color=(255, 255, 255),
-        )
-    }
+    expected_result = LabelResponse(
+        osm={
+            'class1': LabelDescriptor(
+                name='class1',
+                description='description',
+                osm_filter='landuse=nothing',
+                raster_value=1,
+                color=(255, 255, 255),
+            )
+        },
+        corine={
+            'class1': LabelDescriptor(
+                name='class1',
+                osm_ref='class1',
+                description='description',
+                osm_filter='landuse=nothing',
+                raster_value=1,
+                color=(255, 255, 255),
+            )
+        },
+    )
     computed_result = operator.get_class_legend()
 
     assert expected_result == computed_result
