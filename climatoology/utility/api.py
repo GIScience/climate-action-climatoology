@@ -33,12 +33,24 @@ class FusionMode(Enum):
     FAVOUR_OSM = 'favour_osm'
     FAVOUR_MODEL = 'favour_model'
     MEAN_MIXIN = 'mean_mixin'
+    ONLY_CORINE = 'only_corine'
+    HARMONIZED_CORINE = 'harmonized_corine'
 
 
 class LabelDescriptor(BaseModel):
     """Segmentation label definition."""
 
-    name: str = Field(title='Name', description='Name of the segmentation label.', examples=['Forest'])
+    name: str = Field(
+        title='Name',
+        description='Name of the segmentation label.',
+        examples=['Forest'],
+    )
+    osm_ref: Optional[str] = Field(
+        title='OSM Reference',
+        description='Name of matching OSM label used during harmonization process',
+        examples=['Forest'],
+        default=None,
+    )
     description: Optional[str] = Field(
         title='Description',
         description='A concise label description or caption.',
@@ -53,10 +65,47 @@ class LabelDescriptor(BaseModel):
         default=None,
     )
     raster_value: int = Field(
-        title='Raster Value', description='The numeric value in the raster that represents this label.', examples=[1]
+        title='Raster Value',
+        description='The numeric value in the raster that represents this label.',
+        examples=[1],
     )
     color: Tuple[int, int, int] = Field(
-        title='Color Hex-Code', description='The RGB-color values of the label', examples=[(255, 0, 0)]
+        title='Color',
+        description='The RGB-color values of the label',
+        examples=[(255, 0, 0)],
+    )
+
+
+class LabelResponse(BaseModel):
+    osm: Dict[str, LabelDescriptor] = Field(
+        title='OSM Labels',
+        description='Labels of classes present in the osm derived data.',
+        examples=[
+            {
+                'corine': LabelDescriptor(
+                    name='unknown',
+                    osm_filter=None,
+                    color=(0, 0, 0),
+                    description='Class Unknown',
+                    raster_value=0,
+                )
+            }
+        ],
+    )
+    corine: Dict[str, LabelDescriptor] = Field(
+        title='CORINE Labels',
+        description='Labels of classes present in the corine derived data.',
+        examples=[
+            {
+                'corine': LabelDescriptor(
+                    name='unknown',
+                    osm_filter=None,
+                    color=(0, 0, 0),
+                    description='Class Unknown',
+                    raster_value=0,
+                )
+            }
+        ],
     )
 
 
@@ -234,12 +283,11 @@ class LulcUtility(PlatformHttpUtility):
                     log.debug('Serving LULC classification')
                     yield dataset
 
-    def get_class_legend(self) -> Dict[str, LabelDescriptor]:
+    def get_class_legend(self) -> LabelResponse:
         url = f'{self.base_url}segment/describe'
         response = self.session.get(url=url)
         response.raise_for_status()
-
-        return {name: LabelDescriptor(**label) for name, label in response.json().items()}
+        return LabelResponse(**response.json())
 
     @staticmethod
     def adjust_work_units(units: List[LulcWorkUnit], max_unit_size: int = 2500) -> List[LulcWorkUnit]:

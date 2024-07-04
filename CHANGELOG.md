@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [5.0.0] - 2024-07-04
+
+### Changed
+
+- upgraded LULC utility to the latest response type (`LabelResponse`) for the label description endpoint (`get_class_legend`)
+
+### Added
+
+- new LULC utility fusion modes `only_corine` and `harmonized_corine`
+
 ## [4.0.1] - 2024-07-03
 
 ### Fixed
