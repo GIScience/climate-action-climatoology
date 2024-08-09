@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- bikeability concern
+
+### Fixed
+
+- rasterio/gdal issue where the written geotiffs were no longer readable by the front-end ([#103](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/103))
+
 ## [5.0.0] - 2024-07-04
 
 ### Changed

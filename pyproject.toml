@@ -3,8 +3,8 @@ name = "climatoology"
 version = "5.0.0"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
-  "Maciej Adamiak <maciej.adamiak@heigit.org>",
-  "Moritz Schott <moritz.schott@heigit.org>"
+    "Maciej Adamiak <maciej.adamiak@heigit.org>",
+    "Moritz Schott <moritz.schott@heigit.org>"
 ]
 readme = "README.md"
 repository = "https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology"
@@ -20,7 +20,7 @@ pydantic = "^2.3.0"
 bibtexparser = "^1.4.0"
 semver = "^3.0.1"
 minio = "^7.1.16"
-rasterio = "^1.3.8"
+rasterio = "1.3.9" # pinned version due to #103 caused by https://github.com/rasterio/rasterio/issues/3133
 tqdm = "^4.66.1"
 requests = "^2.31.0"
 pillow = "^10.0.0"
