@@ -28,6 +28,7 @@ class Concern(Enum):
     CLIMATE_ACTION__ADAPTION = 'adaption'
 
     MOBILITY_PEDESTRIAN = 'pedestrian'
+    MOBILITY_CYCLING = 'cycling'
 
     SUSTAINABILITY__WASTE = 'waste'
 
