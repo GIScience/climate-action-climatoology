@@ -7,6 +7,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/compare/5.0.0...main)
 
+## [5.1.0](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/releases/5.1.0) - 2024-09-09
+
 ### Fixed
 
 - rasterio/gdal issue where the written geotiffs were no longer readable by the front-end ([#103](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/issues/103))
