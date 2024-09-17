@@ -1,5 +1,6 @@
 import tempfile
 import uuid
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -123,4 +124,14 @@ def test_minio_fetch(mocked_client, general_uuid):
         bucket_name='test_bucket',
         object_name=f'{general_uuid}/{store_id}',
         file_path=f'/tmp/{store_id}',
+    )
+
+
+def test_minio_get_artifact_url(mocked_client, general_uuid):
+    store_id = f'{general_uuid}_test_file.tiff'
+    _result = mocked_client['minio_storage'].get_artifact_url(general_uuid, store_id)
+    mocked_client['minio_client']().presigned_get_object.assert_called_once_with(
+        bucket_name='test_bucket',
+        object_name=f'{general_uuid}/{store_id}',
+        expires=timedelta(days=1),
     )
