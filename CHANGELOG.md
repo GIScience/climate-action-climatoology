@@ -7,6 +7,13 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/compare/5.0.0...main)
 
+## [5.2.0](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/releases/5.2.0) - 2024-09-17
+
+### Added
+
+- function to generated pre-signed urls for artifacts in the `ObjectStore`
+- option to specify the target file name, where an artifact file is fetched to via the `ObjectStore`
+
 ## [5.1.0](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/releases/5.1.0) - 2024-09-09
 
 ### Fixed

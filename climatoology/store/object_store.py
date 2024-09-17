@@ -2,6 +2,7 @@ import json
 import logging
 import uuid
 from abc import abstractmethod, ABC
+from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -58,7 +59,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
+    def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
         """Fetch an object from the store.
 
         This will download an element to the file cache of the broker using file_name. If the element does not exist
@@ -66,6 +67,7 @@ class Storage(ABC):
 
         :param correlation_uuid: The folder of the element in the store
         :param store_id: The element name
+        :param file_name: The name of the file the object should be stored in (within the file cache directory)
         :return: The path to the file or None
         """
         pass
@@ -123,11 +125,11 @@ class MinioStorage(Storage):
             },
         )
 
-        self.save_metadata(artifact, metadata_object_name, object_name)
+        self._save_artifact_metadata(artifact, metadata_object_name, object_name)
 
         return store_id
 
-    def save_metadata(self, artifact: _Artifact, metadata_object_name: str, object_name: str) -> None:
+    def _save_artifact_metadata(self, artifact: _Artifact, metadata_object_name: str, object_name: str) -> None:
         metadata = artifact.model_dump(exclude={'file_path'}, mode='json')
         metadata['file_path'] = str(artifact.file_path.name)
 
@@ -159,6 +161,7 @@ class MinioStorage(Storage):
         )
         for obj in objects:
             if obj.metadata['X-Amz-Meta-Type'] == DataGroup.METADATA.value:
+                metadata = None
                 try:
                     metadata = self.client.get_object(
                         bucket_name=self.__bucket,
@@ -169,15 +172,19 @@ class MinioStorage(Storage):
                         continue
                     artifacts.append(plugin_artifact)
                 finally:
-                    metadata.close()
-                    metadata.release_conn()
+                    if metadata:
+                        metadata.close()
+                        metadata.release_conn()
 
         log.debug(f'Found {len(artifacts)} artifacts for correlation_uuid {correlation_uuid}')
 
         return artifacts
 
-    def fetch(self, correlation_uuid: UUID, store_id: str) -> Optional[Path]:
-        file_path = self.__file_cache / store_id
+    def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
+        if not file_name:
+            file_name = store_id
+        file_path = self.__file_cache / file_name
+
         try:
             object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
             log.debug(f'Download{object_name} from bucket {self.__bucket} to {file_path}')
@@ -191,3 +198,28 @@ class MinioStorage(Storage):
                 return None
             raise e
         return file_path
+
+    def get_artifact_url(
+        self, correlation_uuid: UUID, store_id: str, expires: timedelta = timedelta(days=1)
+    ) -> Optional[str]:
+        """Retrieve an objects pre-signed URL from the store.
+
+        If the element does not exist under the given correlation_uuid/store_id path, None is returned.
+
+        :param correlation_uuid: The folder of the element in the store
+        :param store_id: The element name
+        :param expires: The time to expiration of the retrieved URL
+        :return: The pre-signed url of the file or None
+        """
+        object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
+        try:
+            url = self.client.presigned_get_object(
+                bucket_name=self.__bucket,
+                object_name=object_name,
+                expires=expires,
+            )
+        except S3Error as e:
+            if e.code == 'NoSuchKey':
+                return None
+            raise e
+        return url
