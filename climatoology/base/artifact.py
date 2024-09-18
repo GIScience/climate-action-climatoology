@@ -36,8 +36,7 @@ log = logging.getLogger(__name__)
 ACCEPTABLE_COLORMAPS = (
     'plasma',
     'binary',
-    'RdYlGn',
-    'seismic',
+    'coolwarm',
     'terrain',
 )  # extend from https://matplotlib.org/stable/users/explain/colors/colormaps.html at will
 
@@ -52,7 +51,7 @@ class ContinuousLegendData(BaseModel):
         title='Color Map Name',
         description='The name of the colormap the colors where picked from. Must be a matplotlib colormap, '
         'see https://matplotlib.org/stable/users/explain/colors/colormaps.html.',
-        examples=['seismic'],
+        examples=['plasma'],
     )
     ticks: Dict[str, confloat(ge=0, le=1)] = Field(
         title='Ticks',
@@ -79,7 +78,7 @@ class Legend(BaseModel):
         'respective color must be given. For continuous legends, a continuous legend object is required.',
         examples=[
             {'The black void', Color('black').as_hex()},
-            ContinuousLegendData(cmap_name='seismic', ticks={'low': 0, 'high': 1}),
+            ContinuousLegendData(cmap_name='plasma', ticks={'low': 0, 'high': 1}),
         ],
     )
 
