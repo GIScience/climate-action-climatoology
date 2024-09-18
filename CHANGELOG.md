@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/compare/5.0.0...main)
 
+### Changed
+
+- removed `RdYlGn` and `seismic` from acceptable colormaps, added `coolwarm` to acceptable colormaps
+
 ## [5.2.0](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/climatoology/-/releases/5.2.0) - 2024-09-17
 
 ### Added

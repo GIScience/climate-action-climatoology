@@ -381,7 +381,7 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         attachments={
             AttachmentType.LEGEND: Legend(
                 legend_data=ContinuousLegendData(
-                    cmap_name='seismic', ticks={'Black b': 0.0, 'Green c': 0.5, 'White a': 1.0}
+                    cmap_name='plasma', ticks={'Black b': 0.0, 'Green c': 0.5, 'White a': 1.0}
                 )
             )
         },
@@ -396,7 +396,7 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         crs='EPSG:4326',
     )
 
-    legend = ContinuousLegendData(cmap_name='seismic', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
+    legend = ContinuousLegendData(cmap_name='plasma', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
 
     generated_artifact = create_geojson_artifact(
         features=method_input.geometry,
