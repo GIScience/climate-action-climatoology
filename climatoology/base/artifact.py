@@ -452,7 +452,7 @@ def create_geojson_artifact(
     gdf = GeoDataFrame({'color': color, 'label': label}, geometry=features.reset_index(drop=True))
 
     with open(file_path, 'x') as out_file:
-        json_str = gdf.to_json(show_bbox=True, to_wgs84=True, indent=4)
+        json_str = gdf.to_json(show_bbox=False, to_wgs84=True, indent=None)
         out_file.write(json_str)
 
     if not legend_data:
