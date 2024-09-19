@@ -561,6 +561,7 @@ def create_geotiff_artifact(
         raise ValueError('Only 2 and 3 dimensional arrays are supported.')
 
     profile = {
+        'driver': 'COG',
         'height': height,
         'width': width,
         'count': count,
