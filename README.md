@@ -10,7 +10,7 @@ that provide climate action information to the user.
 
 ## Operator Creation
 
-To create a new operator (or plugin) please refer to the documentation in the [plugin blueprint repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/plugin-blueprint).
+To create a new operator (or plugin) please refer to the documentation in the [plugin blueprint repository](https://gitlab.heigit.org/climate-action/plugin-blueprint).
 
 ## Utilities
 
@@ -20,17 +20,17 @@ The following set of utilities is currently available. In addition, you may use 
 
 This utility can generate LULC classifications for arbitrary areas.
 It is exposed via the [`LulcUtility`](climatoology/utility/api.py).
-For a full documentation of the functionality see [the respective repository](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/lulc-utility).
+For a full documentation of the functionality see [the respective repository](https://gitlab.heigit.org/climate-action/lulc-utility).
 
 ## User Realm
 
-This package also provides the endpoints that connect the user realm via the [API Gateway](https://gitlab.gistools.geog.uni-heidelberg.de/climate-action/api-gateway) to the user realm.
+This package also provides the endpoints that connect the user realm via the [API Gateway](https://gitlab.heigit.org/climate-action/api-gateway) to the user realm.
 
 ## Install
 
 This package is currently only available via the repository.
 You need to have read-access to this repository, then run
-`pip install git+ssh://git@gitlab.gistools.geog.uni-heidelberg.de:2022/climate-action/climatoology.git@{version/release/tag or branch}`.
+`pip install git+ssh://git@gitlab.heigit.org:2022/climate-action/climatoology.git@{version/release/tag or branch}`.
 
 
 ## Contributing
