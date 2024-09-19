@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -211,80 +212,63 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
     assert generated_content == expected_content
 
 
-EXPECTED_GEOJSON = """{
-    "type": "FeatureCollection",
-    "features": [
+EXPECTED_GEOJSON = json.dumps(
+    json.loads(
+        """
         {
-            "id": "0",
-            "type": "Feature",
-            "properties": {
-                "color": "#fff",
-                "label": "White a"
-            },
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    1.0,
-                    1.0
-                ]
-            },
-            "bbox": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
-            ]
-        },
-        {
-            "id": "1",
-            "type": "Feature",
-            "properties": {
-                "color": "#000",
-                "label": "Black b"
-            },
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    2.0,
-                    2.0
-                ]
-            },
-            "bbox": [
-                2.0,
-                2.0,
-                2.0,
-                2.0
-            ]
-        },
-        {
-            "id": "2",
-            "type": "Feature",
-            "properties": {
-                "color": "#0f0",
-                "label": "Green c"
-            },
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    3.0,
-                    3.0
-                ]
-            },
-            "bbox": [
-                3.0,
-                3.0,
-                3.0,
-                3.0
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "id": "0",
+                    "type": "Feature",
+                    "properties": {
+                        "color": "#fff",
+                        "label": "White a"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            1.0,
+                            1.0
+                        ]
+                    }
+                },
+                {
+                    "id": "1",
+                    "type": "Feature",
+                    "properties": {
+                        "color": "#000",
+                        "label": "Black b"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            2.0,
+                            2.0
+                        ]
+                    }
+                },
+                {
+                    "id": "2",
+                    "type": "Feature",
+                    "properties": {
+                        "color": "#0f0",
+                        "label": "Green c"
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [
+                            3.0,
+                            3.0
+                        ]
+                    }
+                }
             ]
         }
-    ],
-    "bbox": [
-        1.0,
-        1.0,
-        3.0,
-        3.0
-    ]
-}"""
+        """
+    ),
+    indent=None,
+)
 
 
 def test_create_geojson_artifact(default_computation_resources, general_uuid):
