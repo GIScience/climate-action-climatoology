@@ -183,10 +183,10 @@ class AsyncRabbitMQ(Broker):
                         ):
                             raise ClimatoologyVersionMismatchException(
                                 f'Refusing to register plugin '
-                                f'{info_return.name} for library '
+                                f'{info_return.name} in version {info_return.version} due to a library '
                                 f'version mismatch. '
-                                f'Local: {climatoology.__version__}, '
-                                f'Plugin: {info_return.version}'
+                                f'Local library version: {climatoology.__version__} <-> '
+                                f'Plugin library version: {info_return.library_version}'
                             )
                         return info_return
         except TimeoutError as e:
