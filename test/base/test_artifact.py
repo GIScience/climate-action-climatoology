@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 
@@ -212,63 +211,15 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
     assert generated_content == expected_content
 
 
-EXPECTED_GEOJSON = json.dumps(
-    json.loads(
-        """
-        {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "id": "0",
-                    "type": "Feature",
-                    "properties": {
-                        "color": "#fff",
-                        "label": "White a"
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            1.0,
-                            1.0
-                        ]
-                    }
-                },
-                {
-                    "id": "1",
-                    "type": "Feature",
-                    "properties": {
-                        "color": "#000",
-                        "label": "Black b"
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            2.0,
-                            2.0
-                        ]
-                    }
-                },
-                {
-                    "id": "2",
-                    "type": "Feature",
-                    "properties": {
-                        "color": "#0f0",
-                        "label": "Green c"
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            3.0,
-                            3.0
-                        ]
-                    }
-                }
-            ]
-        }
-        """
-    ),
-    indent=None,
-)
+EXPECTED_GEOJSON = """{
+"type": "FeatureCollection",
+"features": [
+{ "type": "Feature", "properties": { "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
+{ "type": "Feature", "properties": { "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
+{ "type": "Feature", "properties": { "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
+]
+}
+"""
 
 
 def test_create_geojson_artifact(default_computation_resources, general_uuid):
@@ -399,6 +350,43 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         generated_content = test_file.read()
 
         assert generated_content == EXPECTED_GEOJSON
+
+
+EXPECTED_ROUNDING_GEOJSON = """{
+"type": "FeatureCollection",
+"features": [
+{ "type": "Feature", "properties": { "color": "#fff", "label": "Do Not Augment" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 0.9 ] } },
+{ "type": "Feature", "properties": { "color": "#000", "label": "Do Not Round" }, "geometry": { "type": "Point", "coordinates": [ 2.0000001, 1.9999999 ] } },
+{ "type": "Feature", "properties": { "color": "#0f0", "label": "Round Me" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
+]
+}
+"""
+
+
+def test_write_geojson_file_max_precision(default_computation_resources, general_uuid):
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'label': ['Do Not Augment', 'Do Not Round', 'Round Me'],
+            'geometry': [Point(1.0, 0.9), Point(2.0000001, 1.9999999), Point(3.00000001, 2.99999999)],
+        },
+        crs='EPSG:4326',
+    )
+
+    generated_artifact = create_geojson_artifact(
+        features=method_input.geometry,
+        color=method_input.color.tolist(),
+        label=method_input.label.tolist(),
+        layer_name='Test Vector',
+        caption='Vector caption',
+        resources=default_computation_resources,
+        filename=general_uuid,
+    )
+
+    with open(generated_artifact.file_path, 'r') as test_file:
+        generated_content = test_file.read()
+
+        assert generated_content == EXPECTED_ROUNDING_GEOJSON
 
 
 def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid):

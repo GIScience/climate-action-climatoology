@@ -9,6 +9,7 @@ from uuid import UUID
 
 import numpy as np
 import rasterio
+import shapely
 from PIL.Image import Image
 from affine import Affine
 from geopandas import GeoSeries, GeoDataFrame
@@ -440,6 +441,9 @@ def create_geojson_artifact(
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.geojson'
+    assert (
+        not file_path.exists()
+    ), 'The target artifact data file already exists. Make sure to choose a unique filename.'
     log.debug(f'Writing vector dataset {file_path}.')
 
     assert len(color) == features.size, 'The number of colors does not match the number of features.'
@@ -447,13 +451,16 @@ def create_geojson_artifact(
 
     assert len(label) == features.size, 'The number of labels does not match the number of features.'
 
-    assert features.crs, 'CRS must be set.'
-
     gdf = GeoDataFrame({'color': color, 'label': label}, geometry=features.reset_index(drop=True))
+    gdf = gdf.to_crs(4326)
+    gdf.geometry = shapely.set_precision(gdf.geometry, grid_size=0.0000001)
 
-    with open(file_path, 'x') as out_file:
-        json_str = gdf.to_json(show_bbox=False, to_wgs84=True, indent=None)
-        out_file.write(json_str)
+    gdf.to_file(
+        file_path.absolute().as_posix(),
+        driver='GeoJSON',
+        engine='pyogrio',
+        layer_options={'SIGNIFICANT_FIGURES': 7, 'RFC7946': 'YES', 'WRITE_NAME': 'NO'},
+    )
 
     if not legend_data:
         legend_df = gdf.groupby(['color', 'label']).size().index.to_frame(index=False)
@@ -568,7 +575,6 @@ def create_geotiff_artifact(
         'dtype': data_array.dtype,
         'crs': raster_info.crs,
         'nodata': raster_info.nodata,
-        'photometric': 'RGB',
         'transform': raster_info.transformation,
     }
 
