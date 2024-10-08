@@ -182,20 +182,7 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
         y=[3, 2, 1],
         chart_type=ChartType.SCATTER,
     )
-    expected_content = """{
-    "x": [
-        1.0,
-        2.0,
-        3.0
-    ],
-    "y": [
-        3.0,
-        2.0,
-        1.0
-    ],
-    "chart_type": "SCATTER",
-    "color": "#590d08"
-}"""
+    expected_content = """{"x": [1.0, 2.0, 3.0], "y": [3.0, 2.0, 1.0], "chart_type": "SCATTER", "color": "#590d08"}"""
 
     generated_artifact = create_chart_artifact(
         data=method_input,

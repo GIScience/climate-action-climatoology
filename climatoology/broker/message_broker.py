@@ -146,7 +146,7 @@ class AsyncRabbitMQ(Broker):
             message=message,
             timestamp=datetime.now(),
         )
-        body = compute_command.model_dump_json().encode()
+        body = compute_command.model_dump_json(indent=None).encode()
         async with self.connection_pool.acquire() as connection:
             channel = await connection.channel()
 
@@ -168,7 +168,9 @@ class AsyncRabbitMQ(Broker):
 
         info_command_body = InfoCommand(correlation_uuid=info_call_corr_uuid)
         await channel.default_exchange.publish(
-            message=aio_pika.Message(body=info_command_body.model_dump_json().encode(), reply_to=callback_queue.name),
+            message=aio_pika.Message(
+                body=info_command_body.model_dump_json(indent=None).encode(), reply_to=callback_queue.name
+            ),
             routing_key=self.get_info_queue(plugin_id=plugin_id),
         )
 
@@ -206,7 +208,7 @@ class AsyncRabbitMQ(Broker):
 
             command = ComputeCommand(correlation_uuid=correlation_uuid, params=params)
             await channel.default_exchange.publish(
-                aio_pika.Message(body=command.model_dump_json().encode()),
+                aio_pika.Message(body=command.model_dump_json(indent=None).encode()),
                 routing_key=self.get_compute_queue(plugin_id),
             )
         finally:
