@@ -131,7 +131,7 @@ class PlatformPlugin:
             with open(Path(temp_dir) / COMPUTATION_INFO_FILENAME, 'x') as out_file:
                 log.debug(f'Writing metadata file {out_file}')
 
-                out_file.write(computation_info.model_dump_json(indent=4))
+                out_file.write(computation_info.model_dump_json(indent=None))
 
                 result = _Artifact(
                     name='Computation Info',
@@ -148,7 +148,7 @@ class PlatformPlugin:
         command: InfoCommand = InfoCommand.model_validate_json(message.body)
         log.debug(f'Acquired info request ({command.correlation_uuid})')
 
-        out_body = self.operator.info_enriched().model_dump_json().encode()
+        out_body = self.operator.info_enriched().model_dump_json(indent=None).encode()
 
         async with self.broker.connection_pool.acquire() as connection:
             async with connection.channel() as channel:

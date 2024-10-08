@@ -134,7 +134,7 @@ class MinioStorage(Storage):
         metadata['file_path'] = str(artifact.file_path.name)
 
         with NamedTemporaryFile(mode='x') as metadata_file:
-            json.dump(metadata, metadata_file, indent=4)
+            json.dump(metadata, metadata_file, indent=None)
             metadata_file.flush()
 
             self.client.fput_object(

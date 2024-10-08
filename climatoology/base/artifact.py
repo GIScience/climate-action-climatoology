@@ -394,7 +394,7 @@ def create_chart_artifact(
 
     with open(file_path, 'x') as out_file:
         chart_data = data.model_dump(mode='json')
-        json.dump(chart_data, out_file, indent=4)
+        json.dump(chart_data, out_file, indent=None)
 
     result = _Artifact(
         name=title,
