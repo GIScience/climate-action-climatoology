@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from enum import Enum
 from io import BytesIO
 from typing import Optional, Tuple, List, ContextManager, Dict
@@ -142,7 +142,7 @@ class LulcWorkUnit(BaseModel):
         'In case `fusion_mode` has been declared to value different than `only_model`'
         'the `end_date` will also be used to acquire OSM data',
         examples=['2023-06-01'],
-        default=datetime.now().date(),
+        default=datetime.now(timezone.utc).date(),
     )
     threshold: confloat(ge=0.0, le=1.0) = Field(
         title='Threshold',

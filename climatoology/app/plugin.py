@@ -97,7 +97,7 @@ class PlatformPlugin:
                 self._save_computation_info(
                     ComputationInfo(
                         correlation_uuid=command.correlation_uuid,
-                        timestamp=datetime.datetime.now(),
+                        timestamp=datetime.datetime.now(datetime.timezone.utc),
                         params=command.params,
                         artifacts=plugin_artifacts,
                         plugin_info=self.operator.info_enriched,

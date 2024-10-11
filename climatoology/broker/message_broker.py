@@ -3,7 +3,7 @@ import json
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -144,7 +144,7 @@ class AsyncRabbitMQ(Broker):
             correlation_uuid=correlation_uuid,
             status=status,
             message=message,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(timezone.utc),
         )
         body = compute_command.model_dump_json(indent=None).encode()
         async with self.connection_pool.acquire() as connection:

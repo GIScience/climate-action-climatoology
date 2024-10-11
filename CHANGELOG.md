@@ -14,6 +14,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - write compact geojson instead of bloated, indented one (it's not meant to be human-readable) ([#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102), [#76](https://gitlab.heigit.org/climate-action/climatoology/-/issues/76))
 - made the `Info` object private and introduced a generator method `generate_plugin_info` instead (see [#31](https://gitlab.heigit.org/climate-action/climatoology/-/issues/31))
 - require `purpose` and `methodology` for the plugin-info to be provided as markdown files
+- timestamps used for reporting are now UTC ([#89](https://gitlab.heigit.org/climate-action/climatoology/-/issues/89))
 
 ## [5.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/5.2.0) - 2024-09-17
 
