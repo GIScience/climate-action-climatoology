@@ -15,7 +15,7 @@ from semver import Version
 
 import climatoology
 from climatoology.base.event import InfoCommand, ComputeCommand, ComputeCommandStatus, ComputeCommandResult
-from climatoology.base.operator import Info
+from climatoology.base.info import _Info
 from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 log = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class Broker(ABC):
         pass
 
     @abstractmethod
-    def request_info(self, plugin_id: str) -> Info:
+    def request_info(self, plugin_id: str) -> _Info:
         """Get an info object from a plugin.
 
         :param plugin_id: The plugin to inquire info from
@@ -156,7 +156,7 @@ class AsyncRabbitMQ(Broker):
         finally:
             await channel.close()
 
-    async def request_info(self, plugin_id: str, ttl: int = 3) -> Info:
+    async def request_info(self, plugin_id: str, ttl: int = 3) -> _Info:
         log.debug(f"Requesting 'info' from {plugin_id}.")
         info_call_corr_uuid = uuid.uuid4()
         async with self.connection_pool.acquire() as connection:
@@ -179,7 +179,7 @@ class AsyncRabbitMQ(Broker):
                 async for message in queue_iter:
                     async with message.process():
                         response = json.loads(message.body)
-                        info_return = Info(**response)
+                        info_return = _Info(**response)
                         if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
                             climatoology.__version__
                         ):

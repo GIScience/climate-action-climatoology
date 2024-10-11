@@ -9,7 +9,8 @@ from semver import Version
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources, ComputationScope
-from climatoology.base.operator import Info, Concern, Operator, PluginAuthor
+from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
+from climatoology.base.operator import Operator
 from climatoology.utility.api import HealthCheck
 
 
@@ -19,8 +20,8 @@ def general_uuid():
 
 
 @pytest.fixture
-def default_info() -> Info:
-    return Info(
+def default_info() -> _Info:
+    info = generate_plugin_info(
         name='Test Plugin',
         icon=Path(__file__).parent / 'resources/test_icon.jpeg',
         authors=[
@@ -31,15 +32,28 @@ def default_info() -> Info:
             )
         ],
         version=Version.parse('3.1.0'),
-        concerns=[Concern.CLIMATE_ACTION__GHG_EMISSION],
-        purpose='The purpose of this base is to '
-        'present basic library properties in '
-        'terms of enforcing similar capabilities '
-        'between Climate Action event components',
-        methodology='This is a test base',
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent / 'resources/test_methodology.md',
         sources=Path(__file__).parent / 'resources/test.bib',
-        library_version=str(Version(1, 0, 0)),
     )
+    info.library_version = '1.0.0'
+    info.operator_schema = {
+        'properties': {
+            'bool': {
+                'description': 'A required boolean parameter.',
+                'examples': [True],
+                'title': 'Boolean Input',
+                'type': 'boolean',
+            },
+            'required': [
+                'bool',
+            ],
+            'title': 'ComputeInput',
+            'type': 'object',
+        }
+    }
+    return info
 
 
 @pytest.fixture
@@ -62,7 +76,7 @@ def default_operator(default_info):
         name: str
 
     class TestOperator(Operator[TestModel]):
-        def info(self) -> Info:
+        def info(self) -> _Info:
             return default_info.model_copy()
 
         def compute(self, resources: ComputationResources, params: TestModel) -> List[_Artifact]:

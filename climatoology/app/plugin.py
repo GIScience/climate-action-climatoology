@@ -14,7 +14,8 @@ from pydantic import BaseModel
 from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommand, ComputeCommandStatus, InfoCommand
-from climatoology.base.operator import Operator, Info
+from climatoology.base.operator import Operator
+from climatoology.base.info import _Info
 from climatoology.broker.message_broker import AsyncRabbitMQ
 from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
 from climatoology.utility.exception import InputValidationError
@@ -27,7 +28,7 @@ class ComputationInfo(BaseModel):
     timestamp: datetime.datetime
     params: dict
     artifacts: Optional[List[_Artifact]] = []
-    plugin_info: Info
+    plugin_info: _Info
     status: ComputeCommandStatus
     message: Optional[str] = '-'
 
@@ -49,7 +50,7 @@ class PlatformPlugin:
         self.storage = storage
         self.broker = broker
 
-        plugin_id = operator.info().plugin_id
+        plugin_id = operator.info_enriched.plugin_id
 
         self.compute_queue_name = broker.get_compute_queue(plugin_id=plugin_id)
         self.info_queue_name = broker.get_info_queue(plugin_id=plugin_id)
@@ -99,7 +100,7 @@ class PlatformPlugin:
                         timestamp=datetime.datetime.now(),
                         params=command.params,
                         artifacts=plugin_artifacts,
-                        plugin_info=self.operator.info_enriched(),
+                        plugin_info=self.operator.info_enriched,
                         status=ComputeCommandStatus.COMPLETED,
                     )
                 )
@@ -148,7 +149,7 @@ class PlatformPlugin:
         command: InfoCommand = InfoCommand.model_validate_json(message.body)
         log.debug(f'Acquired info request ({command.correlation_uuid})')
 
-        out_body = self.operator.info_enriched().model_dump_json(indent=None).encode()
+        out_body = self.operator.info_enriched.model_dump_json(indent=None).encode()
 
         async with self.broker.connection_pool.acquire() as connection:
             async with connection.channel() as channel:
