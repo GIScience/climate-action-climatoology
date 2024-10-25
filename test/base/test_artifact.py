@@ -29,6 +29,7 @@ from climatoology.base.artifact import (
     ContinuousLegendData,
     AttachmentType,
     Legend,
+    Colormap,
 )
 
 
@@ -396,7 +397,44 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
             d=0.0,
             e=0.1,
         ),
-        colormap={1: (0, 255, 0)},
+        colormap=Colormap({1: (0, 255, 0)}),
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=general_uuid,
+    )
+
+    assert generated_artifact == expected_artifact
+
+    generated_content = rasterio.open(generated_artifact.file_path)
+    assert (generated_content.read() == method_input.data).all()
+
+
+def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_uuid):
+    expected_artifact = _Artifact(
+        name='Test Raster',
+        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
+        summary='Raster caption',
+        attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#00ff00fe')})},
+    )
+
+    method_input = RasterInfo(
+        data=np.ones(shape=(4, 5), dtype=float),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap=Colormap({1: (0, 255, 0, 254)}),
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -433,7 +471,7 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
             d=0.0,
             e=0.1,
         ),
-        colormap={1: (0, 255, 0)},
+        colormap=Colormap({1: (0, 255, 0)}),
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -507,7 +545,7 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
             d=0.0,
             e=0.1,
         ),
-        colormap={1: (0, 255, 0)},
+        colormap=Colormap({1: (0, 255, 0)}),
     )
 
     generated_artifact = create_geotiff_artifact(

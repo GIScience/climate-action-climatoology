@@ -4,7 +4,7 @@ import uuid
 from enum import Enum
 from numbers import Number
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any
+from typing import Optional, Union, List, Dict, Any, Tuple, NewType
 from uuid import UUID
 
 import numpy as np
@@ -33,6 +33,17 @@ from rasterio.profiles import DefaultGTiffProfile
 from climatoology.base.computation import ComputationResources
 
 log = logging.getLogger(__name__)
+
+Colormap = NewType(
+    'colormap_type',
+    Dict[
+        Number,
+        Union[
+            Tuple[conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255)],
+            Tuple[conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255)],
+        ],
+    ],
+)
 
 ACCEPTABLE_COLORMAPS = (
     'plasma',
@@ -499,7 +510,7 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
         'using https://github.com/rasterio/affine',
         examples=[Affine.identity()],
     )
-    colormap: Optional[Dict[Number, conlist(item_type=conint(ge=0, le=255), min_length=3, max_length=4)]] = Field(
+    colormap: Optional[Colormap] = Field(
         title='Colormap',
         description='An optional colormap for easy '
         'display. It will be applied to the '
@@ -587,10 +598,7 @@ def create_geotiff_artifact(
     if legend_data:
         legend = Legend(legend_data=legend_data)
     elif raster_info.colormap:
-        legend_data = {
-            str(k): Color(v if len(v) == 3 else (v[0], v[1], v[2], v[3] / 255)) for k, v in raster_info.colormap.items()
-        }
-        legend = Legend(legend_data=legend_data)
+        legend = _legend_from_colormap(raster_info.colormap)
 
     result = _Artifact(
         name=layer_name,
@@ -605,3 +613,15 @@ def create_geotiff_artifact(
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
+
+
+def _legend_from_colormap(colormap: Colormap) -> Legend:
+    legend_data = {}
+    for color_id, color_values in colormap.items():
+        if len(color_values) == 3:
+            color = Color(color_values)
+        else:
+            r, g, b, a = color_values
+            color = Color((r, g, b, a / 255))
+        legend_data[str(color_id)] = color
+    return Legend(legend_data=legend_data)
