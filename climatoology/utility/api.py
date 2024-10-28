@@ -160,7 +160,9 @@ class LulcWorkUnit(BaseModel):
         '"unknown" for the model, '
         '`favour_osm` - model results will be used to fill in empty OSM data, '
         '`mean_mixin` - model and OSM will simultaneously contribute to '
-        'overall classification',
+        'overall classification, '
+        '`only_corine` - return raw CLC data, '
+        '`harmonized_corine` - return CLC data reclassified to match model output',
         default=FusionMode.ONLY_MODEL,
         examples=[FusionMode.ONLY_MODEL],
     )
