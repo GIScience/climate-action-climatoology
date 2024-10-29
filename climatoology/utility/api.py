@@ -240,7 +240,7 @@ class LulcUtility(PlatformHttpUtility):
             return rio.open(BytesIO(response.content), mode='r')
 
     @contextmanager
-    def compute_raster(self, units: List[LulcWorkUnit], max_unit_size: int = 2500) -> ContextManager[rio.DatasetReader]:
+    def compute_raster(self, units: List[LulcWorkUnit], max_unit_size: int = 2300) -> ContextManager[rio.DatasetReader]:
         """Generate a remote sensing-based LULC classification.
 
         :param units: Areas of interest
@@ -292,7 +292,7 @@ class LulcUtility(PlatformHttpUtility):
         return LabelResponse(**response.json())
 
     @staticmethod
-    def adjust_work_units(units: List[LulcWorkUnit], max_unit_size: int = 2500) -> List[LulcWorkUnit]:
+    def adjust_work_units(units: List[LulcWorkUnit], max_unit_size: int = 2300) -> List[LulcWorkUnit]:
         def split(unit):
             bbox = BBox(unit.area_coords, crs=CRS.WGS84)
             h, w = bbox_to_dimensions(bbox, resolution=10)
