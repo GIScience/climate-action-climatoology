@@ -451,6 +451,33 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
     assert (generated_content.read() == method_input.data).all()
 
 
+def test_create_geotiff_artifact_masked_array(default_computation_resources, general_uuid):
+    method_input = RasterInfo(
+        data=np.ma.masked_array(np.ones(shape=(2, 2), dtype=float), mask=[[0, 0], [0, 1]]),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap=Colormap({1: (0, 255, 0)}),
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=general_uuid,
+    )
+
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        np.testing.assert_array_equal(generated_content.read(1, masked=True), method_input.data)
+
+
 def test_create_geotiff_with_legend_data(default_computation_resources, general_uuid):
     expected_artifact = _Artifact(
         name='Test Raster',

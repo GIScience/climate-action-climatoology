@@ -16,6 +16,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - require `purpose` and `methodology` for the plugin-info to be provided as markdown files
 - timestamps used for reporting are now UTC ([#89](https://gitlab.heigit.org/climate-action/climatoology/-/issues/89))
 - introduced `Colormap` type for raster color map
+- create_geotiff_artifact can now handle masked arrays ([#67](https://gitlab.heigit.org/climate-action/climatoology/-/issues/67))
 
 ## [5.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/5.2.0) - 2024-09-17
 

@@ -521,12 +521,6 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
         examples=[{1: Color('red').as_rgb_tuple()}],
         default=None,
     )
-    nodata: Number = Field(
-        title='No-Data Value',
-        description='The array values that signifies no-data in the raster.',
-        examples=[0],
-        default=0,
-    )
 
 
 def create_geotiff_artifact(
@@ -558,7 +552,7 @@ def create_geotiff_artifact(
     file_path = resources.computation_dir / f'{filename}.tiff'
     log.debug(f'Writing raster dataset {file_path}.')
 
-    data_array = np.array(raster_info.data)
+    data_array = np.ma.masked_array(raster_info.data)
 
     assert np.issubdtype(data_array.dtype, np.number), 'Array must be numeric'
     assert min(data_array.shape) > 0, 'Input array cannot have zero length dimensions.'
@@ -585,7 +579,6 @@ def create_geotiff_artifact(
         'count': count,
         'dtype': data_array.dtype,
         'crs': raster_info.crs,
-        'nodata': raster_info.nodata,
         'transform': raster_info.transformation,
     }
 
