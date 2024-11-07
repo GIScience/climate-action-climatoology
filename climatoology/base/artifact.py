@@ -28,7 +28,6 @@ from pydantic import (
 )
 from pydantic_extra_types.color import Color
 from rasterio import CRS
-from rasterio.profiles import DefaultGTiffProfile
 
 from climatoology.base.computation import ComputationResources
 
@@ -582,9 +581,10 @@ def create_geotiff_artifact(
         'transform': raster_info.transformation,
     }
 
-    with rasterio.open(file_path, mode='w', **DefaultGTiffProfile(**profile)) as out_map_file:
+    with rasterio.open(file_path, mode='w', **profile) as out_map_file:
         out_map_file.write(data_array, indexes=indexes)
         if raster_info.colormap:
+            assert data_array.dtype in (np.uint8, np.uint16), f'Colormaps are not allowed for dtype {data_array.dtype}.'
             out_map_file.write_colormap(1, raster_info.colormap)
 
     legend = None
