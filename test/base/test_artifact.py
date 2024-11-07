@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -387,7 +388,7 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
     )
 
     method_input = RasterInfo(
-        data=np.ones(shape=(4, 5), dtype=float),
+        data=np.ones(shape=(4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
         transformation=Affine.from_gdal(
             c=8.7,
@@ -424,7 +425,7 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
     )
 
     method_input = RasterInfo(
-        data=np.ones(shape=(4, 5), dtype=float),
+        data=np.ones(shape=(4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
         transformation=Affine.from_gdal(
             c=8.7,
@@ -453,7 +454,7 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
 
 def test_create_geotiff_artifact_masked_array(default_computation_resources, general_uuid):
     method_input = RasterInfo(
-        data=np.ma.masked_array(np.ones(shape=(2, 2), dtype=float), mask=[[0, 0], [0, 1]]),
+        data=np.ma.masked_array(np.ones(shape=(2, 2), dtype=np.uint8), mask=[[0, 0], [0, 1]]),
         crs=CRS({'init': 'epsg:4326'}),
         transformation=Affine.from_gdal(
             c=8.7,
@@ -488,7 +489,7 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
     )
 
     method_input = RasterInfo(
-        data=np.ones(shape=(4, 5), dtype=float),
+        data=np.ones(shape=(4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
         transformation=Affine.from_gdal(
             c=8.7,
@@ -526,7 +527,7 @@ def test_create_geotiff_without_legend(default_computation_resources, general_uu
     )
 
     method_input = RasterInfo(
-        data=np.ones(shape=(4, 5), dtype=float),
+        data=np.ones(shape=(4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
         transformation=Affine.from_gdal(
             c=8.7,
@@ -562,7 +563,7 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
     )
 
     method_input = RasterInfo(
-        data=np.ones(shape=(3, 4, 5), dtype=float),
+        data=np.ones(shape=(3, 4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
         transformation=Affine.from_gdal(
             c=8.7,
@@ -587,6 +588,57 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
 
     generated_content = rasterio.open(generated_artifact.file_path)
     assert (generated_content.read() == method_input.data).all()
+
+
+def test_geotiff_creation_option_warnings(default_computation_resources, general_uuid, caplog):
+    method_input = RasterInfo(
+        data=np.ones(shape=(4, 5), dtype=np.uint8),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap=Colormap({1: (0, 255, 0)}),
+    )
+
+    with caplog.at_level(logging.INFO):
+        create_geotiff_artifact(
+            method_input,
+            layer_name='Test Raster',
+            caption='Raster caption',
+            resources=default_computation_resources,
+            filename=general_uuid,
+        )
+
+    assert caplog.messages == []
+
+
+def test_disallow_colormap_for_incompatible_dtype(default_computation_resources):
+    method_input = RasterInfo(
+        data=np.ones(shape=(4, 5), dtype=float),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap=Colormap({1: (0, 255, 0)}),
+    )
+
+    with pytest.raises(AssertionError, match='Colormaps are not allowed for dtype float.'):
+        create_geotiff_artifact(
+            method_input,
+            layer_name='Test Raster',
+            caption='Raster caption',
+            resources=default_computation_resources,
+        )
 
 
 def test_rasterinfo_from_rastario(default_computation_resources, general_uuid):
