@@ -1,0 +1,126 @@
+import datetime
+import logging
+import tempfile
+from pathlib import Path
+from typing import Optional, List
+from uuid import UUID
+
+from celery import Task
+from pydantic import BaseModel
+
+from climatoology.base.artifact import _Artifact, ArtifactModality
+from climatoology.base.computation import ComputationScope
+from climatoology.base.event import ComputeCommandStatus
+from climatoology.base.info import _Info
+from climatoology.base.operator import Operator
+from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
+from climatoology.utility.exception import InputValidationError
+
+log = logging.getLogger(__name__)
+
+
+class ComputationInfo(BaseModel):
+    correlation_uuid: UUID
+    timestamp: datetime.datetime
+    params: dict
+    artifacts: Optional[List[_Artifact]] = []
+    plugin_info: _Info
+    status: ComputeCommandStatus
+    message: Optional[str] = '-'
+
+
+class CAPlatformComputeTask(Task):
+    """Climate Action Platform Task for computations.
+
+    It's responsible for handling user input and result storage.
+    The main computation logic and workload is handled by the Operator.
+    """
+
+    def __init__(self, operator: Operator, object_store: Storage):
+        self.operator = operator
+        self.object_store = object_store
+        self.name = 'compute'
+
+        self.plugin_id = operator.info_enriched.plugin_id
+
+        log.info(f'Compute task for {self.plugin_id} initialised')
+
+    def _save_computation_info(self, computation_info: ComputationInfo) -> str:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with open(Path(temp_dir) / COMPUTATION_INFO_FILENAME, 'x') as out_file:
+                log.debug(f'Writing metadata file {out_file}')
+
+                out_file.write(computation_info.model_dump_json(indent=None))
+
+                result = _Artifact(
+                    name='Computation Info',
+                    modality=ArtifactModality.COMPUTATION_INFO,
+                    file_path=Path(out_file.name),
+                    summary=f'Computation information of correlation_uuid {computation_info.correlation_uuid}',
+                    correlation_uuid=computation_info.correlation_uuid,
+                )
+                log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+                return self.object_store.save(result)
+
+    def run(self, params: dict) -> List[dict]:
+        correlation_uuid = self.request.correlation_id
+        try:
+            log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
+            log.debug(f'Computing with parameters {params}')
+
+            with ComputationScope(correlation_uuid) as resources:
+                artifacts = list(filter(None, self.operator.compute_unsafe(resources, params)))
+
+                for artifact in artifacts:
+                    assert (
+                        artifact.modality != ArtifactModality.COMPUTATION_INFO
+                    ), 'Computation-info files are not allowed as plugin result'
+
+                plugin_artifacts = [
+                    _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
+                    for artifact in artifacts
+                ]
+                self.object_store.save_all(plugin_artifacts)
+
+                self._save_computation_info(
+                    ComputationInfo(
+                        correlation_uuid=correlation_uuid,
+                        timestamp=datetime.datetime.now(datetime.timezone.utc),
+                        params=params,
+                        artifacts=plugin_artifacts,
+                        plugin_info=self.operator.info_enriched,
+                        status=ComputeCommandStatus.COMPLETED,
+                    )
+                )
+            log.debug(f'{correlation_uuid} successfully computed')
+            encoded_result = [artifact.model_dump(mode='json') for artifact in plugin_artifacts]
+            return encoded_result
+        except InputValidationError as e:
+            log.warning(f'Input validation failed for correlation id {correlation_uuid}', exc_info=e)
+            raise e
+        except Exception as e:
+            log.warning(f'Computation failed for correlation id {correlation_uuid}', exc_info=e)
+            raise e
+
+
+class CAPlatformInfoTask(Task):
+    """Climate Action Platform Task to get operator capabilities.
+
+    It's responsible for forwarding info requests to the user.
+    The info content is provided by the Operator.
+    """
+
+    def __init__(self, operator: Operator):
+        self.operator = operator
+        self.name = 'info'
+
+        self.plugin_id = operator.info_enriched.plugin_id
+
+        log.info(f'Info task for {self.plugin_id} initialised')
+
+    def run(self) -> dict:
+        correlation_uuid = self.request.correlation_id
+        log.debug(f'Acquired info request ({correlation_uuid})')
+
+        return self.operator.info_enriched.model_dump(mode='json')

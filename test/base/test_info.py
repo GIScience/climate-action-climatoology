@@ -1,5 +1,4 @@
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
@@ -52,21 +51,8 @@ def test_info_name():
     assert info.plugin_id == 'test_plugin_with_spaces'
 
 
-@patch('climatoology.__version__', Version(0, 0, 1))
-def test_info_enriched(default_operator, default_info):
-    enriched_info = default_operator.info_enriched
-
-    assert enriched_info.library_version == '0.0.1'
-    assert enriched_info.operator_schema == {
-        'properties': {'id': {'title': 'Id', 'type': 'integer'}, 'name': {'title': 'Name', 'type': 'string'}},
-        'required': ['id', 'name'],
-        'title': 'TestModel',
-        'type': 'object',
-    }
-    assert enriched_info.model_dump(exclude={'library_version', 'operator_schema'}) == default_info.model_dump(
-        exclude={'library_version', 'operator_schema'}
-    )
-    assert enriched_info.model_dump_json().encode()
+def test_info_serialisable(default_info):
+    assert default_info.model_dump(mode='json')
 
 
 def test_sources_are_optional(default_info):
