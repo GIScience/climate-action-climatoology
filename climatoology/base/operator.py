@@ -79,7 +79,7 @@ class Operator(ABC, Generic[T_co]):
         :return:
         """
         try:
-            validate_params = self._model(**params)
+            validate_params = self._model.model_validate(params)
         except Exception as e:
             raise InputValidationError('The given user input is invalid') from e
         logging.debug(f'Compute parameters of correlation_uuid {resources.correlation_uuid} validated')
