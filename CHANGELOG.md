@@ -18,6 +18,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - introduced `Colormap` type for raster color map
 - create_geotiff_artifact can now handle masked arrays ([#67](https://gitlab.heigit.org/climate-action/climatoology/-/issues/67))
 
+### Added
+
+- artifacts can now be associated with 0...n tags for semantic grouping ([#58](https://gitlab.heigit.org/climate-action/climatoology/-/issues/58))
+
 ## [5.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/5.2.0) - 2024-09-17
 
 ### Added

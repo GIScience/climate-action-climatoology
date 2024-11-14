@@ -1,6 +1,7 @@
 import uuid
+from enum import StrEnum
 from pathlib import Path
-from typing import List
+from typing import List, Set
 from unittest.mock import patch, Mock
 
 import pytest
@@ -200,3 +201,12 @@ def patch_pytest_celery_worker_hostname():
 @pytest.fixture
 def celery_worker(patch_pytest_celery_worker_hostname, celery_worker):
     return celery_worker
+
+
+@pytest.fixture
+def default_association_tags() -> Set[StrEnum]:
+    class ArtifactAssociation(StrEnum):
+        TAG_A = 'Tag A'
+        TAG_B = 'Tag B'
+
+    return {ArtifactAssociation.TAG_A, ArtifactAssociation.TAG_B}

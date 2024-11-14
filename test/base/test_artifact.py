@@ -91,12 +91,13 @@ def test_chart_check_data():
     assert data.y == [1, 2]
 
 
-def test_create_markdown_artifact(default_computation_resources, general_uuid):
+def test_create_markdown_artifact(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='-',
         modality=ArtifactModality.MARKDOWN,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.md'),
         summary='-',
+        tags=default_association_tags,
     )
     expected_content = """# Header
 
@@ -108,7 +109,8 @@ def test_create_markdown_artifact(default_computation_resources, general_uuid):
         name='-',
         tl_dr='-',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
+        tags=default_association_tags,
     )
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
@@ -117,12 +119,13 @@ def test_create_markdown_artifact(default_computation_resources, general_uuid):
     assert generated_content == expected_content
 
 
-def test_create_table_artifact(default_computation_resources, general_uuid):
+def test_create_table_artifact(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='Test Table',
         modality=ArtifactModality.TABLE,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.csv'),
         summary='Table caption',
+        tags=default_association_tags,
     )
     method_input = DataFrame(
         data=[('Data1', 2.5), ('Data2', np.nan)],
@@ -139,7 +142,8 @@ Row2,Data2,
         title='Test Table',
         caption='Table caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
+        tags=default_association_tags,
     )
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
@@ -148,13 +152,14 @@ Row2,Data2,
     assert generated_content == expected_content
 
 
-def test_create_image_artifact(default_computation_resources, general_uuid):
+def test_create_image_artifact(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='Test Image',
         modality=ArtifactModality.IMAGE,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.png'),
         summary='Image caption',
         description='Nice graphic',
+        tags=default_association_tags,
     )
     expected_content = Image.new(mode='RGB', size=(2, 2), color=(153, 153, 255))
 
@@ -164,7 +169,8 @@ def test_create_image_artifact(default_computation_resources, general_uuid):
         caption='Image caption',
         description='Nice graphic',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
+        tags=default_association_tags,
     )
     generated_content = Image.open(generated_artifact.file_path, mode='r', formats=['PNG'])
 
@@ -172,12 +178,17 @@ def test_create_image_artifact(default_computation_resources, general_uuid):
     assert generated_content.convert('RGB') == expected_content
 
 
-def test_create_chart_artifact(default_computation_resources, general_uuid):
+def test_create_chart_artifact(
+    default_computation_resources,
+    general_uuid,
+    default_association_tags,
+):
     expected_artifact = _Artifact(
         name='Test Chart',
         modality=ArtifactModality.CHART,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
         summary='Chart caption',
+        tags=default_association_tags,
     )
     method_input = Chart2dData(
         x=[1, 2, 3],
@@ -191,7 +202,8 @@ def test_create_chart_artifact(default_computation_resources, general_uuid):
         title='Test Chart',
         caption='Chart caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
+        tags=default_association_tags,
     )
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
@@ -211,7 +223,7 @@ EXPECTED_GEOJSON = """{
 """
 
 
-def test_create_geojson_artifact(default_computation_resources, general_uuid):
+def test_create_geojson_artifact(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='Test Vector',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
@@ -222,6 +234,7 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
                 legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}
             )
         },
+        tags=default_association_tags,
     )
 
     method_input = GeoDataFrame(
@@ -240,7 +253,8 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid):
         layer_name='Test Vector',
         caption='Vector caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
+        tags=default_association_tags,
     )
 
     assert generated_artifact == expected_artifact
@@ -378,13 +392,14 @@ def test_write_geojson_file_max_precision(default_computation_resources, general
         assert generated_content == EXPECTED_ROUNDING_GEOJSON
 
 
-def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid):
+def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='Test Raster',
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
         attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#0f0')})},
+        tags=default_association_tags,
     )
 
     method_input = RasterInfo(
@@ -406,7 +421,8 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid)
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
+        tags=default_association_tags,
     )
 
     assert generated_artifact == expected_artifact
