@@ -1,10 +1,10 @@
 import json
 import logging
 import uuid
-from enum import Enum
+from enum import Enum, StrEnum
 from numbers import Number
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any, Tuple, NewType
+from typing import Optional, Union, List, Dict, Any, Tuple, NewType, Set
 from uuid import UUID
 
 import numpy as np
@@ -144,6 +144,13 @@ class _Artifact(BaseModel):
         examples=[True],
         default=True,
     )
+    tags: Optional[Set[StrEnum]] = Field(
+        description='A set of tags or topics that can be used to group artifacts semantically.  For example all '
+        'artifacts related to one information aspect of a plugin may play together and could be grouped '
+        '(e.g. a map and a plot).',
+        examples=[{'Tag A'}],
+        default=set(),
+    )
     file_path: Path = Field(
         description='The full path to the file that stores the artefact.',
         examples=['/tmp/7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
@@ -262,6 +269,7 @@ def create_markdown_artifact(
     name: str,
     tl_dr: str,
     primary: bool = True,
+    tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create an artifact from text supporting Markdown formatting.
@@ -272,6 +280,7 @@ def create_markdown_artifact(
     :param name: A potential heading for the text.
     :param tl_dr: A summary of the text.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
+    :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources for this plugin.
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
@@ -283,11 +292,7 @@ def create_markdown_artifact(
         out_file.write(text)
 
     result = _Artifact(
-        name=name,
-        modality=ArtifactModality.MARKDOWN,
-        file_path=file_path,
-        summary=tl_dr,
-        primary=primary,
+        name=name, modality=ArtifactModality.MARKDOWN, file_path=file_path, summary=tl_dr, primary=primary, tags=tags
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -301,6 +306,7 @@ def create_table_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create an artifact from a data frame.
@@ -311,6 +317,7 @@ def create_table_artifact(
     :param title: Title or name of the table.
     :param caption: Caption of the table that describes the content.
     :param description: A longer description of the table content.
+    :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources for this plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
@@ -328,6 +335,7 @@ def create_table_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        tags=tags,
         primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -342,6 +350,7 @@ def create_image_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create an artifact from a pillow image.
@@ -352,6 +361,7 @@ def create_image_artifact(
     :param title: Title or name of the image.
     :param caption: Caption of the image that describes the content.
     :param description: A longer description of the image content.
+    :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources for this plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
@@ -370,6 +380,7 @@ def create_image_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        tags=tags,
         primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -384,6 +395,7 @@ def create_chart_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create a chart artifact.
@@ -394,6 +406,7 @@ def create_chart_artifact(
     :param title: Title for the resulting plot.
     :param caption: Caption for the resulting plot that describes the content.
     :param description: A longer description of the chart content.
+    :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
@@ -412,6 +425,7 @@ def create_chart_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        tags=tags,
         primary=primary,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -429,6 +443,7 @@ def create_geojson_artifact(
     primary: bool = True,
     legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
+    tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create a vector data artifact.
@@ -442,6 +457,7 @@ def create_geojson_artifact(
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
+    :param tags: Association tags this artifact belongs to.
     :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinousLegendData
     type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
     distinct legend will be created from the unique combinations of labels and colors.
@@ -483,6 +499,7 @@ def create_geojson_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        tags=tags,
         primary=primary,
         attachments={AttachmentType.LEGEND: Legend(legend_data=legend_data)},
     )
@@ -530,6 +547,7 @@ def create_geotiff_artifact(
     primary: bool = True,
     legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
+    tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
     """Create a raster data artifact.
@@ -540,6 +558,7 @@ def create_geotiff_artifact(
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
+    :param tags: Association tags this artifact belongs to.
     :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinousLegendData type.
     For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a distinct
     legend will be created from the colormap, if it exists.
@@ -599,6 +618,7 @@ def create_geotiff_artifact(
         file_path=file_path,
         summary=caption,
         description=description,
+        tags=tags,
         primary=primary,
         attachments={AttachmentType.LEGEND: legend} if legend else {},
     )
