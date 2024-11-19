@@ -9,6 +9,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
+- Operators now get two additional input variables `aoi` and `aoi_properties`. They replace the soft contract that was in place until now, to have these properties in the input model. They are now no longer allowed to be part of the input model.
 - removed `RdYlGn` and `seismic` from acceptable colormaps, added `coolwarm` to acceptable colormaps
 - the geotiff artifact is now a proper COG ([#104](https://gitlab.heigit.org/climate-action/climatoology/-/issues/104))
 - write compact geojson instead of bloated, indented one (it's not meant to be human-readable) ([#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102), [#76](https://gitlab.heigit.org/climate-action/climatoology/-/issues/76))

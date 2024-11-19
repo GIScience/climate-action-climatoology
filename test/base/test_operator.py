@@ -1,23 +1,44 @@
+import re
 import uuid
 from typing import List
 from unittest.mock import patch
 
 import pytest
+import shapely
 from pydantic import BaseModel
 from semver import Version
+from shapely import get_srid
 
 from climatoology.base.artifact import _Artifact
 from climatoology.base.computation import ComputationScope, ComputationResources
 from climatoology.base.info import _Info
-from climatoology.base.operator import Operator
+from climatoology.base.operator import Operator, AoiProperties
 from climatoology.utility.exception import InputValidationError
 
 
-def test_operator_typing(default_operator, default_computation_resources):
-    default_operator.compute_unsafe(default_computation_resources, {'id': 1234, 'name': 'test'})
+def test_default_aoi_init(default_aoi):
+    assert get_srid(default_aoi) == 4326
+
+
+def test_default_aoi_properties_init(default_aoi_properties):
+    assert isinstance(default_aoi_properties, AoiProperties)
+
+
+def test_operator_typing(default_operator, default_computation_resources, default_aoi, default_aoi_properties):
+    default_operator.compute_unsafe(
+        resources=default_computation_resources,
+        aoi=default_aoi,
+        aoi_properties=default_aoi_properties,
+        params={'id': 1234, 'name': 'test'},
+    )
 
     with pytest.raises(InputValidationError):
-        default_operator.compute_unsafe(default_computation_resources, {'id': 'ID:1234', 'name': 'test'})
+        default_operator.compute_unsafe(
+            resources=default_computation_resources,
+            aoi=default_aoi,
+            aoi_properties=default_aoi_properties,
+            params={'id': 'ID:1234', 'name': 'test'},
+        )
 
 
 def test_operator_scope():
@@ -37,7 +58,13 @@ def test_operator_info_enrichment_does_not_change_given_input(default_info):
         def info(self) -> _Info:
             return default_info.model_copy()
 
-        def compute(self, resources: ComputationResources, params: TestModel) -> List[_Artifact]:
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
             return []
 
     operator = TestOperator()
@@ -57,7 +84,13 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
         def info(self) -> _Info:
             return default_info.model_copy()
 
-        def compute(self, resources: ComputationResources, params: TestModel) -> List[_Artifact]:
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
             return []
 
     operator = TestOperator()
@@ -73,6 +106,35 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
     }
 
 
-def test_operator_compute_missing_input_validation(default_operator, default_computation_resources):
+def test_operator_startup_checks_for_aoi_fields(default_info):
+    class TestModelAOI(BaseModel):
+        aoi: str
+        aoi_properties: str
+
+    class TestOperator(Operator[TestModelAOI]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModelAOI,
+        ) -> List[_Artifact]:
+            return []
+
+    with pytest.raises(
+        AssertionError,
+        match=re.escape("The plugin input parameters cannot contain fields named any of ('aoi', 'aoi_properties')"),
+    ):
+        TestOperator()
+
+
+def test_operator_compute_missing_input_validation(
+    default_operator, default_computation_resources, default_aoi, default_aoi_properties
+):
     with pytest.raises(InputValidationError, match='The given user input is invalid'):
-        default_operator.compute_unsafe(resources=default_computation_resources, params={})
+        default_operator.compute_unsafe(
+            resources=default_computation_resources, aoi=default_aoi, aoi_properties=default_aoi_properties, params={}
+        )

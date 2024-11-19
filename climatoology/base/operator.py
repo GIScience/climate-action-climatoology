@@ -1,9 +1,12 @@
 import logging
+import uuid
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final
 
+import shapely
 from pydantic import BaseModel
+from pydantic import Field
 
 import climatoology
 from climatoology.base.artifact import _Artifact
@@ -14,6 +17,19 @@ from climatoology.utility.exception import InputValidationError
 log = logging.getLogger(__name__)
 
 T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
+
+
+class AoiProperties(BaseModel):
+    name: str = Field(
+        title='Name',
+        description='The name of the area of interest i.e. a human readable description.',
+        examples=['Heidelberg'],
+    )
+    id: str = Field(
+        title='ID',
+        description='A unique identifier of the area of interest.',
+        examples=[str(uuid.uuid4())],
+    )
 
 
 class Operator(ABC, Generic[T_co]):
@@ -47,6 +63,12 @@ class Operator(ABC, Generic[T_co]):
         assert cls._model, 'Could not initialise the compute input type model. Did you properly subtype your operator?'
         log.debug('Operator initialised')
 
+    def __init__(self) -> None:
+        forbidden_fields = ('aoi', 'aoi_properties')
+        assert all(
+            k not in self._model.model_fields for k in forbidden_fields
+        ), f'The plugin input parameters cannot contain fields named any of {forbidden_fields}'
+
     @final
     @cached_property
     def info_enriched(self) -> _Info:
@@ -69,12 +91,16 @@ class Operator(ABC, Generic[T_co]):
         pass
 
     @final
-    def compute_unsafe(self, resources: ComputationResources, params: Dict) -> List[_Artifact]:
+    def compute_unsafe(
+        self, resources: ComputationResources, aoi: shapely.MultiPolygon, aoi_properties: AoiProperties, params: Dict
+    ) -> List[_Artifact]:
         """
         Translated the incoming parameters to a declared pydantic model,
         validates input and runs the compute procedure.
 
         :param resources: computation ephemeral resources
+        :param aoi: Area of interest for the computation
+        :param aoi_properties: Properties of the area of interest for the computation
         :param params: computation configuration parameters
         :return:
         """
@@ -84,15 +110,19 @@ class Operator(ABC, Generic[T_co]):
             raise InputValidationError('The given user input is invalid') from e
         logging.debug(f'Compute parameters of correlation_uuid {resources.correlation_uuid} validated')
 
-        return self.compute(resources, validate_params)
+        return self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=validate_params)
 
     @abstractmethod
-    def compute(self, resources: ComputationResources, params: T_co) -> List[_Artifact]:
+    def compute(
+        self, resources: ComputationResources, aoi: shapely.MultiPolygon, aoi_properties: AoiProperties, params: T_co
+    ) -> List[_Artifact]:
         """Generate an operator-specific report.
 
         A report is made up of a set of artifacts that can be displayed by a client.
 
         :param resources: computation ephemeral resources
+        :param aoi: the requested ara of interest as a shapely MultiPolygon with SRID 4326
+        :param aoi_properties: properties related to and common for all AOIs
         :param params: computation parameters in the form of the declared pydantic module
         :return: list of artifacts (files) produced by the operator
         """
