@@ -14,7 +14,7 @@ import climatoology
 from climatoology.app.plugin import generate_plugin_name
 from climatoology.app.settings import CABaseSettings, SenderSettings
 from climatoology.base.info import _Info
-from climatoology.base.operator import AoiProperties
+from climatoology.base.baseoperator import AoiProperties
 from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 log = logging.getLogger(__name__)
@@ -54,11 +54,11 @@ class Platform(ABC):
         pass
 
 
-class CAPlatformConnection(Platform):
+class CeleryPlatform(Platform):
     def __init__(self):
         sender_config = SenderSettings()
 
-        self.celery_app = CAPlatformConnection.construct_celery_app(sender_config)
+        self.celery_app = CeleryPlatform.construct_celery_app(sender_config)
         self.assert_plugin_version = sender_config.assert_plugin_version
 
     @staticmethod
@@ -79,9 +79,7 @@ class CAPlatformConnection(Platform):
         :return: List of plugin ids
         """
         available_tasks = self.celery_app.control.inspect().registered() or dict()
-        plugins = {
-            CAPlatformConnection._extract_plugin_id(k) for k, v in available_tasks.items() if v == ['compute', 'info']
-        }
+        plugins = {CeleryPlatform._extract_plugin_id(k) for k, v in available_tasks.items() if v == ['compute', 'info']}
 
         log.debug(f'Active plugins: {plugins}.')
 

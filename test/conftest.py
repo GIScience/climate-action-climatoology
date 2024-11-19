@@ -16,14 +16,14 @@ from shapely import set_srid
 from shapely import to_geojson
 
 import climatoology
-from climatoology.app.platform import CAPlatformConnection
+from climatoology.app.platform import CeleryPlatform
 from climatoology.app.plugin import _create_plugin, generate_plugin_name
 from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
-from climatoology.base.operator import Operator, AoiProperties
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -111,14 +111,14 @@ def default_artifact(general_uuid) -> _Artifact:
 
 
 @pytest.fixture
-def default_operator(default_info, default_artifact) -> Operator:
+def default_operator(default_info, default_artifact) -> BaseOperator:
     class TestModel(BaseModel):
         id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
         name: str = Field(
             title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
         )
 
-    class TestOperator(Operator[TestModel]):
+    class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
             return default_info.model_copy()
 
@@ -208,9 +208,9 @@ def default_info_task(default_operator, general_uuid) -> CAPlatformInfoTask:
 
 
 @pytest.fixture
-def default_platform_connection(celery_app) -> CAPlatformConnection:
-    with patch('climatoology.app.platform.CAPlatformConnection.construct_celery_app', return_value=celery_app):
-        yield CAPlatformConnection()
+def default_platform_connection(celery_app) -> CeleryPlatform:
+    with patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app):
+        yield CeleryPlatform()
 
 
 @pytest.fixture
