@@ -15,7 +15,7 @@ from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommandStatus
 from climatoology.base.info import _Info
-from climatoology.base.operator import Operator, AoiProperties
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
 from climatoology.utility.exception import InputValidationError
 
@@ -39,7 +39,7 @@ class CAPlatformComputeTask(Task):
     The main computation logic and workload is handled by the Operator.
     """
 
-    def __init__(self, operator: Operator, object_store: Storage):
+    def __init__(self, operator: BaseOperator, object_store: Storage):
         self.operator = operator
         self.object_store = object_store
         self.name = 'compute'
@@ -125,7 +125,7 @@ class CAPlatformInfoTask(Task):
     The info content is provided by the Operator.
     """
 
-    def __init__(self, operator: Operator):
+    def __init__(self, operator: BaseOperator):
         self.operator = operator
         self.name = 'info'
 

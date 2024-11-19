@@ -32,7 +32,7 @@ class AoiProperties(BaseModel):
     )
 
 
-class Operator(ABC, Generic[T_co]):
+class BaseOperator(ABC, Generic[T_co]):
     """Climate Action indicator logic.
 
     The operator provides the core functionality for the plugin.
@@ -54,7 +54,7 @@ class Operator(ABC, Generic[T_co]):
         super().__init_subclass__(**kwargs)
         for base in cls.__orig_bases__:  # type: ignore[attr-defined]
             origin = get_origin(base)
-            if origin is None or not issubclass(origin, Operator):
+            if origin is None or not issubclass(origin, BaseOperator):
                 continue
             type_arg = get_args(base)[0]
             if not isinstance(type_arg, TypeVar):

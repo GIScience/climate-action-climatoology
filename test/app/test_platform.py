@@ -5,7 +5,7 @@ from celery.result import AsyncResult
 from geojson_pydantic import Feature
 from semver import Version
 
-from climatoology.app.platform import CAPlatformConnection
+from climatoology.app.platform import CeleryPlatform
 from climatoology.base.artifact import _Artifact
 from climatoology.utility.exception import ClimatoologyVersionMismatchException
 
@@ -164,5 +164,5 @@ def test_send_compute_reaches_worker(
 
 
 def test_extract_plugin_id():
-    computed_plugin_id = CAPlatformConnection._extract_plugin_id('a@b')
+    computed_plugin_id = CeleryPlatform._extract_plugin_id('a@b')
     assert computed_plugin_id == 'a'

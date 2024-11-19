@@ -4,11 +4,11 @@ from celery import Celery
 
 from climatoology.app.settings import CABaseSettings, WorkerSettings, CELERY_HOST_PLACEHOLDER
 from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask
-from climatoology.base.operator import Operator
+from climatoology.base.baseoperator import BaseOperator
 from climatoology.store.object_store import MinioStorage
 
 
-def start_plugin(operator: Operator) -> Optional[int]:
+def start_plugin(operator: BaseOperator) -> Optional[int]:
     """Start a CA Plugin
 
     :param operator: The Operator that fills the plugin with life
@@ -24,7 +24,7 @@ def start_plugin(operator: Operator) -> Optional[int]:
     return plugin.start(['worker', '-n', plugin_name, '--loglevel', settings.log_level])
 
 
-def _create_plugin(operator: Operator, settings: CABaseSettings) -> Celery:
+def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
     plugin = Celery(
         operator.info_enriched.plugin_id,
         broker=settings.broker_connection_string,

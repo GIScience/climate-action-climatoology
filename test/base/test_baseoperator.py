@@ -12,7 +12,7 @@ from shapely import get_srid
 from climatoology.base.artifact import _Artifact
 from climatoology.base.computation import ComputationScope, ComputationResources
 from climatoology.base.info import _Info
-from climatoology.base.operator import Operator, AoiProperties
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.utility.exception import InputValidationError
 
 
@@ -54,7 +54,7 @@ def test_operator_info_enrichment_does_not_change_given_input(default_info):
     class TestModel(BaseModel):
         pass
 
-    class TestOperator(Operator[TestModel]):
+    class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
             return default_info.model_copy()
 
@@ -80,7 +80,7 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
     class TestModel(BaseModel):
         test: str
 
-    class TestOperator(Operator[TestModel]):
+    class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
             return default_info.model_copy()
 
@@ -111,7 +111,7 @@ def test_operator_startup_checks_for_aoi_fields(default_info):
         aoi: str
         aoi_properties: str
 
-    class TestOperator(Operator[TestModelAOI]):
+    class TestOperator(BaseOperator[TestModelAOI]):
         def info(self) -> _Info:
             return default_info.model_copy()
 
