@@ -5,14 +5,17 @@ from pathlib import Path
 from typing import Optional, List
 from uuid import UUID
 
+import geojson_pydantic
+import shapely
 from celery import Task
 from pydantic import BaseModel
+from shapely import set_srid
 
 from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommandStatus
 from climatoology.base.info import _Info
-from climatoology.base.operator import Operator
+from climatoology.base.operator import Operator, AoiProperties
 from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
 from climatoology.utility.exception import InputValidationError
 
@@ -63,14 +66,25 @@ class CAPlatformComputeTask(Task):
 
                 return self.object_store.save(result)
 
-    def run(self, params: dict) -> List[dict]:
+    def run(self, aoi: dict, aoi_properties: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
+
+        aoi = geojson_pydantic.MultiPolygon(**aoi)
+        aoi: shapely.MultiPolygon = shapely.geometry.shape(context=aoi)
+        aoi = set_srid(geometry=aoi, srid=4326)
+
+        aoi_properties = AoiProperties.model_validate(aoi_properties)
+
         try:
             log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
+
             log.debug(f'Computing with parameters {params}')
 
             with ComputationScope(correlation_uuid) as resources:
-                artifacts = list(filter(None, self.operator.compute_unsafe(resources, params)))
+                raw_artifacts = self.operator.compute_unsafe(
+                    resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params
+                )
+                artifacts = list(filter(None, raw_artifacts))
 
                 for artifact in artifacts:
                     assert (

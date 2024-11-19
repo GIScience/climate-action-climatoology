@@ -4,14 +4,17 @@ from abc import ABC, abstractmethod
 from typing import Set
 from uuid import UUID
 
+import geojson_pydantic
 from celery import Celery
 from celery.exceptions import TimeoutError
+from celery.result import AsyncResult
 from semver import Version
 
 import climatoology
 from climatoology.app.plugin import generate_plugin_name
 from climatoology.app.settings import CABaseSettings, SenderSettings
 from climatoology.base.info import _Info
+from climatoology.base.operator import AoiProperties
 from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 log = logging.getLogger(__name__)
@@ -34,10 +37,17 @@ class Platform(ABC):
         pass
 
     @abstractmethod
-    def send_compute_request(self, plugin_id: str, params: dict, correlation_uuid: UUID) -> None:
+    def send_compute_request(
+        self,
+        plugin_id: str,
+        aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
+        params: dict,
+        correlation_uuid: UUID,
+    ) -> AsyncResult:
         """Trigger a computation.
 
         :param plugin_id: The target plugin
+        :param aoi: Area of interest
         :param params: The computation configuration parameters
         :param correlation_uuid: The computations' correlation uuid
         """
@@ -109,16 +119,24 @@ class CAPlatformConnection(Platform):
 
         return info_return
 
-    def send_compute_request(self, plugin_id: str, params: dict, correlation_uuid: UUID) -> bool:
+    def send_compute_request(
+        self,
+        plugin_id: str,
+        aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
+        params: dict,
+        correlation_uuid: UUID,
+    ) -> AsyncResult:
+        assert aoi.properties is not None, 'AOI properties are required'
+
         plugin_name = generate_plugin_name(plugin_id)
-        self.celery_app.send_task(
-            'compute',
-            kwargs={'params': params},
+
+        return self.celery_app.send_task(
+            name='compute',
+            kwargs={'aoi': aoi.geometry.model_dump(mode='json'), 'aoi_properties': aoi.properties, 'params': params},
             task_id=str(correlation_uuid),
             routing_key=plugin_name,
             exchange='C.dq2',
         )
-        return True
 
     @staticmethod
     def _extract_plugin_id(plugin_id_with_suffix: str) -> str:

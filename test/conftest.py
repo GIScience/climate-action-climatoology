@@ -1,3 +1,4 @@
+import json
 import uuid
 from enum import StrEnum
 from pathlib import Path
@@ -6,10 +7,13 @@ from unittest.mock import patch, Mock
 
 import pytest
 import responses
+import shapely
 from celery import Celery
 from celery.utils.threads import LocalStack
 from pydantic import BaseModel, Field
 from semver import Version
+from shapely import set_srid
+from shapely import to_geojson
 
 import climatoology
 from climatoology.app.platform import CAPlatformConnection
@@ -19,7 +23,7 @@ from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
-from climatoology.base.operator import Operator
+from climatoology.base.operator import Operator, AoiProperties
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -94,7 +98,7 @@ def default_info() -> _Info:
 
 
 @pytest.fixture
-def default_artifact(general_uuid):
+def default_artifact(general_uuid) -> _Artifact:
     return _Artifact(
         name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
@@ -107,7 +111,7 @@ def default_artifact(general_uuid):
 
 
 @pytest.fixture
-def default_operator(default_info, default_artifact):
+def default_operator(default_info, default_artifact) -> Operator:
     class TestModel(BaseModel):
         id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
         name: str = Field(
@@ -118,7 +122,13 @@ def default_operator(default_info, default_artifact):
         def info(self) -> _Info:
             return default_info.model_copy()
 
-        def compute(self, resources: ComputationResources, params: TestModel) -> List[_Artifact]:
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
             return [default_artifact]
 
     yield TestOperator()
@@ -131,6 +141,23 @@ def default_plugin(celery_app, celery_worker, default_operator, default_settings
 
         celery_worker.reload()
         yield plugin
+
+
+@pytest.fixture
+def default_aoi() -> shapely.MultiPolygon:
+    geom = shapely.MultiPolygon(polygons=[[((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (0.0, 0.0))]])
+    srid_geom = set_srid(geometry=geom, srid=4326)
+    return srid_geom
+
+
+@pytest.fixture
+def default_aoi_geojson(default_aoi) -> dict:
+    return json.loads(to_geojson(geometry=default_aoi))
+
+
+@pytest.fixture
+def default_aoi_properties() -> AoiProperties:
+    return AoiProperties(name='test_aoi', id='test_aoi_id')
 
 
 @pytest.fixture
