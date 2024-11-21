@@ -2,6 +2,8 @@ from unittest.mock import patch, Mock, ANY
 
 from shapely import get_srid
 
+from climatoology.app.tasks import CAPlatformInfoTask
+
 
 def test_computation_task_init(default_computation_task):
     assert default_computation_task
@@ -49,7 +51,22 @@ def test_info_task_init(default_info_task):
     assert default_info_task
 
 
-def test_info_task_run(default_info_task, default_info, general_uuid):
+def test_info_task_run(default_info_task, default_info_final, general_uuid):
     computed_result = default_info_task.run()
-    expected_result = default_info.model_dump(mode='json')
+    expected_result = default_info_final.model_dump(mode='json')
     assert computed_result == expected_result
+
+
+def test_info_task_uploads_assets(default_operator, mocked_object_store):
+    storage = mocked_object_store['minio_storage']
+    synch_assets_mock = Mock(side_effect=storage.synch_assets)
+    storage.synch_assets = synch_assets_mock
+
+    _ = CAPlatformInfoTask(operator=default_operator, storage=storage, overwrite_assets=False)
+
+    synch_assets_mock.assert_called_once_with(
+        plugin_id='test_plugin',
+        plugin_version='3.1.0',
+        assets=ANY,
+        overwrite=False,
+    )

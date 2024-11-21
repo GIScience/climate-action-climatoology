@@ -21,9 +21,9 @@ from climatoology.app.plugin import _create_plugin, generate_plugin_name
 from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -78,8 +78,13 @@ def default_info() -> _Info:
         methodology=Path(__file__).parent / 'resources/test_methodology.md',
         sources=Path(__file__).parent / 'resources/test.bib',
     )
-    info.library_version = str(climatoology.__version__)
-    info.operator_schema = {
+    return info
+
+
+@pytest.fixture
+def default_info_enriched(default_info) -> _Info:
+    default_info.library_version = str(climatoology.__version__)
+    default_info.operator_schema = {
         'properties': {
             'id': {'description': 'A required integer parameter.', 'examples': [1], 'title': 'ID', 'type': 'integer'},
             'name': {
@@ -94,7 +99,13 @@ def default_info() -> _Info:
         'title': 'TestModel',
         'type': 'object',
     }
-    return info
+    return default_info
+
+
+@pytest.fixture
+def default_info_final(default_info_enriched) -> _Info:
+    default_info_enriched.assets.icon = 'test_plugin/3.1.0/ICON.jpeg'
+    return default_info_enriched
 
 
 @pytest.fixture
@@ -189,7 +200,7 @@ def mocked_object_store() -> dict:
 
 @pytest.fixture
 def default_computation_task(default_operator, mocked_object_store, general_uuid) -> CAPlatformComputeTask:
-    compute_task = CAPlatformComputeTask(operator=default_operator, object_store=mocked_object_store['minio_storage'])
+    compute_task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store['minio_storage'])
     request = Mock()
     request.correlation_id = general_uuid
     compute_task.request_stack = LocalStack()
@@ -198,8 +209,10 @@ def default_computation_task(default_operator, mocked_object_store, general_uuid
 
 
 @pytest.fixture
-def default_info_task(default_operator, general_uuid) -> CAPlatformInfoTask:
-    info_task = CAPlatformInfoTask(operator=default_operator)
+def default_info_task(default_operator, mocked_object_store, general_uuid) -> CAPlatformInfoTask:
+    info_task = CAPlatformInfoTask(
+        operator=default_operator, storage=mocked_object_store['minio_storage'], overwrite_assets=False
+    )
     request = Mock()
     request.correlation_id = general_uuid
     info_task.request_stack = LocalStack()

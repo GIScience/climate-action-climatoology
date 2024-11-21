@@ -1,4 +1,3 @@
-import base64
 import re
 from enum import Enum
 from io import BytesIO
@@ -43,27 +42,17 @@ class PluginAuthor(BaseModel):
     )
 
 
+class Assets(BaseModel):
+    """Static data linked to the plugin that should be stored in the object store."""
+
+    icon: str = Field(description='The icon asset', examples=['icon.jpeg'])
+
+
 class _Info(BaseModel, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
     name: str = Field(description='The full name of the plugin.', examples=['The Plugin'])
     authors: List[PluginAuthor] = Field(description='A list of plugin contributors.')
-    icon: str = Field(
-        description='A data url representing and image or icon that can be used in the UI to represent the plugin.',
-        examples=[
-            'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBk'
-            'SEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyM'
-            'jIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxE'
-            'B/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhM'
-            'UEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmN'
-            'kZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW1'
-            '9jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgE'
-            'CBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpK'
-            'jU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKm'
-            'qsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwa5ubi'
-            '5u5p555ZZpHZ3kdyzMxOSST1JPeiiigD//Z'
-        ],
-    )
     version: str = Field(
         description='The plugin version.',
         examples=[str(Version(0, 0, 1)), 'alpha-centauri'],
@@ -99,6 +88,7 @@ class _Info(BaseModel, extra='forbid'):
         ],
         default=None,
     )
+    assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.jpeg')])
     plugin_id: Optional[str] = Field(
         description='A cleaned plugin name.',
         examples=['the_plugin_001'],
@@ -144,15 +134,14 @@ def _verify_icon(icon: Path) -> None:
     image.verify()
 
 
-def _convert_icon_to_data_url(icon: Path) -> str:
+def _convert_icon_to_thumbnail(icon: Path) -> BytesIO:
     _verify_icon(icon)
     image = Image.open(icon)
     image.thumbnail((500, 500))
     buffered = BytesIO()
     image.save(buffered, format='JPEG')
     buffered.seek(0)
-    data_url = base64.b64encode(buffered.getvalue()).decode('UTF-8')
-    return f'data:image/jpeg;base64,{data_url}'
+    return buffered
 
 
 def _convert_bib(sources: Path = None) -> Optional[JsonSchemaValue]:
@@ -191,13 +180,14 @@ def generate_plugin_info(
       file. You can extract such a file from most common bibliography management systems.
     :return: An _Info object that can be used to announce the plugin on the platform.
     """
+    assets = Assets(icon=str(icon))
     return _Info(
         name=name,
         authors=authors,
-        icon=_convert_icon_to_data_url(icon),
         version=str(version),
         concerns=concerns,
         purpose=purpose.read_text(),
         methodology=methodology.read_text(),
         sources=_convert_bib(sources),
+        assets=assets,
     )

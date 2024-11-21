@@ -12,10 +12,10 @@ from pydantic import BaseModel
 from shapely import set_srid
 
 from climatoology.base.artifact import _Artifact, ArtifactModality
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommandStatus
 from climatoology.base.info import _Info
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
 from climatoology.utility.exception import InputValidationError
 
@@ -39,9 +39,9 @@ class CAPlatformComputeTask(Task):
     The main computation logic and workload is handled by the Operator.
     """
 
-    def __init__(self, operator: BaseOperator, object_store: Storage):
+    def __init__(self, operator: BaseOperator, storage: Storage):
         self.operator = operator
-        self.object_store = object_store
+        self.storage = storage
         self.name = 'compute'
 
         self.plugin_id = operator.info_enriched.plugin_id
@@ -64,7 +64,7 @@ class CAPlatformComputeTask(Task):
                 )
                 log.debug(f'Returning Artifact: {result.model_dump()}.')
 
-                return self.object_store.save(result)
+                return self.storage.save(result)
 
     def run(self, aoi: dict, aoi_properties: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
@@ -95,7 +95,7 @@ class CAPlatformComputeTask(Task):
                     _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
                     for artifact in artifacts
                 ]
-                self.object_store.save_all(plugin_artifacts)
+                self.storage.save_all(plugin_artifacts)
 
                 self._save_computation_info(
                     ComputationInfo(
@@ -125,16 +125,24 @@ class CAPlatformInfoTask(Task):
     The info content is provided by the Operator.
     """
 
-    def __init__(self, operator: BaseOperator):
-        self.operator = operator
+    def __init__(self, operator: BaseOperator, storage: Storage, overwrite_assets: bool):
         self.name = 'info'
+        self.operator = operator
+        self.storage = storage
+        self.info = operator.info_enriched
 
-        self.plugin_id = operator.info_enriched.plugin_id
+        assets = self.storage.synch_assets(
+            plugin_id=self.info.plugin_id,
+            plugin_version=self.info.version,
+            assets=self.info.assets,
+            overwrite=overwrite_assets,
+        )
+        self.info.assets = assets
 
-        log.info(f'Info task for {self.plugin_id} initialised')
+        log.info(f'Info task for {self.info.plugin_id} initialised')
 
     def run(self) -> dict:
         correlation_uuid = self.request.correlation_id
         log.debug(f'Acquired info request ({correlation_uuid})')
 
-        return self.operator.info_enriched.model_dump(mode='json')
+        return self.info.model_dump(mode='json')

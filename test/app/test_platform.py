@@ -28,11 +28,11 @@ def test_list_active_plugins(default_platform_connection, celery_worker, default
     assert computed_plugins == expected_plugins
 
 
-def test_request_info(default_platform_connection, default_info, default_plugin, celery_worker):
+def test_request_info(default_platform_connection, default_info_final, default_plugin, celery_worker):
     computed_info = default_platform_connection.request_info(plugin_id='test_plugin')
 
     assert celery_worker.stats()['total'].get('info') == 1
-    assert computed_info == default_info
+    assert computed_info == default_info_final
 
 
 @patch('climatoology.__version__', Version(1, 0, 0))

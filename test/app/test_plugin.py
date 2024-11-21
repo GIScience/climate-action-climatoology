@@ -18,14 +18,14 @@ def test_plugin_register_task(default_operator, default_settings, mocked_object_
 
 
 def test_worker_send_info_task(
-    default_operator, celery_app, celery_worker, default_info, mocked_object_store, default_settings
+    default_operator, celery_app, celery_worker, default_info_final, mocked_object_store, default_settings
 ):
     with patch('climatoology.app.plugin.Celery', return_value=celery_app):
         plugin = _create_plugin(operator=default_operator, settings=default_settings)
 
         celery_worker.reload()
 
-        expected_info_result = default_info.model_dump(mode='json')
+        expected_info_result = default_info_final.model_dump(mode='json')
         computed_info_result = plugin.send_task('info').get(timeout=5)
 
         assert computed_info_result == expected_info_result

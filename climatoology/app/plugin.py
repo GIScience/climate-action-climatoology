@@ -43,7 +43,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
     compute_task = CAPlatformComputeTask(operator, storage)
     plugin.register_task(compute_task)
 
-    info_task = CAPlatformInfoTask(operator)
+    info_task = CAPlatformInfoTask(operator=operator, storage=storage, overwrite_assets=settings.overwrite_assets)
     plugin.register_task(info_task)
 
     return plugin

@@ -19,6 +19,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - timestamps used for reporting are now UTC ([#89](https://gitlab.heigit.org/climate-action/climatoology/-/issues/89))
 - introduced `Colormap` type for raster color map
 - create_geotiff_artifact can now handle masked arrays ([#67](https://gitlab.heigit.org/climate-action/climatoology/-/issues/67))
+- plugin icons are now stored as static assets in the object store. This prevents handing around binary data as string in the `_Info` object ([#33](https://gitlab.heigit.org/climate-action/climatoology/-/issues/33)). The change also paves the way for [#29](https://gitlab.heigit.org/climate-action/climatoology/-/issues/29)
 
 ### Added
 
