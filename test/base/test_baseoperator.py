@@ -10,9 +10,9 @@ from semver import Version
 from shapely import get_srid
 
 from climatoology.base.artifact import _Artifact
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.base.computation import ComputationScope, ComputationResources
 from climatoology.base.info import _Info
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.utility.exception import InputValidationError
 
 

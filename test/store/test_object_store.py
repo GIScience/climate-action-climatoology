@@ -2,12 +2,15 @@ import tempfile
 import uuid
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, Mock, ANY
 
 import minio.datatypes
+from minio import S3Error
+from urllib3 import HTTPResponse
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
-from climatoology.store.object_store import DataGroup
+from climatoology.base.info import Assets, _convert_icon_to_thumbnail
+from climatoology.store.object_store import DataGroup, Storage, AssetType
 
 
 def test_minio_save(mocked_object_store, general_uuid, default_artifact):
@@ -122,3 +125,94 @@ def test_minio_get_artifact_url(mocked_object_store, general_uuid):
         object_name=f'{general_uuid}/{store_id}',
         expires=timedelta(days=1),
     )
+
+
+def test_get_icon_url(mocked_object_store):
+    _ = mocked_object_store['minio_storage'].get_icon_url(plugin_id='test_plugin', plugin_version='0.0.1')
+    mocked_object_store['minio_client']().presigned_get_object.assert_called_once_with(
+        bucket_name='test_bucket',
+        object_name='test_plugin/0.0.1/ICON.jpeg',
+        expires=timedelta(days=7),
+    )
+
+
+def test_minio_synchronise_icon(mocked_object_store):
+    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/big_testing_image.jpeg'))
+    with patch(
+        'climatoology.store.object_store._convert_icon_to_thumbnail', side_effect=_convert_icon_to_thumbnail
+    ) as mocked_thumbnail_call:
+        mocked_object_store['minio_storage'].synch_assets(
+            plugin_id='test_plugin', plugin_version='0.0.1', assets=assets, overwrite=True
+        )
+        mocked_thumbnail_call.assert_called_once_with(Path(__file__).parent.parent / 'resources/big_testing_image.jpeg')
+        mocked_object_store['minio_client']().put_object.assert_called_once_with(
+            bucket_name='test_bucket',
+            object_name='test_plugin/0.0.1/ICON.jpeg',
+            data=ANY,
+            metadata={'Type': DataGroup.ASSET.value},
+            length=4723,
+        )
+
+
+def test_minio_synchronise_asset(mocked_object_store):
+    stat_object_mock = Mock(
+        side_effect=S3Error(
+            code='NoSuchKey',
+            message='Object does not exist, resource: /test-bucket/0.0.1/ICON.jpeg',
+            resource='/test-bucket/0.0.1/ICON.jpeg',
+            request_id='1809657212C91FBD',
+            host_id='localhost',
+            bucket_name='test_bucket',
+            object_name='0.0.1/ICON.jpeg',
+            response=HTTPResponse(),
+        )
+    )
+    mocked_object_store['minio_client']().stat_object = stat_object_mock
+
+    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.jpeg'))
+    mocked_object_store['minio_storage'].synch_assets(
+        plugin_id='test_plugin', plugin_version='0.0.1', assets=assets, overwrite=False
+    )
+    mocked_object_store['minio_client']().put_object.assert_called_once_with(
+        bucket_name='test_bucket',
+        object_name='test_plugin/0.0.1/ICON.jpeg',
+        data=ANY,
+        metadata={'Type': DataGroup.ASSET.value},
+        length=654,
+    )
+
+
+def test_minio_synchronise_asset_existing(mocked_object_store):
+    assets = Assets(icon='resources/test_icon.jpeg')
+    mocked_object_store['minio_storage'].synch_assets(
+        plugin_id='test_plugin', plugin_version='0.0.1', assets=assets, overwrite=False
+    )
+
+    mocked_object_store['minio_client']().put_object.assert_not_called()
+
+
+def test_minio_synchronise_asset_existing_overwrite(mocked_object_store):
+    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.jpeg'))
+    mocked_object_store['minio_storage'].synch_assets(
+        plugin_id='test_plugin', plugin_version='0.0.1', assets=assets, overwrite=True
+    )
+    mocked_object_store['minio_client']().put_object.assert_called_once_with(
+        bucket_name='test_bucket',
+        object_name='test_plugin/0.0.1/ICON.jpeg',
+        data=ANY,
+        metadata={'Type': DataGroup.ASSET.value},
+        length=654,
+    )
+
+
+def test_minio_synchronise_asset_rewrites_asset_object(mocked_object_store):
+    assets = Assets(icon='resources/test_icon.jpeg')
+    new_assets = mocked_object_store['minio_storage'].synch_assets(
+        plugin_id='test_plugin', plugin_version='0.0.1', assets=assets, overwrite=False
+    )
+    assert new_assets.icon == 'test_plugin/0.0.1/ICON.jpeg'
+
+
+def test_generate_asset_object_name():
+    computed_asset_object_name = Storage.generate_asset_object_name('test_plugin', '0.0.1', AssetType.ICON)
+    assert computed_asset_object_name == 'test_plugin/0.0.1/ICON.jpeg'

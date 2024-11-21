@@ -12,6 +12,7 @@ from uuid import UUID
 from minio import Minio, S3Error
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.info import Assets, _convert_icon_to_thumbnail
 
 log = logging.getLogger(__name__)
 
@@ -19,6 +20,14 @@ log = logging.getLogger(__name__)
 class DataGroup(Enum):
     DATA = 'DATA'
     METADATA = 'METADATA'
+    ASSET = 'ASSET'
+
+
+class AssetType(Enum):
+    ICON = 'ICON'
+
+
+ASSET_FILE_NAMES = {AssetType.ICON: 'ICON.jpeg'}
 
 
 COMPUTATION_INFO_FILENAME: str = 'metadata.json'
@@ -30,6 +39,12 @@ class Storage(ABC):
     @staticmethod
     def generate_object_name(correlation_uuid: UUID, store_id: str) -> str:
         return f'{correlation_uuid}/{store_id}'
+
+    @staticmethod
+    def generate_asset_object_name(plugin_id: str, plugin_version: str, asset_type: AssetType) -> str:
+        filename = ASSET_FILE_NAMES.get(asset_type)
+        object_name = f'{plugin_id}/{plugin_version}/{filename}'
+        return object_name
 
     @abstractmethod
     def save(self, artifact: _Artifact) -> str:
@@ -69,6 +84,18 @@ class Storage(ABC):
         :param store_id: The element name
         :param file_name: The name of the file the object should be stored in (within the file cache directory)
         :return: The path to the file or None
+        """
+        pass
+
+    @abstractmethod
+    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:
+        """The assets are stored in the object store if they don't exist or if overwrite is true.
+
+        :param plugin_id: Name of the plugin these assets belong to
+        :param plugin_version: Version of the plugin these assets belong to
+        :param assets: Assets to store
+        :param overwrite: If true, existing assets will be overwritten, even if they already exist
+        :return: object id in the underlying object store
         """
         pass
 
@@ -212,6 +239,13 @@ class MinioStorage(Storage):
         :return: The pre-signed url of the file or None
         """
         object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
+        return self._get_object_url(object_name=object_name, expires=expires)
+
+    def get_icon_url(self, plugin_id: str, plugin_version: str) -> Optional[str]:
+        object_name = Storage.generate_asset_object_name(plugin_id, plugin_version, AssetType.ICON)
+        return self._get_object_url(object_name=object_name, expires=timedelta(days=7))
+
+    def _get_object_url(self, object_name: str, expires: timedelta) -> Optional[str]:
         try:
             url = self.client.presigned_get_object(
                 bucket_name=self.__bucket,
@@ -223,3 +257,31 @@ class MinioStorage(Storage):
                 return None
             raise e
         return url
+
+    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:
+        icon_filename = self._synch_icon(
+            icon_path=assets.icon, plugin_id=plugin_id, plugin_version=plugin_version, overwrite=overwrite
+        )
+
+        new_assets = Assets(icon=icon_filename)
+
+        return new_assets
+
+    def _synch_icon(self, icon_path: str, plugin_id: str, plugin_version: str, overwrite: bool) -> str:
+        object_name = Storage.generate_asset_object_name(plugin_id, plugin_version, AssetType.ICON)
+        if not overwrite:
+            try:
+                self.client.stat_object(bucket_name=self.__bucket, object_name=object_name)
+                return object_name
+            except S3Error:
+                pass
+
+        binary_icon = _convert_icon_to_thumbnail(Path(icon_path))
+        self.client.put_object(
+            bucket_name=self.__bucket,
+            object_name=object_name,
+            data=binary_icon,
+            metadata={'Type': DataGroup.ASSET.value},
+            length=binary_icon.getbuffer().nbytes,
+        )
+        return object_name
