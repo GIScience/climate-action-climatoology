@@ -2,7 +2,6 @@ from unittest.mock import patch, ANY, Mock
 
 import pytest
 from celery.result import AsyncResult
-from geojson_pydantic import Feature
 from semver import Version
 
 from climatoology.app.platform import CeleryPlatform
@@ -42,34 +41,14 @@ def test_request_info_plugin_version_assert(default_platform_connection, default
 
 
 def test_send_compute(
-    default_platform_connection, default_plugin, celery_worker, general_uuid, default_artifact, celery_app
+    default_platform_connection, default_plugin, default_aoi_feature, general_uuid, default_artifact, celery_app
 ):
     mocked_app = Mock(side_effect=celery_app)
     default_platform_connection.celery_app = mocked_app
 
-    feature = Feature(
-        **{
-            'type': 'Feature',
-            'properties': {'name': 'Heidelberg', 'id': 'Q12345'},
-            'geometry': {
-                'type': 'MultiPolygon',
-                'coordinates': [
-                    [
-                        [
-                            [12.3, 48.22],
-                            [12.3, 48.34],
-                            [12.48, 48.34],
-                            [12.48, 48.22],
-                            [12.3, 48.22],
-                        ]
-                    ]
-                ],
-            },
-        }
-    )
     _ = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
-        aoi=feature,
+        aoi=default_aoi_feature,
         params={'id': 1, 'name': 'John Doe'},
         correlation_uuid=general_uuid,
     )
@@ -91,31 +70,17 @@ def test_send_compute(
 
 
 def test_send_compute_produces_result(
-    default_platform_connection, default_plugin, celery_worker, general_uuid, default_artifact, celery_app
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature,
+    celery_worker,
+    general_uuid,
+    default_artifact,
+    celery_app,
 ):
-    feature = Feature(
-        **{
-            'type': 'Feature',
-            'properties': {'name': 'Heidelberg', 'id': 'Q12345'},
-            'geometry': {
-                'type': 'MultiPolygon',
-                'coordinates': [
-                    [
-                        [
-                            [12.3, 48.22],
-                            [12.3, 48.34],
-                            [12.48, 48.34],
-                            [12.48, 48.22],
-                            [12.3, 48.22],
-                        ]
-                    ]
-                ],
-            },
-        }
-    )
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
-        aoi=feature,
+        aoi=default_aoi_feature,
         params={'id': 1, 'name': 'John Doe'},
         correlation_uuid=general_uuid,
     )
@@ -129,32 +94,19 @@ def test_send_compute_produces_result(
 
 
 def test_send_compute_reaches_worker(
-    default_platform_connection, default_plugin, celery_worker, general_uuid, default_artifact, celery_app
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature,
+    celery_worker,
+    general_uuid,
+    default_artifact,
+    celery_app,
 ):
     previous_computations = celery_worker.stats()['total'].get('compute')
-    feature = Feature(
-        **{
-            'type': 'Feature',
-            'properties': {'name': 'Heidelberg', 'id': 'Q12345'},
-            'geometry': {
-                'type': 'MultiPolygon',
-                'coordinates': [
-                    [
-                        [
-                            [12.3, 48.22],
-                            [12.3, 48.34],
-                            [12.48, 48.34],
-                            [12.48, 48.22],
-                            [12.3, 48.22],
-                        ]
-                    ]
-                ],
-            },
-        }
-    )
+
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
-        aoi=feature,
+        aoi=default_aoi_feature,
         params={'id': 1, 'name': 'John Doe'},
         correlation_uuid=general_uuid,
     )

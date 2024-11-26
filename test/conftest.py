@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Set
 from unittest.mock import patch, Mock
 
+import geojson_pydantic
 import pytest
 import responses
 import shapely
@@ -164,6 +165,30 @@ def default_aoi() -> shapely.MultiPolygon:
 @pytest.fixture
 def default_aoi_geojson(default_aoi) -> dict:
     return json.loads(to_geojson(geometry=default_aoi))
+
+
+@pytest.fixture
+def default_aoi_feature() -> geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]:
+    return geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+        **{
+            'type': 'Feature',
+            'properties': {'name': 'Heidelberg', 'id': 'Q12345'},
+            'geometry': {
+                'type': 'MultiPolygon',
+                'coordinates': [
+                    [
+                        [
+                            [12.3, 48.22],
+                            [12.3, 48.34],
+                            [12.48, 48.34],
+                            [12.48, 48.22],
+                            [12.3, 48.22],
+                        ]
+                    ]
+                ],
+            },
+        }
+    )
 
 
 @pytest.fixture

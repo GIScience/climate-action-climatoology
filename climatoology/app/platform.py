@@ -13,8 +13,8 @@ from semver import Version
 import climatoology
 from climatoology.app.plugin import generate_plugin_name
 from climatoology.app.settings import CABaseSettings, SenderSettings
-from climatoology.base.info import _Info
 from climatoology.base.baseoperator import AoiProperties
+from climatoology.base.info import _Info
 from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 log = logging.getLogger(__name__)
@@ -130,7 +130,11 @@ class CeleryPlatform(Platform):
 
         return self.celery_app.send_task(
             name='compute',
-            kwargs={'aoi': aoi.geometry.model_dump(mode='json'), 'aoi_properties': aoi.properties, 'params': params},
+            kwargs={
+                'aoi': aoi.geometry.model_dump(mode='json'),
+                'aoi_properties': aoi.properties.model_dump(mode='json'),
+                'params': params,
+            },
             task_id=str(correlation_uuid),
             routing_key=plugin_name,
             exchange='C.dq2',
