@@ -38,4 +38,4 @@ You need to have read-access to this repository, then run
 This Package uses [poetry](https://python-poetry.org/) for environment management. Run `poetry install --with test,dev` to create the environment. Don't forget to run `poetry run pre-commit install` to activate the specified [pre-commit](https://pre-commit.com/) hooks.
 
 ---
-<img src="docs/logo.png"  width="40%">
+<img alt="HeiGIT Logo" src="docs/logo.png"  width="40%">

@@ -10,6 +10,7 @@ import rasterio
 from PIL import Image
 from affine import Affine
 from geopandas import GeoDataFrame
+from numpy.testing import assert_array_equal
 from pandas import DataFrame
 from pydantic import ValidationError
 from pydantic_extra_types.color import Color
@@ -316,7 +317,7 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
         color=method_input.color.tolist(),
         label=method_input.label.tolist(),
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
     )
 
     assert generated_artifact == expected_artifact
@@ -360,7 +361,7 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         layer_name='Test Vector',
         caption='Vector caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
         legend_data=legend,
     )
 
@@ -400,7 +401,7 @@ def test_write_geojson_file_max_precision(default_computation_resources, general
         layer_name='Test Vector',
         caption='Vector caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
     )
 
     with open(generated_artifact.file_path, 'r') as test_file:
@@ -444,8 +445,8 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid,
 
     assert generated_artifact == expected_artifact
 
-    generated_content = rasterio.open(generated_artifact.file_path)
-    assert (generated_content.read() == method_input.data).all()
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert_array_equal(generated_content.read(), [method_input.data])
 
 
 def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_uuid):
@@ -476,13 +477,13 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
     )
 
     assert generated_artifact == expected_artifact
 
-    generated_content = rasterio.open(generated_artifact.file_path)
-    assert (generated_content.read() == method_input.data).all()
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert_array_equal(generated_content.read(), [method_input.data])
 
 
 def test_create_geotiff_artifact_masked_array(default_computation_resources, general_uuid):
@@ -505,11 +506,11 @@ def test_create_geotiff_artifact_masked_array(default_computation_resources, gen
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
     )
 
     with rasterio.open(generated_artifact.file_path) as generated_content:
-        np.testing.assert_array_equal(generated_content.read(1, masked=True), method_input.data)
+        assert_array_equal(generated_content.read(1, masked=True), method_input.data)
 
 
 def test_create_geotiff_with_legend_data(default_computation_resources, general_uuid):
@@ -540,14 +541,14 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
         legend_data={'A': Color('red')},
     )
 
     assert generated_artifact == expected_artifact
 
-    generated_content = rasterio.open(generated_artifact.file_path)
-    assert (generated_content.read() == method_input.data).all()
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert_array_equal(generated_content.read(), [method_input.data])
 
 
 def test_create_geotiff_without_legend(default_computation_resources, general_uuid):
@@ -577,13 +578,13 @@ def test_create_geotiff_without_legend(default_computation_resources, general_uu
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
     )
 
     assert generated_artifact == expected_artifact
 
-    generated_content = rasterio.open(generated_artifact.file_path)
-    assert (generated_content.read() == method_input.data).all()
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert_array_equal(generated_content.read(), [method_input.data])
 
 
 def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid):
@@ -614,13 +615,13 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
-        filename=general_uuid,
+        filename=str(general_uuid),
     )
 
     assert generated_artifact == expected_artifact
 
-    generated_content = rasterio.open(generated_artifact.file_path)
-    assert (generated_content.read() == method_input.data).all()
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert_array_equal(generated_content.read(), method_input.data)
 
 
 def test_geotiff_creation_option_warnings(default_computation_resources, general_uuid, caplog):
@@ -644,7 +645,7 @@ def test_geotiff_creation_option_warnings(default_computation_resources, general
             layer_name='Test Raster',
             caption='Raster caption',
             resources=default_computation_resources,
-            filename=general_uuid,
+            filename=str(general_uuid),
         )
 
     assert caplog.messages == []
