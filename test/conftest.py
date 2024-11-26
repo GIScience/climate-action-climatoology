@@ -105,7 +105,7 @@ def default_info_enriched(default_info) -> _Info:
 
 @pytest.fixture
 def default_info_final(default_info_enriched) -> _Info:
-    default_info_enriched.assets.icon = 'test_plugin/3.1.0/ICON.jpeg'
+    default_info_enriched.assets.icon = 'assets/test_plugin/3.1.0/ICON.jpeg'
     return default_info_enriched
 
 

@@ -43,7 +43,7 @@ class Storage(ABC):
     @staticmethod
     def generate_asset_object_name(plugin_id: str, plugin_version: str, asset_type: AssetType) -> str:
         filename = ASSET_FILE_NAMES.get(asset_type)
-        object_name = f'{plugin_id}/{plugin_version}/{filename}'
+        object_name = f'assets/{plugin_id}/{plugin_version}/{filename}'
         return object_name
 
     @abstractmethod
