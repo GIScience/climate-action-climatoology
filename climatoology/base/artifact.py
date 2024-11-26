@@ -458,7 +458,7 @@ def create_geojson_artifact(
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
     :param tags: Association tags this artifact belongs to.
-    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinousLegendData
+    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData
     type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
     distinct legend will be created from the unique combinations of labels and colors.
     :param resources: The computation resources of the plugin.
@@ -559,7 +559,7 @@ def create_geotiff_artifact(
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
     :param tags: Association tags this artifact belongs to.
-    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinousLegendData type.
+    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData type.
     For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a distinct
     legend will be created from the colormap, if it exists.
     :param resources: The computation resources of the plugin.
