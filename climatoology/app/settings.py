@@ -47,6 +47,7 @@ class WorkerSettings(BaseSettings):
     worker_direct: bool = True
     worker_prefetch_multiplier: int = 1
     task_time_limit: int = timedelta(hours=0.5).total_seconds()
+    task_track_started: bool = True
     result_expires: Optional[int] = None
 
     model_config = SettingsConfigDict(env_file='.env.worker')
