@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +33,22 @@ from climatoology.base.artifact import (
     Legend,
     Colormap,
 )
+
+
+def test_artifact_init_from_json():
+    target_artifact = _Artifact(
+        name='test_name',
+        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        file_path=Path(__file__).parent / 'test_file.tiff',
+        summary='Test summary',
+        description='Test description',
+        correlation_uuid=uuid.uuid4(),
+        store_id='test_file.tiff',
+        tags={'A', 'B'},
+    )
+    transformed_artifact = target_artifact.model_dump(mode='json')
+    computed_artifact = _Artifact(**transformed_artifact)
+    assert computed_artifact == target_artifact
 
 
 def test_chart_check_length():

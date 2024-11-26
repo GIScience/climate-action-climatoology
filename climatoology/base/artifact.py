@@ -144,7 +144,7 @@ class _Artifact(BaseModel):
         examples=[True],
         default=True,
     )
-    tags: Optional[Set[StrEnum]] = Field(
+    tags: Optional[Set[str]] = Field(
         description='A set of tags or topics that can be used to group artifacts semantically.  For example all '
         'artifacts related to one information aspect of a plugin may play together and could be grouped '
         '(e.g. a map and a plot).',
