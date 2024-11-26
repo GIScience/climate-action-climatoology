@@ -15,6 +15,7 @@ from climatoology.app.plugin import generate_plugin_name
 from climatoology.app.settings import CABaseSettings, SenderSettings
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
+from climatoology.store.object_store import MinioStorage, Storage
 from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
 
 log = logging.getLogger(__name__)
@@ -57,13 +58,16 @@ class Platform(ABC):
 class CeleryPlatform(Platform):
     def __init__(self):
         sender_config = SenderSettings()
+        settings = CABaseSettings()
 
-        self.celery_app = CeleryPlatform.construct_celery_app(sender_config)
+        self.celery_app = CeleryPlatform.construct_celery_app(settings, sender_config)
+
         self.assert_plugin_version = sender_config.assert_plugin_version
 
+        self.storage = CeleryPlatform.construct_storage(settings)
+
     @staticmethod
-    def construct_celery_app(sender_config: SenderSettings) -> Celery:
-        settings = CABaseSettings()
+    def construct_celery_app(settings: CABaseSettings, sender_config: SenderSettings) -> Celery:
         celery_app = Celery(
             'sender',
             broker=settings.broker_connection_string,
@@ -72,6 +76,17 @@ class CeleryPlatform(Platform):
 
         celery_app.conf.update(**sender_config.model_dump(exclude={'assert_plugin_version'}))
         return celery_app
+
+    @staticmethod
+    def construct_storage(settings: CABaseSettings) -> Storage:
+        return MinioStorage(
+            host=settings.minio_host,
+            port=settings.minio_port,
+            access_key=settings.minio_access_key,
+            secret_key=settings.minio_secret_key,
+            bucket=settings.minio_bucket,
+            secure=settings.minio_secure,
+        )
 
     def list_active_plugins(self) -> Set[str]:
         """Retrieve a list of active plugins.

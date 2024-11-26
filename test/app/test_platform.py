@@ -9,6 +9,10 @@ from climatoology.base.artifact import _Artifact
 from climatoology.utility.exception import ClimatoologyVersionMismatchException
 
 
+def test_platform_has_storage(default_platform_connection):
+    assert default_platform_connection.storage
+
+
 def test_list_default_active_plugins(default_platform_connection, celery_worker):
     computed_plugins = default_platform_connection.list_active_plugins()
     assert computed_plugins == set()
