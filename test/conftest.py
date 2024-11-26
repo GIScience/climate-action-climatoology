@@ -246,8 +246,14 @@ def default_info_task(default_operator, mocked_object_store, general_uuid) -> CA
 
 
 @pytest.fixture
-def default_platform_connection(celery_app) -> CeleryPlatform:
-    with patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app):
+def default_platform_connection(celery_app, mocked_object_store, set_basic_envs) -> CeleryPlatform:
+    with (
+        patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
+        patch(
+            'climatoology.app.platform.CeleryPlatform.construct_storage',
+            return_value=mocked_object_store['minio_storage'],
+        ),
+    ):
         yield CeleryPlatform()
 
 
