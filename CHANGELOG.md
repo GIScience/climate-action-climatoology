@@ -5,26 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/5.0.0...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/5.2.0...main)
+
+### Removed
+
+- `RdYlGn` and `seismic` color palettes from the acceptable colormaps. The minimum and maximum colours of the palette
+  were too similar.
 
 ### Changed
 
-- Updated and cleaned all dependencies. This includes breaking updates such as geopandas to v1.0.1. In case you use ohsome-py, make sure to update it to v0.4.0 for compatibility.
-- Operators now get two additional input variables `aoi` and `aoi_properties`. They replace the soft contract that was in place until now, to have these properties in the input model. They are now no longer allowed to be part of the input model ([#107](https://gitlab.heigit.org/climate-action/climatoology/-/issues/107),[#125](https://gitlab.heigit.org/climate-action/climatoology/-/issues/125))
-- The base class for operators is now called `BaseOperator` (formerly `Operator`). This allows plugin devs to generically call their Operator `Operator` ([#71](https://gitlab.heigit.org/climate-action/climatoology/-/issues/71))
-- removed `RdYlGn` and `seismic` from acceptable colormaps, added `coolwarm` to acceptable colormaps
-- the geotiff artifact is now a proper COG ([#104](https://gitlab.heigit.org/climate-action/climatoology/-/issues/104))
-- write compact geojson instead of bloated, indented one (it's not meant to be human-readable) ([#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102), [#76](https://gitlab.heigit.org/climate-action/climatoology/-/issues/76))
-- made the `Info` object private and introduced a generator method `generate_plugin_info` instead (see [#31](https://gitlab.heigit.org/climate-action/climatoology/-/issues/31))
+- the library now relies on [Celery](https://docs.celeryq.dev) for task management and
+  execution ([#106](https://gitlab.heigit.org/climate-action/climatoology/-/issues/106)).
+  The change was mostly API-neutral for now.
+  This completely replaces the former `broker` module.
+  Plugin developers can now make use of the simplified `start_plugin` method in the [
+  `plugin`](climatoology/app/plugin.py) module.
+  In addition, the settings for the execution were separated from the settings for the operator into a `CABaseSettings`
+  that by default reads in the `.env.base` file for environment variables.
+
+
+- made the `Info` object private (`_Info`) and introduced a generator method `generate_plugin_info`.
+  This should be used instead of instantiating `_Info` directly (
+  see [#31](https://gitlab.heigit.org/climate-action/climatoology/-/issues/31))
+- operators now get two additional input variables `aoi` and `aoi_properties`.
+  They replace the soft contract that was in place until now, to have these properties in the input model.
+  They are now no longer allowed to be part of the input
+  model ([#107](https://gitlab.heigit.org/climate-action/climatoology/-/issues/107),[#125](https://gitlab.heigit.org/climate-action/climatoology/-/issues/125))
+- the base class for operators is now called `BaseOperator` (formerly `Operator`).
+  This allows plugin devs to generically call their Operator
+  `Operator` ([#71](https://gitlab.heigit.org/climate-action/climatoology/-/issues/71))
+- plugin icons are now stored as static assets in the object store.
+  This prevents handing around binary data as string in the `_Info`
+  object ([#33](https://gitlab.heigit.org/climate-action/climatoology/-/issues/33)).
+  The change also paves the way for [#29](https://gitlab.heigit.org/climate-action/climatoology/-/issues/29)
+
+
 - require `purpose` and `methodology` for the plugin-info to be provided as markdown files
-- timestamps used for reporting are now UTC ([#89](https://gitlab.heigit.org/climate-action/climatoology/-/issues/89))
-- introduced `Colormap` type for raster color map
-- create_geotiff_artifact can now handle masked arrays ([#67](https://gitlab.heigit.org/climate-action/climatoology/-/issues/67))
-- plugin icons are now stored as static assets in the object store. This prevents handing around binary data as string in the `_Info` object ([#33](https://gitlab.heigit.org/climate-action/climatoology/-/issues/33)). The change also paves the way for [#29](https://gitlab.heigit.org/climate-action/climatoology/-/issues/29)
+- write compact (geo)json instead of bloated, indented one (it's not meant to be
+  human-readable) ([#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102), [#76](https://gitlab.heigit.org/climate-action/climatoology/-/issues/76))
+- updated and cleaned all dependencies.
+  This includes breaking updates such as geopandas to v1.0.1.
+  In case you use ohsome-py, make sure to update it to v0.4.0 for compatibility.
 
 ### Added
 
-- artifacts can now be associated with 0...n tags for semantic grouping ([#58](https://gitlab.heigit.org/climate-action/climatoology/-/issues/58))
+- create_geotiff_artifact can now handle masked
+  arrays ([#67](https://gitlab.heigit.org/climate-action/climatoology/-/issues/67))
+- `coolwarm` to acceptable colormaps
+- artifacts can now be associated with 0...n tags for semantic
+  grouping ([#58](https://gitlab.heigit.org/climate-action/climatoology/-/issues/58))
+- introduced `Colormap` type for raster color map
+
+### Fixed
+
+- the geotiff artifact is now a proper Cloud Optimised Geotiff (
+  COG) ([#104](https://gitlab.heigit.org/climate-action/climatoology/-/issues/104))
+- error message on version mismatch when registering a new plugin.
+  It now states the offending plugin library version instead of the APIs library version.
+- timestamps used for reporting are now UTC ([#89](https://gitlab.heigit.org/climate-action/climatoology/-/issues/89))
 
 ## [5.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/5.2.0) - 2024-09-17
 
@@ -37,7 +75,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fixed
 
-- rasterio/gdal issue where the written geotiffs were no longer readable by the front-end ([#103](https://gitlab.heigit.org/climate-action/climatoology/-/issues/103))
+- rasterio/gdal issue where the written geotiffs were no longer readable by the
+  front-end ([#103](https://gitlab.heigit.org/climate-action/climatoology/-/issues/103))
 
 ### Added
 
@@ -47,7 +86,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
-- upgraded LULC utility to the latest response type (`LabelResponse`) for the label description endpoint (`get_class_legend`)
+- upgraded LULC utility to the latest response type (`LabelResponse`) for the label description endpoint (
+  `get_class_legend`)
 
 ### Added
 
@@ -57,26 +97,34 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fixed
 
-- artifact upload failures due to the limitations of the object store metadata when artifact filenames contained non-ASCII characters
-- a failure of plugins to acknowledge a compute request if the compute run took more than 3 minutes by increasing the heartbeat timeout to 30min ([#100](https://gitlab.heigit.org/climate-action/climatoology/-/issues/100))
+- artifact upload failures due to the limitations of the object store metadata when artifact filenames contained
+  non-ASCII characters
+- a failure of plugins to acknowledge a compute request if the compute run took more than 3 minutes by increasing the
+  heartbeat timeout to 30min ([#100](https://gitlab.heigit.org/climate-action/climatoology/-/issues/100))
 
 ## [4.0.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/4.0.0) - 2024-05-21
 
 ### Changed
 
-- `_Artifact` metadata is now written to and read from separate files in the object store circumventing the limitations of the object-stores metadata functionality ([#46](https://gitlab.heigit.org/climate-action/climatoology/-/issues/46))
-- `Chart2dData` no longer normalises pie-chart y-values to sum to 1 ([#73](https://gitlab.heigit.org/climate-action/climatoology/-/issues/73))
+- `_Artifact` metadata is now written to and read from separate files in the object store circumventing the limitations
+  of the object-stores metadata functionality ([#46](https://gitlab.heigit.org/climate-action/climatoology/-/issues/46))
+- `Chart2dData` no longer normalises pie-chart y-values to sum to
+  1 ([#73](https://gitlab.heigit.org/climate-action/climatoology/-/issues/73))
 
 ### Fixed
 
-- Prevent compute request messages from being acknowledged twice towards the broker during computation, causing an error ([#69](https://gitlab.heigit.org/climate-action/climatoology/-/issues/69))
+- Prevent compute request messages from being acknowledged twice towards the broker during computation, causing an
+  error ([#69](https://gitlab.heigit.org/climate-action/climatoology/-/issues/69))
 
 ### Added
 
 - GNU LGPLv3 License
-- Computation metadata is now stored in a separate file together with the `_Artifact` files in the object store to make each object store computation directory information-complete
-- `primary` boolean attribute to the `_Artifact` to distinguish between the main outputs of a plugin and additional information ([#81](https://gitlab.heigit.org/climate-action/climatoology/-/issues/81)).
-- map legend information can now be stored alongside the geodata ([#55](https://gitlab.heigit.org/climate-action/climatoology/-/issues/55))
+- Computation metadata is now stored in a separate file together with the `_Artifact` files in the object store to make
+  each object store computation directory information-complete
+- `primary` boolean attribute to the `_Artifact` to distinguish between the main outputs of a plugin and additional
+  information ([#81](https://gitlab.heigit.org/climate-action/climatoology/-/issues/81)).
+- map legend information can now be stored alongside the
+  geodata ([#55](https://gitlab.heigit.org/climate-action/climatoology/-/issues/55))
 
 ## [3.1.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/3.1.0) - 2024-02-27
 
@@ -88,7 +136,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - the class description endpoint to the `LulcUtility`
 - `MOBILITY_PEDESTRIAN` concern for the walkability plugin
-- [ruff](https://docs.astral.sh/ruff/) formatting pre-commit hook ([#60](https://gitlab.heigit.org/climate-action/climatoology/-/issues/60))
+- [ruff](https://docs.astral.sh/ruff/) formatting pre-commit
+  hook ([#60](https://gitlab.heigit.org/climate-action/climatoology/-/issues/60))
 
 ---
 
@@ -96,7 +145,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fixed
 
-- an issue where the trailing `/` in the health-call on an HTTP-API (e.g. `LulcUtility`) would cause a redirect into no-mans-land in certain configurations
+- an issue where the trailing `/` in the health-call on an HTTP-API (e.g. `LulcUtility`) would cause a redirect into
+  no-mans-land in certain configurations
 
 ## [3.0.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/3.0.2) - 2024-01-31
 
