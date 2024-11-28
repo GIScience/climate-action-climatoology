@@ -15,19 +15,24 @@ from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommandStatus
-from climatoology.base.info import _Info
 from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
 from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)
 
 
-class ComputationInfo(BaseModel):
+class PluginBaseInfo(BaseModel):
+    plugin_id: str
+    plugin_version: str
+
+
+class ComputationInfo(BaseModel, extra='forbid'):
     correlation_uuid: UUID
     timestamp: datetime.datetime
     params: dict
+    aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
     artifacts: Optional[List[_Artifact]] = []
-    plugin_info: _Info
+    plugin_info: PluginBaseInfo
     status: ComputeCommandStatus
     message: Optional[str] = '-'
 
@@ -69,8 +74,8 @@ class CAPlatformComputeTask(Task):
     def run(self, aoi: dict, aoi_properties: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
 
-        aoi = geojson_pydantic.MultiPolygon(**aoi)
-        aoi: shapely.MultiPolygon = shapely.geometry.shape(context=aoi)
+        pydantic_aoi = geojson_pydantic.MultiPolygon(**aoi)
+        aoi: shapely.MultiPolygon = shapely.geometry.shape(context=pydantic_aoi)
         aoi = set_srid(geometry=aoi, srid=4326)
 
         aoi_properties = AoiProperties.model_validate(aoi_properties)
@@ -102,8 +107,16 @@ class CAPlatformComputeTask(Task):
                         correlation_uuid=correlation_uuid,
                         timestamp=datetime.datetime.now(datetime.timezone.utc),
                         params=params,
+                        aoi=geojson_pydantic.Feature(
+                            type='Feature',
+                            geometry=pydantic_aoi,
+                            properties=aoi_properties,
+                        ),
                         artifacts=plugin_artifacts,
-                        plugin_info=self.operator.info_enriched,
+                        plugin_info=PluginBaseInfo(
+                            plugin_id=self.operator.info_enriched.plugin_id,
+                            plugin_version=self.operator.info_enriched.version,
+                        ),
                         status=ComputeCommandStatus.COMPLETED,
                     )
                 )

@@ -1,8 +1,13 @@
+import datetime
+import tempfile
+from pathlib import Path
 from unittest.mock import patch, Mock, ANY
 
 from shapely import get_srid
 
-from climatoology.app.tasks import CAPlatformInfoTask
+from climatoology.app.tasks import CAPlatformInfoTask, ComputationInfo, CAPlatformComputeTask, PluginBaseInfo
+from climatoology.base.artifact import _Artifact, ArtifactModality
+from climatoology.base.event import ComputeCommandStatus
 
 
 def test_computation_task_init(default_computation_task):
@@ -47,6 +52,45 @@ def test_computation_task_run_forward_input(
     assert computed_result == expected_result
 
 
+def test_computation_task_run_saves_metadata(
+    default_computation_task,
+    general_uuid,
+    default_aoi_geojson,
+    default_aoi_properties,
+    default_aoi,
+    default_aoi_feature,
+    default_artifact,
+):
+    info = ComputationInfo(
+        correlation_uuid=general_uuid,
+        timestamp=datetime.datetime(day=1, month=1, year=2021),
+        params={'id': 1, 'name': 'test'},
+        aoi=default_aoi_feature,
+        artifacts=[default_artifact],
+        plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='3.1.0'),
+        status=ComputeCommandStatus.COMPLETED,
+    )
+
+    save_metadata_mock = Mock(side_effect=default_computation_task._save_computation_info)
+    default_computation_task._save_computation_info = save_metadata_mock
+
+    method_input_params = {'id': 1, 'name': 'test'}
+
+    with (
+        patch('uuid.uuid4', return_value=general_uuid),
+        patch('climatoology.app.tasks.datetime.datetime', wraps=datetime.datetime) as dt_mock,
+    ):
+        dt_mock.now.return_value = datetime.datetime(day=1, month=1, year=2021)
+
+        _ = default_computation_task.run(
+            aoi=default_aoi_geojson,
+            aoi_properties=default_aoi_properties.model_dump(mode='json'),
+            params=method_input_params,
+        )
+
+        save_metadata_mock.assert_called_once_with(info)
+
+
 def test_info_task_init(default_info_task):
     assert default_info_task
 
@@ -70,3 +114,35 @@ def test_info_task_uploads_assets(default_operator, mocked_object_store):
         assets=ANY,
         overwrite=False,
     )
+
+
+def test_save_computation_info(default_operator, mocked_object_store, general_uuid, default_aoi_feature):
+    task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store['minio_storage'])
+    info = ComputationInfo(
+        correlation_uuid=general_uuid,
+        timestamp=datetime.datetime(day=1, month=1, year=2021),
+        params={},
+        aoi=default_aoi_feature,
+        artifacts=[],
+        plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='0.0.1'),
+        status=ComputeCommandStatus.COMPLETED,
+    )
+
+    save_mock = Mock()
+    mocked_object_store['minio_storage'].save = save_mock
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        expected_save_artifact = _Artifact(
+            name='Computation Info',
+            modality=ArtifactModality.COMPUTATION_INFO,
+            file_path=Path(f'{temp_dir}/metadata.json'),
+            summary=f'Computation information of correlation_uuid {general_uuid}',
+            correlation_uuid=general_uuid,
+        )
+        with patch('climatoology.app.tasks.tempfile.TemporaryDirectory.__enter__', return_value=temp_dir):
+            task._save_computation_info(computation_info=info)
+
+            save_mock.assert_called_once_with(expected_save_artifact)
+
+            with open(expected_save_artifact.file_path, 'r') as metadata_file:
+                assert metadata_file.read() == info.model_dump_json()

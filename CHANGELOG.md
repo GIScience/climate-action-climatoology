@@ -7,6 +7,14 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.0.0...main)
 
+### Changed
+
+- the metadata file now only provides simplified information about the plugin, i.e. the id and the version
+
+### Fixed
+
+- added the aoi parameter to the metadata file written and served to and from the object store ([136](https://gitlab.heigit.org/climate-action/climatoology/-/issues/136))
+
 ## [6.0.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.0.0) - 2024-11-27
 
 ### Removed
