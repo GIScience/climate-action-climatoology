@@ -172,17 +172,16 @@ def default_aoi_feature() -> geojson_pydantic.Feature[geojson_pydantic.MultiPoly
     return geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
         **{
             'type': 'Feature',
-            'properties': {'name': 'Heidelberg', 'id': 'Q12345'},
+            'properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
             'geometry': {
                 'type': 'MultiPolygon',
                 'coordinates': [
                     [
                         [
-                            [12.3, 48.22],
-                            [12.3, 48.34],
-                            [12.48, 48.34],
-                            [12.48, 48.22],
-                            [12.3, 48.22],
+                            [0.0, 0.0],
+                            [0.0, 1.0],
+                            [1.0, 1.0],
+                            [0.0, 0.0],
                         ]
                     ]
                 ],

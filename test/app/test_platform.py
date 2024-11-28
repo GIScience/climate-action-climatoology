@@ -62,9 +62,18 @@ def test_send_compute(
         kwargs={
             'aoi': {
                 'type': 'MultiPolygon',
-                'coordinates': [[[[12.3, 48.22], [12.3, 48.34], [12.48, 48.34], [12.48, 48.22], [12.3, 48.22]]]],
+                'coordinates': [
+                    [
+                        [
+                            [0.0, 0.0],
+                            [0.0, 1.0],
+                            [1.0, 1.0],
+                            [0.0, 0.0],
+                        ]
+                    ]
+                ],
             },
-            'aoi_properties': {'name': 'Heidelberg', 'id': 'Q12345'},
+            'aoi_properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
             'params': {'id': 1, 'name': 'John Doe'},
         },
         task_id=str(general_uuid),
