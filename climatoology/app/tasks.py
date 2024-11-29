@@ -69,7 +69,7 @@ class CAPlatformComputeTask(Task):
                 )
                 log.debug(f'Returning Artifact: {result.model_dump()}.')
 
-                return self.storage.save(result)
+            return self.storage.save(result)
 
     def run(self, aoi: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
