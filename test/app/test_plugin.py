@@ -31,13 +31,10 @@ def test_worker_send_info_task(
         assert computed_info_result == expected_info_result
 
 
-def test_worker_send_compute_task(
-    default_plugin, default_artifact, general_uuid, default_aoi_geojson, default_aoi_properties
-):
+def test_worker_send_compute_task(default_plugin, default_artifact, general_uuid, default_aoi_feature_pure_dict):
     expected_compute_result = [default_artifact.model_dump(mode='json')]
     kwargs = {
-        'aoi': default_aoi_geojson,
-        'aoi_properties': default_aoi_properties.model_dump(mode='json'),
+        'aoi': default_aoi_feature_pure_dict,
         'params': {'id': 1, 'name': 'John Dow'},
     }
     with patch('uuid.uuid4', return_value=general_uuid):

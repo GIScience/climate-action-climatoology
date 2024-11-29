@@ -15,12 +15,14 @@ def test_computation_task_init(default_computation_task):
 
 
 def test_computation_task_run(
-    default_computation_task, default_artifact, general_uuid, default_aoi_geojson, default_aoi_properties
+    default_computation_task,
+    default_artifact,
+    general_uuid,
+    default_aoi_feature_pure_dict,
 ):
     with patch('uuid.uuid4', return_value=general_uuid):
         computed_result = default_computation_task.run(
-            aoi=default_aoi_geojson,
-            aoi_properties=default_aoi_properties.model_dump(mode='json'),
+            aoi=default_aoi_feature_pure_dict,
             params={'id': 1, 'name': 'test'},
         )
     expected_result = [default_artifact.model_dump(mode='json')]
@@ -29,7 +31,12 @@ def test_computation_task_run(
 
 
 def test_computation_task_run_forward_input(
-    default_computation_task, default_artifact, general_uuid, default_aoi_geojson, default_aoi_properties, default_aoi
+    default_computation_task,
+    default_artifact,
+    general_uuid,
+    default_aoi_feature_pure_dict,
+    default_aoi_properties,
+    default_aoi_geom_shapely,
 ):
     compute_unsafe_mock = Mock(side_effect=default_computation_task.operator.compute_unsafe)
     default_computation_task.operator.compute_unsafe = compute_unsafe_mock
@@ -38,15 +45,14 @@ def test_computation_task_run_forward_input(
 
     with patch('uuid.uuid4', return_value=general_uuid):
         computed_result = default_computation_task.run(
-            aoi=default_aoi_geojson,
-            aoi_properties=default_aoi_properties.model_dump(mode='json'),
+            aoi=default_aoi_feature_pure_dict,
             params=method_input_params,
         )
 
     expected_result = [default_artifact.model_dump(mode='json')]
 
     compute_unsafe_mock.assert_called_once_with(
-        resources=ANY, aoi=default_aoi, aoi_properties=default_aoi_properties, params=method_input_params
+        resources=ANY, aoi=default_aoi_geom_shapely, aoi_properties=default_aoi_properties, params=method_input_params
     )
     assert get_srid(compute_unsafe_mock.mock_calls[0].kwargs.get('aoi')) == 4326
     assert computed_result == expected_result
@@ -55,17 +61,15 @@ def test_computation_task_run_forward_input(
 def test_computation_task_run_saves_metadata(
     default_computation_task,
     general_uuid,
-    default_aoi_geojson,
-    default_aoi_properties,
-    default_aoi,
-    default_aoi_feature,
+    default_aoi_feature_geojson_pydantic,
+    default_aoi_feature_pure_dict,
     default_artifact,
 ):
-    info = ComputationInfo(
+    expected_computation_info = ComputationInfo(
         correlation_uuid=general_uuid,
         timestamp=datetime.datetime(day=1, month=1, year=2021),
         params={'id': 1, 'name': 'test'},
-        aoi=default_aoi_feature,
+        aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='3.1.0'),
         status=ComputeCommandStatus.COMPLETED,
@@ -83,12 +87,11 @@ def test_computation_task_run_saves_metadata(
         dt_mock.now.return_value = datetime.datetime(day=1, month=1, year=2021)
 
         _ = default_computation_task.run(
-            aoi=default_aoi_geojson,
-            aoi_properties=default_aoi_properties.model_dump(mode='json'),
+            aoi=default_aoi_feature_pure_dict,
             params=method_input_params,
         )
 
-        save_metadata_mock.assert_called_once_with(info)
+        save_metadata_mock.assert_called_once_with(computation_info=expected_computation_info)
 
 
 def test_info_task_init(default_info_task):
@@ -116,13 +119,15 @@ def test_info_task_uploads_assets(default_operator, mocked_object_store):
     )
 
 
-def test_save_computation_info(default_operator, mocked_object_store, general_uuid, default_aoi_feature):
+def test_save_computation_info(
+    default_operator, mocked_object_store, general_uuid, default_aoi_feature_geojson_pydantic
+):
     task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store['minio_storage'])
     info = ComputationInfo(
         correlation_uuid=general_uuid,
         timestamp=datetime.datetime(day=1, month=1, year=2021),
         params={},
-        aoi=default_aoi_feature,
+        aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[],
         plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='0.0.1'),
         status=ComputeCommandStatus.COMPLETED,

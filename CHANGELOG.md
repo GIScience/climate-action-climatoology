@@ -7,6 +7,14 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.0.1...main)
 
+### Changed
+
+- send a complete Feature over the event bus instead of separating the geometry and the properties
+
+### Fixed
+
+- the typing of the metadata aoi is corrected
+
 ## [6.0.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.0.1) - 2024-11-28
 
 ### Changed
