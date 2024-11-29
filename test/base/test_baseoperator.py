@@ -16,18 +16,20 @@ from climatoology.base.info import _Info
 from climatoology.utility.exception import InputValidationError
 
 
-def test_default_aoi_init(default_aoi):
-    assert get_srid(default_aoi) == 4326
+def test_default_aoi_init(default_aoi_geom_shapely):
+    assert get_srid(default_aoi_geom_shapely) == 4326
 
 
 def test_default_aoi_properties_init(default_aoi_properties):
     assert isinstance(default_aoi_properties, AoiProperties)
 
 
-def test_operator_typing(default_operator, default_computation_resources, default_aoi, default_aoi_properties):
+def test_operator_typing(
+    default_operator, default_computation_resources, default_aoi_geom_shapely, default_aoi_properties
+):
     default_operator.compute_unsafe(
         resources=default_computation_resources,
-        aoi=default_aoi,
+        aoi=default_aoi_geom_shapely,
         aoi_properties=default_aoi_properties,
         params={'id': 1234, 'name': 'test'},
     )
@@ -35,7 +37,7 @@ def test_operator_typing(default_operator, default_computation_resources, defaul
     with pytest.raises(InputValidationError):
         default_operator.compute_unsafe(
             resources=default_computation_resources,
-            aoi=default_aoi,
+            aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
             params={'id': 'ID:1234', 'name': 'test'},
         )
@@ -132,9 +134,12 @@ def test_operator_startup_checks_for_aoi_fields(default_info):
 
 
 def test_operator_compute_missing_input_validation(
-    default_operator, default_computation_resources, default_aoi, default_aoi_properties
+    default_operator, default_computation_resources, default_aoi_geom_shapely, default_aoi_properties
 ):
     with pytest.raises(InputValidationError, match='The given user input is invalid'):
         default_operator.compute_unsafe(
-            resources=default_computation_resources, aoi=default_aoi, aoi_properties=default_aoi_properties, params={}
+            resources=default_computation_resources,
+            aoi=default_aoi_geom_shapely,
+            aoi_properties=default_aoi_properties,
+            params={},
         )

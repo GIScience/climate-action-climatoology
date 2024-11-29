@@ -45,14 +45,19 @@ def test_request_info_plugin_version_assert(default_platform_connection, default
 
 
 def test_send_compute(
-    default_platform_connection, default_plugin, default_aoi_feature, general_uuid, default_artifact, celery_app
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    general_uuid,
+    default_artifact,
+    celery_app,
 ):
     mocked_app = Mock(side_effect=celery_app)
     default_platform_connection.celery_app = mocked_app
 
     _ = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
-        aoi=default_aoi_feature,
+        aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
         correlation_uuid=general_uuid,
     )
@@ -61,19 +66,22 @@ def test_send_compute(
         name='compute',
         kwargs={
             'aoi': {
-                'type': 'MultiPolygon',
-                'coordinates': [
-                    [
+                'type': 'Feature',
+                'properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
+                'geometry': {
+                    'type': 'MultiPolygon',
+                    'coordinates': [
                         [
-                            [0.0, 0.0],
-                            [0.0, 1.0],
-                            [1.0, 1.0],
-                            [0.0, 0.0],
+                            [
+                                [0.0, 0.0],
+                                [0.0, 1.0],
+                                [1.0, 1.0],
+                                [0.0, 0.0],
+                            ]
                         ]
-                    ]
-                ],
+                    ],
+                },
             },
-            'aoi_properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
             'params': {'id': 1, 'name': 'John Doe'},
         },
         task_id=str(general_uuid),
@@ -85,7 +93,7 @@ def test_send_compute(
 def test_send_compute_produces_result(
     default_platform_connection,
     default_plugin,
-    default_aoi_feature,
+    default_aoi_feature_geojson_pydantic,
     celery_worker,
     general_uuid,
     default_artifact,
@@ -93,7 +101,7 @@ def test_send_compute_produces_result(
 ):
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
-        aoi=default_aoi_feature,
+        aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
         correlation_uuid=general_uuid,
     )
@@ -109,7 +117,7 @@ def test_send_compute_produces_result(
 def test_send_compute_reaches_worker(
     default_platform_connection,
     default_plugin,
-    default_aoi_feature,
+    default_aoi_feature_geojson_pydantic,
     celery_worker,
     general_uuid,
     default_artifact,
@@ -119,7 +127,7 @@ def test_send_compute_reaches_worker(
 
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
-        aoi=default_aoi_feature,
+        aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
         correlation_uuid=general_uuid,
     )

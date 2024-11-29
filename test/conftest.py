@@ -1,4 +1,3 @@
-import json
 import uuid
 from enum import StrEnum
 from pathlib import Path
@@ -14,7 +13,6 @@ from celery.utils.threads import LocalStack
 from pydantic import BaseModel, Field
 from semver import Version
 from shapely import set_srid
-from shapely import to_geojson
 
 import climatoology
 from climatoology.app.platform import CeleryPlatform
@@ -156,19 +154,14 @@ def default_plugin(celery_app, celery_worker, default_operator, default_settings
 
 
 @pytest.fixture
-def default_aoi() -> shapely.MultiPolygon:
+def default_aoi_geom_shapely() -> shapely.MultiPolygon:
     geom = shapely.MultiPolygon(polygons=[[((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (0.0, 0.0))]])
     srid_geom = set_srid(geometry=geom, srid=4326)
     return srid_geom
 
 
 @pytest.fixture
-def default_aoi_geojson(default_aoi) -> dict:
-    return json.loads(to_geojson(geometry=default_aoi))
-
-
-@pytest.fixture
-def default_aoi_feature() -> geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]:
+def default_aoi_feature_geojson_pydantic() -> geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]:
     return geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
         **{
             'type': 'Feature',
@@ -188,6 +181,11 @@ def default_aoi_feature() -> geojson_pydantic.Feature[geojson_pydantic.MultiPoly
             },
         }
     )
+
+
+@pytest.fixture
+def default_aoi_feature_pure_dict(default_aoi_feature_geojson_pydantic) -> dict:
+    return default_aoi_feature_geojson_pydantic.model_dump(mode='json')
 
 
 @pytest.fixture

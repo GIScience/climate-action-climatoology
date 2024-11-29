@@ -146,8 +146,7 @@ class CeleryPlatform(Platform):
         return self.celery_app.send_task(
             name='compute',
             kwargs={
-                'aoi': aoi.geometry.model_dump(mode='json'),
-                'aoi_properties': aoi.properties.model_dump(mode='json'),
+                'aoi': aoi.model_dump(mode='json'),
                 'params': params,
             },
             task_id=str(correlation_uuid),

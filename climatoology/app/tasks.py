@@ -71,14 +71,13 @@ class CAPlatformComputeTask(Task):
 
                 return self.storage.save(result)
 
-    def run(self, aoi: dict, aoi_properties: dict, params: dict) -> List[dict]:
+    def run(self, aoi: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
 
-        pydantic_aoi = geojson_pydantic.MultiPolygon(**aoi)
-        aoi: shapely.MultiPolygon = shapely.geometry.shape(context=pydantic_aoi)
-        aoi = set_srid(geometry=aoi, srid=4326)
+        aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
 
-        aoi_properties = AoiProperties.model_validate(aoi_properties)
+        aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
+        aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
 
         try:
             log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
@@ -87,7 +86,7 @@ class CAPlatformComputeTask(Task):
 
             with ComputationScope(correlation_uuid) as resources:
                 raw_artifacts = self.operator.compute_unsafe(
-                    resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params
+                    resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=params
                 )
                 artifacts = list(filter(None, raw_artifacts))
 
@@ -102,24 +101,20 @@ class CAPlatformComputeTask(Task):
                 ]
                 self.storage.save_all(plugin_artifacts)
 
-                self._save_computation_info(
-                    ComputationInfo(
-                        correlation_uuid=correlation_uuid,
-                        timestamp=datetime.datetime.now(datetime.timezone.utc),
-                        params=params,
-                        aoi=geojson_pydantic.Feature(
-                            type='Feature',
-                            geometry=pydantic_aoi,
-                            properties=aoi_properties,
-                        ),
-                        artifacts=plugin_artifacts,
-                        plugin_info=PluginBaseInfo(
-                            plugin_id=self.operator.info_enriched.plugin_id,
-                            plugin_version=self.operator.info_enriched.version,
-                        ),
-                        status=ComputeCommandStatus.COMPLETED,
-                    )
+                computation_info = ComputationInfo(
+                    correlation_uuid=correlation_uuid,
+                    timestamp=datetime.datetime.now(datetime.timezone.utc),
+                    params=params,
+                    aoi=aoi,
+                    artifacts=plugin_artifacts,
+                    plugin_info=PluginBaseInfo(
+                        plugin_id=self.operator.info_enriched.plugin_id,
+                        plugin_version=self.operator.info_enriched.version,
+                    ),
+                    status=ComputeCommandStatus.COMPLETED,
                 )
+                self._save_computation_info(computation_info=computation_info)
+
             log.debug(f'{correlation_uuid} successfully computed')
             encoded_result = [artifact.model_dump(mode='json') for artifact in plugin_artifacts]
             return encoded_result
