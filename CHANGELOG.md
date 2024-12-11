@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.0.2...main)
 
+### Changed
+
+- Operator compute tasks must return at least one artifact result
+
 ## [6.0.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.0.2) - 2024-11-29
 
 ### Changed

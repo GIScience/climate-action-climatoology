@@ -110,7 +110,12 @@ class BaseOperator(ABC, Generic[T_co]):
             raise InputValidationError('The given user input is invalid') from e
         logging.debug(f'Compute parameters of correlation_uuid {resources.correlation_uuid} validated')
 
-        return self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=validate_params)
+        artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=validate_params)
+
+        artifacts = list(filter(None, artifacts))
+        assert len(artifacts) > 0, 'The computation returned no results.'
+
+        return artifacts
 
     @abstractmethod
     def compute(

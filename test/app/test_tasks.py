@@ -1,13 +1,20 @@
 import datetime
 import tempfile
 from pathlib import Path
+from typing import List
 from unittest.mock import patch, Mock, ANY
 
+from pydantic import BaseModel
+import pytest
+import shapely
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformInfoTask, ComputationInfo, CAPlatformComputeTask, PluginBaseInfo
 from climatoology.base.artifact import _Artifact, ArtifactModality
+from climatoology.base.baseoperator import BaseOperator, AoiProperties
+from climatoology.base.computation import ComputationResources
 from climatoology.base.event import ComputeCommandStatus
+from climatoology.base.info import _Info
 
 
 def test_computation_task_init(default_computation_task):
@@ -28,6 +35,35 @@ def test_computation_task_run(
     expected_result = [default_artifact.model_dump(mode='json')]
 
     assert computed_result == expected_result
+
+
+def test_computation_task_run_must_return_results(
+    default_info, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
+):
+    class TestModel(BaseModel):
+        pass
+
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            return []
+
+    with pytest.raises(AssertionError, match='The computation returned no results.'):
+        operator = TestOperator()
+        operator.compute_unsafe(
+            aoi=default_aoi_geom_shapely,
+            aoi_properties=default_aoi_properties,
+            params=dict(),
+            resources=default_computation_resources,
+        )
 
 
 def test_computation_task_run_forward_input(
