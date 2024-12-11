@@ -85,10 +85,9 @@ class CAPlatformComputeTask(Task):
             log.debug(f'Computing with parameters {params}')
 
             with ComputationScope(correlation_uuid) as resources:
-                raw_artifacts = self.operator.compute_unsafe(
+                artifacts = self.operator.compute_unsafe(
                     resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=params
                 )
-                artifacts = list(filter(None, raw_artifacts))
 
                 for artifact in artifacts:
                     assert (
