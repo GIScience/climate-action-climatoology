@@ -11,6 +11,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - Operator compute tasks must return at least one artifact result
 
+### Added
+
+- Add naturalness utility ([#139](https://gitlab.heigit.org/climate-action/climatoology/-/issues/139))
+
 ## [6.0.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.0.2) - 2024-11-29
 
 ### Changed
@@ -30,7 +34,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fixed
 
-- added the aoi parameter to the metadata file written and served to and from the object store ([136](https://gitlab.heigit.org/climate-action/climatoology/-/issues/136))
+- added the aoi parameter to the metadata file written and served to and from the object
+  store ([136](https://gitlab.heigit.org/climate-action/climatoology/-/issues/136))
 
 ## [6.0.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.0.0) - 2024-11-27
 
