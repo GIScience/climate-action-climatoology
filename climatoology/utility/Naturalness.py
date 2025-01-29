@@ -13,6 +13,7 @@ import pandas as pd
 import rasterio as rio
 import requests
 from pydantic import BaseModel, Field, confloat
+from shapely.geometry import shape
 from tqdm import tqdm
 
 from climatoology.utility.api import PlatformHttpUtility, adjust_bounds, compute_raster, TimeRange
@@ -21,7 +22,7 @@ from climatoology.utility.exception import PlatformUtilityException
 log = logging.getLogger(__name__)
 
 
-class Index(StrEnum):
+class NaturalnessIndex(StrEnum):
     NDVI = 'NDVI'
     WATER = 'WATER'
     NATURALNESS = 'NATURALNESS'
@@ -67,7 +68,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
     @contextmanager
     def compute_raster(
-        self, index: Index, units: List[NaturalnessWorkUnit], max_unit_size: int = 2300
+        self, index: NaturalnessIndex, units: List[NaturalnessWorkUnit], max_unit_size: int = 2300
     ) -> ContextManager[rio.DatasetReader]:
         """Generate a remote sensing-based Naturalness raster.
 
@@ -89,7 +90,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
     def compute_vector(
         self,
-        index: Index,
+        index: NaturalnessIndex,
         aggregation_stats: list[str],
         vectors: List[gpd.GeoSeries],
         time_range: TimeRange,
@@ -122,7 +123,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         result: gpd.GeoDataFrame = pd.concat(slices)
         return result
 
-    def __fetch_raster_data(self, index: Index, unit: NaturalnessWorkUnit) -> rio.DatasetReader:
+    def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rio.DatasetReader:
         try:
             url = f'{self.base_url}{index}/raster/'
 
@@ -138,7 +139,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
     def __fetch_zonal_statistics(
         self,
-        index: Index,
+        index: NaturalnessIndex,
         aggregation_stats: list[str],
         vectors: gpd.GeoSeries,
         time_range: TimeRange,
@@ -156,8 +157,12 @@ class NaturalnessUtility(PlatformHttpUtility):
             response = self.session.post(url=url, json=request_json)
             response.raise_for_status()
 
-            result = gpd.GeoDataFrame.from_features(response.json())
-            return result
+            geojson = response.json()
+
+            geoms = [shape(i['geometry']) for i in geojson['features']]
+            indices = [i['id'] for i in geojson['features']]
+            data = [i['properties'] for i in geojson['features']]
+            return gpd.GeoDataFrame(index=indices, data=data, geometry=geoms, crs=vectors.crs)
 
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityException('Connection to utility cannot be established') from e
