@@ -1,0 +1,182 @@
+import json
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from datetime import datetime
+from enum import StrEnum
+from functools import partial
+from io import BytesIO
+from typing import Tuple, List, ContextManager
+
+import geopandas as gpd
+import pandas as pd
+import rasterio as rio
+import requests
+from pydantic import BaseModel, Field, confloat
+from tqdm import tqdm
+
+from climatoology.utility.api import PlatformHttpUtility, adjust_bounds, compute_raster, TimeRange
+from climatoology.utility.exception import PlatformUtilityException
+
+log = logging.getLogger(__name__)
+
+
+class Index(StrEnum):
+    NDVI = 'NDVI'
+    WATER = 'WATER'
+    NATURALNESS = 'NATURALNESS'
+
+
+class NaturalnessWorkUnit(BaseModel):
+    """Area of interest for naturalness index"""
+
+    time_range: TimeRange = Field(
+        title='Time Range',
+        description='The time range of satellite observations to base the index on.',
+        examples=[TimeRange(end_date=datetime.now().date())],
+    )
+    bbox: Tuple[
+        confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
+    ] = Field(
+        title='Area Coordinates',
+        description='Bounding box coordinates in WGS 84 (west, south, east, north)',
+        examples=[[8.65, 49.38, 8.75, 49.41]],
+    )
+
+
+class NaturalnessUtility(PlatformHttpUtility):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        path: str,
+        max_workers: int = 1,
+        max_retries: int = 5,
+    ):
+        """A wrapper class around the Naturalness Utility API.
+
+        :param host: api host
+        :param port: api port
+        :param path: api path
+        :param max_workers: maximum number of threads to spawn for parallel requests
+        :param max_retries: number of retires before giving up during connection startup
+        """
+        super().__init__(host, port, path, max_retries)
+
+        self.max_workers = max_workers
+
+    @contextmanager
+    def compute_raster(
+        self, index: Index, units: List[NaturalnessWorkUnit], max_unit_size: int = 2300
+    ) -> ContextManager[rio.DatasetReader]:
+        """Generate a remote sensing-based Naturalness raster.
+
+        :param index: The index to be requested from the utility
+        :param units: Areas of interest
+        :param max_unit_size: Size in pixels used to determine whether the unit has to be split to meet external service
+        processing requirements. The value applies to both height and width.
+        :return: An opened geo-tiff file within a context manager. Use it as `with compute_raster(units) as naturalness:`
+        """
+
+        units = self.adjust_work_units(units, max_unit_size)
+
+        fetch_raster = partial(self.__fetch_raster_data, index)
+
+        with compute_raster(
+            units, max_workers=self.max_workers, fetch_data=fetch_raster, has_color_map=False
+        ) as naturalness:
+            yield naturalness
+
+    def compute_vector(
+        self,
+        index: Index,
+        aggregation_stats: list[str],
+        vectors: List[gpd.GeoSeries],
+        time_range: TimeRange,
+        max_raster_size: int = 2300,
+    ) -> gpd.GeoDataFrame:
+        """Generate vector features with aggregated raster statistics.
+
+        :param index: raster index parameter to use
+        :param aggregation_stats: list of statistics methods for aggregating raster values
+        :param vectors: GeoSeries of SimpleFeatures to calculate statistics for
+        :param time_range: time range for the analysis
+        :param max_raster_size: Size in pixels used to determine whether the vectors have to be split to meet external
+        service processing requirements for the raster input. The value applies to both height and width.
+        :return: A feature collection within a context manager. Use it as `with compute_vector(units) as naturalness:`
+        """
+        log.debug('Extracting aggregated raster statistics..')
+
+        vectors = self.adjust_vectors(vectors=vectors, max_unit_size=max_raster_size)
+
+        with tqdm(total=len(vectors)) as pbar:
+            slices = []
+
+            with ThreadPoolExecutor(self.max_workers) as pool:
+                for dataset in pool.map(
+                    self.__fetch_zonal_statistics, [index], [aggregation_stats], vectors, [time_range]
+                ):
+                    pbar.update()
+                    slices.append(dataset)
+
+        result: gpd.GeoDataFrame = pd.concat(slices)
+        return result
+
+    def __fetch_raster_data(self, index: Index, unit: NaturalnessWorkUnit) -> rio.DatasetReader:
+        try:
+            url = f'{self.base_url}{index}/raster/'
+
+            log.debug(f'Requesting raster from Naturalness Utility at {url} for region {unit.model_dump()}')
+            response = self.session.post(url=url, json=unit.model_dump(mode='json'))
+            response.raise_for_status()
+        except requests.exceptions.ConnectionError as e:
+            raise PlatformUtilityException('Connection to utility cannot be established') from e
+        except requests.exceptions.HTTPError as e:
+            raise PlatformUtilityException('Query failed due to an error') from e
+        else:
+            return rio.open(BytesIO(response.content), mode='r')
+
+    def __fetch_zonal_statistics(
+        self,
+        index: Index,
+        aggregation_stats: list[str],
+        vectors: gpd.GeoSeries,
+        time_range: TimeRange,
+    ) -> gpd.GeoDataFrame:
+        try:
+            url = f'{self.base_url}{index}/vector/'
+            log.debug(f'Requesting zonal statistics from Naturalness Utility at {url}')
+
+            request_json = {
+                'time_range': time_range.model_dump(mode='json'),
+                'vectors': json.loads(vectors.to_json(to_wgs84=True)),
+                'aggregation_stats': aggregation_stats,
+            }
+
+            response = self.session.post(url=url, json=request_json)
+            response.raise_for_status()
+
+            result = gpd.GeoDataFrame.from_features(response.json())
+            return result
+
+        except requests.exceptions.ConnectionError as e:
+            raise PlatformUtilityException('Connection to utility cannot be established') from e
+        except requests.exceptions.HTTPError as e:
+            raise PlatformUtilityException('Query failed due to an error') from e
+
+    @staticmethod
+    def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 2300) -> List[NaturalnessWorkUnit]:
+        adjusted_units = []
+        for unit in units:
+            bounds = adjust_bounds(unit.bbox, max_unit_size=max_unit_size, resolution=10)
+            adjusted_units.extend([unit.model_copy(update={'bbox': list(b)}, deep=True) for b in bounds])
+        return adjusted_units
+
+    @staticmethod
+    def adjust_vectors(vectors: List[gpd.GeoSeries], max_unit_size: int = 2300) -> List[gpd.GeoSeries]:
+        adjusted_vectors = []
+        for vector in vectors:
+            bounds = adjust_bounds(tuple(vector.total_bounds), max_unit_size=max_unit_size, resolution=10)
+            split_features = [gpd.clip(gdf=vector, mask=b.geometry, keep_geom_type=True) for b in bounds]
+            adjusted_vectors.extend(split_features)
+        return adjusted_vectors
