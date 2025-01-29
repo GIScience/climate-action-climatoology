@@ -4,13 +4,14 @@ import os
 import geopandas as gpd
 import pytest
 import rasterio
+from geopandas import testing
 from pyproj import CRS
 from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
 from shapely.geometry.polygon import Polygon
 
-from climatoology.utility.Naturalness import NaturalnessWorkUnit, NaturalnessUtility, Index
+from climatoology.utility.Naturalness import NaturalnessWorkUnit, NaturalnessUtility, NaturalnessIndex
 from climatoology.utility.api import TimeRange
 from climatoology.utility.exception import PlatformUtilityException
 
@@ -27,6 +28,7 @@ def default_zonal_vector_response():
         'features': [
             {
                 'type': 'Feature',
+                'id': 'first',
                 'properties': {'mean': 0.5},
                 'geometry': {
                     'type': 'Polygon',
@@ -35,6 +37,7 @@ def default_zonal_vector_response():
             },
             {
                 'type': 'Feature',
+                'id': 'second',
                 'properties': {'mean': 0.6},
                 'geometry': {
                     'type': 'Polygon',
@@ -60,7 +63,7 @@ def test_naturalness_connection_issues(mocked_utility_response):
 def test_naturalness_raster_with_invalid_inputs(mocked_utility_response):
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     with pytest.raises(AssertionError):
-        with operator.compute_raster(index=Index.NDVI, units=[]):
+        with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[]):
             pass
 
 
@@ -70,7 +73,7 @@ def test_naturalness_raster_single_unit(mocked_utility_response):
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
 
-    with operator.compute_raster(index=Index.NDVI, units=[NATURALNESS_UNIT_A]) as raster:
+    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT_A]) as raster:
         assert raster.shape == (221, 42)
         assert raster.count == 1
         assert raster.dtypes[0] == rasterio.float32
@@ -79,6 +82,7 @@ def test_naturalness_raster_single_unit(mocked_utility_response):
 
 def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_vector_response):
     vectors = gpd.GeoSeries(
+        index=['first', 'second'],
         data=[
             Polygon([[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1], [0, 0]]),
             Polygon([[0, 0], [-0.1, 0], [-0.1, -0.1], [0, -0.1], [0, 0]]),
@@ -99,7 +103,7 @@ def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_v
                         'type': 'FeatureCollection',
                         'features': [
                             {
-                                'id': '1',
+                                'id': 'second',
                                 'type': 'Feature',
                                 'properties': {},
                                 'geometry': {
@@ -109,7 +113,7 @@ def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_v
                                 'bbox': [-0.1, -0.1, 0.0, 0.0],
                             },
                             {
-                                'id': '0',
+                                'id': 'first',
                                 'type': 'Feature',
                                 'properties': {},
                                 'geometry': {
@@ -133,9 +137,13 @@ def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_v
     time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
 
     response_gdf = operator.compute_vector(
-        index=Index.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
+        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
     )
-    assert isinstance(response_gdf, gpd.GeoDataFrame)
+
+    expected_output = gpd.GeoDataFrame(
+        index=['first', 'second'], data={'mean': [0.5, 0.6]}, geometry=vectors, crs=CRS.from_epsg(4326)
+    )
+    testing.assert_geodataframe_equal(response_gdf, expected_output)
 
 
 @pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[3000, 1], [2000, 4], [1000, 16]])
