@@ -45,9 +45,16 @@ Colormap = NewType(
 )
 
 ACCEPTABLE_COLORMAPS = (
+    # uniform sequential
+    'viridis',
     'plasma',
+    # sequential
     'binary',
+    'YlOrRd',
+    'YlGn',
+    # diverging
     'coolwarm',
+    # miscellaneous
     'terrain',
 )  # extend from https://matplotlib.org/stable/users/explain/colors/colormaps.html at will
 
