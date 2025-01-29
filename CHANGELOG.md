@@ -7,14 +7,17 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.0.2...main)
 
+## [6.1.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.0) - 2025-01-29
+
 ### Changed
 
 - Operator compute tasks must return at least one artifact result
-- Updated list of acceptable colormaps for continuous legend ([#144](https://gitlab.heigit.org/climate-action/climatoology/-/issues/144))
 
 ### Added
 
 - Add naturalness utility ([#139](https://gitlab.heigit.org/climate-action/climatoology/-/issues/139))
+- Updated list of acceptable colormaps for continuous
+  legend ([#144](https://gitlab.heigit.org/climate-action/climatoology/-/issues/144))
 
 ## [6.0.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.0.2) - 2024-11-29
 
