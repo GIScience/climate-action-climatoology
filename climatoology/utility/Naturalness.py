@@ -1,3 +1,4 @@
+from itertools import repeat
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -7,10 +8,11 @@ from enum import StrEnum
 from functools import partial
 from io import BytesIO
 from typing import Tuple, List, ContextManager
+import warnings
 
 import geopandas as gpd
 import pandas as pd
-import rasterio as rio
+import rasterio
 import requests
 from pydantic import BaseModel, Field, confloat
 from shapely.geometry import shape
@@ -68,8 +70,8 @@ class NaturalnessUtility(PlatformHttpUtility):
 
     @contextmanager
     def compute_raster(
-        self, index: NaturalnessIndex, units: List[NaturalnessWorkUnit], max_unit_size: int = 2300
-    ) -> ContextManager[rio.DatasetReader]:
+        self, index: NaturalnessIndex, units: List[NaturalnessWorkUnit], max_unit_size: int = 1000
+    ) -> ContextManager[rasterio.DatasetReader]:
         """Generate a remote sensing-based Naturalness raster.
 
         :param index: The index to be requested from the utility
@@ -84,7 +86,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         fetch_raster = partial(self.__fetch_raster_data, index)
 
         with compute_raster(
-            units, max_workers=self.max_workers, fetch_data=fetch_raster, has_color_map=False
+            units=units, max_workers=self.max_workers, fetch_data=fetch_raster, has_color_map=False
         ) as naturalness:
             yield naturalness
 
@@ -94,28 +96,40 @@ class NaturalnessUtility(PlatformHttpUtility):
         aggregation_stats: list[str],
         vectors: List[gpd.GeoSeries],
         time_range: TimeRange,
-        max_raster_size: int = 2300,
+        max_raster_size: int = 1000,
     ) -> gpd.GeoDataFrame:
         """Generate vector features with aggregated raster statistics.
 
+        If the height or width of the `total_bounds` of any of the GeoSeries in `vectors` is greater than
+        `max_raster_size`, the geometries will be segmented and clipped into smaller areas for computation.
+        In this case, the returned geometries will also be clipped at the smaller boundaries and will not match the
+        provided `vectors` geometries.
+
         :param index: raster index parameter to use
         :param aggregation_stats: list of statistics methods for aggregating raster values
-        :param vectors: GeoSeries of SimpleFeatures to calculate statistics for
+        :param vectors: list of GeoSeries of SimpleFeatures to calculate statistics for.
         :param time_range: time range for the analysis
         :param max_raster_size: Size in pixels used to determine whether the vectors have to be split to meet external
         service processing requirements for the raster input. The value applies to both height and width.
-        :return: A feature collection within a context manager. Use it as `with compute_vector(units) as naturalness:`
+        :return: A GeoDataFrame with a column for each stat in aggregation_stats.
+        Note that the geometries may not match the provided `vectors` geometries (due to clipping for the max_raster_size).
         """
         log.debug('Extracting aggregated raster statistics..')
 
-        vectors = self.adjust_vectors(vectors=vectors, max_unit_size=max_raster_size)
+        vectors = [v.to_crs(4326) for v in vectors]
+        vectors = self.split_vectors(vectors=vectors, max_unit_size=max_raster_size)
 
-        with tqdm(total=len(vectors)) as pbar:
+        n = len(vectors)
+        with tqdm(total=n) as pbar:
             slices = []
 
             with ThreadPoolExecutor(self.max_workers) as pool:
                 for dataset in pool.map(
-                    self.__fetch_zonal_statistics, [index], [aggregation_stats], vectors, [time_range]
+                    self.__fetch_zonal_statistics,
+                    repeat(index, n),
+                    repeat(aggregation_stats, n),
+                    vectors,
+                    repeat(time_range, n),
                 ):
                     pbar.update()
                     slices.append(dataset)
@@ -123,7 +137,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         result: gpd.GeoDataFrame = pd.concat(slices)
         return result
 
-    def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rio.DatasetReader:
+    def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rasterio.DatasetReader:
         try:
             url = f'{self.base_url}{index}/raster/'
 
@@ -135,7 +149,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         except requests.exceptions.HTTPError as e:
             raise PlatformUtilityException('Query failed due to an error') from e
         else:
-            return rio.open(BytesIO(response.content), mode='r')
+            return rasterio.open(BytesIO(response.content), mode='r')
 
     def __fetch_zonal_statistics(
         self,
@@ -156,13 +170,14 @@ class NaturalnessUtility(PlatformHttpUtility):
 
             response = self.session.post(url=url, json=request_json)
             response.raise_for_status()
-
             geojson = response.json()
 
             geoms = [shape(i['geometry']) for i in geojson['features']]
             indices = [i['id'] for i in geojson['features']]
             data = [i['properties'] for i in geojson['features']]
-            return gpd.GeoDataFrame(index=indices, data=data, geometry=geoms, crs=vectors.crs)
+            vectors_with_stats = gpd.GeoDataFrame(index=indices, data=data, geometry=geoms, crs=vectors.crs)
+            vectors_with_stats.index = vectors_with_stats.index.astype(vectors.index.dtype)
+            return vectors_with_stats
 
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityException('Connection to utility cannot be established') from e
@@ -170,7 +185,7 @@ class NaturalnessUtility(PlatformHttpUtility):
             raise PlatformUtilityException('Query failed due to an error') from e
 
     @staticmethod
-    def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 2300) -> List[NaturalnessWorkUnit]:
+    def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 1000) -> List[NaturalnessWorkUnit]:
         adjusted_units = []
         for unit in units:
             bounds = adjust_bounds(unit.bbox, max_unit_size=max_unit_size, resolution=10)
@@ -178,10 +193,18 @@ class NaturalnessUtility(PlatformHttpUtility):
         return adjusted_units
 
     @staticmethod
-    def adjust_vectors(vectors: List[gpd.GeoSeries], max_unit_size: int = 2300) -> List[gpd.GeoSeries]:
+    def split_vectors(vectors: List[gpd.GeoSeries], max_unit_size: int = 1000) -> List[gpd.GeoSeries]:
+        """Split vectors into separate GeoSeries, such that the total bounds of each GeoSeries is less than max_unit_size"""
         adjusted_vectors = []
         for vector in vectors:
             bounds = adjust_bounds(tuple(vector.total_bounds), max_unit_size=max_unit_size, resolution=10)
             split_features = [gpd.clip(gdf=vector, mask=b.geometry, keep_geom_type=True) for b in bounds]
-            adjusted_vectors.extend(split_features)
+            adjusted_vectors.extend([f for f in split_features if not f.empty])
+
+        if len(adjusted_vectors) > len(vectors):
+            warnings.warn(
+                message='The dimensions of at least one of the provided vector GeoSeries exceeds the max_unit_size. '
+                'The returned geometries will be segmented into smaller parts to meet computation limits.',
+                category=UserWarning,
+            )
         return adjusted_vectors

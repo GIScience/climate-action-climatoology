@@ -2,6 +2,8 @@ import datetime
 import os
 
 import geopandas as gpd
+import pandas as pd
+from pandas.testing import assert_index_equal
 import pytest
 import rasterio
 from geopandas import testing
@@ -9,6 +11,7 @@ from pyproj import CRS
 from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
+from shapely import Point
 from shapely.geometry.polygon import Polygon
 
 from climatoology.utility.Naturalness import NaturalnessWorkUnit, NaturalnessUtility, NaturalnessIndex
@@ -32,7 +35,7 @@ def default_zonal_vector_response():
                 'properties': {'mean': 0.5},
                 'geometry': {
                     'type': 'Polygon',
-                    'coordinates': [[[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1], [0, 0]]],
+                    'coordinates': [[[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]],
                 },
             },
             {
@@ -41,7 +44,7 @@ def default_zonal_vector_response():
                 'properties': {'mean': 0.6},
                 'geometry': {
                     'type': 'Polygon',
-                    'coordinates': [[[0, 0], [-0.1, 0], [-0.1, -0.1], [0, -0.1], [0, 0]]],
+                    'coordinates': [[[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]],
                 },
             },
         ],
@@ -60,14 +63,14 @@ def test_naturalness_connection_issues(mocked_utility_response):
             pass
 
 
-def test_naturalness_raster_with_invalid_inputs(mocked_utility_response):
+def test_compute_raster_with_invalid_inputs(mocked_utility_response):
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     with pytest.raises(AssertionError):
         with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[]):
             pass
 
 
-def test_naturalness_raster_single_unit(mocked_utility_response):
+def test_compute_raster_single_unit(mocked_utility_response):
     with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
         mocked_utility_response.post('http://localhost:80/NDVI/raster/', body=raster.read())
 
@@ -80,12 +83,12 @@ def test_naturalness_raster_single_unit(mocked_utility_response):
         assert raster.bounds == BoundingBox(7.38, 47.5, 7.385, 47.52)
 
 
-def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_vector_response):
+def test_compute_vector_single_unit(mocked_utility_response, default_zonal_vector_response):
     vectors = gpd.GeoSeries(
         index=['first', 'second'],
         data=[
-            Polygon([[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1], [0, 0]]),
-            Polygon([[0, 0], [-0.1, 0], [-0.1, -0.1], [0, -0.1], [0, 0]]),
+            Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]),
+            Polygon([[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]),
         ],
         crs=CRS.from_epsg(4326),
     )
@@ -108,9 +111,11 @@ def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_v
                                 'properties': {},
                                 'geometry': {
                                     'type': 'Polygon',
-                                    'coordinates': [[[0.0, 0.0], [0.0, -0.1], [-0.1, -0.1], [-0.1, 0.0], [0.0, 0.0]]],
+                                    'coordinates': [
+                                        [[0.0, 0.0], [0.0, -0.01], [-0.01, -0.01], [-0.01, 0.0], [0.0, 0.0]]
+                                    ],
                                 },
-                                'bbox': [-0.1, -0.1, 0.0, 0.0],
+                                'bbox': [-0.01, -0.01, 0.0, 0.0],
                             },
                             {
                                 'id': 'first',
@@ -118,12 +123,12 @@ def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_v
                                 'properties': {},
                                 'geometry': {
                                     'type': 'Polygon',
-                                    'coordinates': [[[0.0, 0.0], [0.0, 0.1], [0.1, 0.1], [0.1, 0.0], [0.0, 0.0]]],
+                                    'coordinates': [[[0.0, 0.0], [0.0, 0.01], [0.01, 0.01], [0.01, 0.0], [0.0, 0.0]]],
                                 },
-                                'bbox': [0.0, 0.0, 0.1, 0.1],
+                                'bbox': [0.0, 0.0, 0.01, 0.01],
                             },
                         ],
-                        'bbox': [-0.1, -0.1, 0.1, 0.1],
+                        'bbox': [-0.01, -0.01, 0.01, 0.01],
                     },
                     'aggregation_stats': ['mean'],
                 }
@@ -141,24 +146,229 @@ def test_naturalness_vector_single_unit(mocked_utility_response, default_zonal_v
     )
 
     expected_output = gpd.GeoDataFrame(
-        index=['first', 'second'], data={'mean': [0.5, 0.6]}, geometry=vectors, crs=CRS.from_epsg(4326)
+        index=['first', 'second'],
+        data={'mean': [0.5, 0.6]},
+        geometry=[
+            Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]),
+            Polygon([[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]),
+        ],
+        crs=CRS.from_epsg(4326),
     )
     testing.assert_geodataframe_equal(response_gdf, expected_output)
 
 
-@pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[3000, 1], [2000, 4], [1000, 16]])
-def test_adjust_vector_groups_above_limit(
-    max_unit_size, expected_groups, default_zonal_vector_response, mocked_utility_response
-):
-    # (h, w) of default vectors = (2229, 2214)
+@pytest.mark.parametrize('index_dtype', ['str', 'int', 'float'])
+def test_compute_vector_retain_index_dtype(index_dtype, mocked_utility_response):
+    vectors = gpd.GeoSeries(
+        index=[1, 2],
+        data=[
+            Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]),
+            Polygon([[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]),
+        ],
+        crs=CRS.from_epsg(4326),
+    )
+    vectors.index = vectors.index.astype(index_dtype)
+
+    vector_response = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature',
+                'id': '1',
+                'properties': {'mean': 0.5},
+                'geometry': {
+                    'type': 'Polygon',
+                    'coordinates': [[[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]],
+                },
+            },
+            {
+                'type': 'Feature',
+                'id': '2',
+                'properties': {'mean': 0.6},
+                'geometry': {
+                    'type': 'Polygon',
+                    'coordinates': [[[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]],
+                },
+            },
+        ],
+    }
+    mocked_utility_response.post('http://localhost:80/NDVI/vector/', json=vector_response)
+
+    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    agg_stats = ['mean']
+
+    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+
+    response_gdf = operator.compute_vector(
+        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
+    )
+
+    match index_dtype:
+        case 'str':
+            assert_index_equal(response_gdf.index, pd.Index(['1', '2']))
+        case 'int':
+            assert_index_equal(response_gdf.index, pd.Index([1, 2]))
+        case 'float':
+            assert_index_equal(response_gdf.index, pd.Index([1.0, 2.0]))
+
+
+def test_compute_vector_multi_unit(mocked_utility_response):
+    vectors = [
+        gpd.GeoSeries(
+            index=['first'],
+            data=[Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]])],
+            crs=CRS.from_epsg(4326),
+        ),
+        gpd.GeoSeries(
+            index=['second'],
+            data=[Polygon([[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]])],
+            crs='EPSG:4326',
+        ),
+    ]
+    vector_response = [
+        {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'id': 'first',
+                    'properties': {'mean': 0.5},
+                    'geometry': {
+                        'type': 'Polygon',
+                        'coordinates': [[[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]],
+                    },
+                },
+            ],
+        },
+        {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'id': 'second',
+                    'properties': {'mean': 0.6},
+                    'geometry': {
+                        'type': 'Polygon',
+                        'coordinates': [[[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]],
+                    },
+                },
+            ],
+        },
+    ]
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[0])
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[1])
+
+    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    agg_stats = ['mean']
+
+    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+
+    response_gdf = operator.compute_vector(
+        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=vectors, time_range=time_range
+    )
+
+    expected_output = gpd.GeoDataFrame(
+        index=['first', 'second'],
+        data={'mean': [0.5, 0.6]},
+        geometry=[
+            Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]),
+            Polygon([[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]),
+        ],
+        crs=CRS.from_epsg(4326),
+    )
+    testing.assert_geodataframe_equal(response_gdf, expected_output)
+
+
+@pytest.mark.filterwarnings('ignore:The dimensions of*:UserWarning')
+def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
+    vectors = [
+        gpd.GeoSeries(
+            index=['first', 'second'],
+            data=[
+                Point([-0.01, -0.01]),
+                Point([0.01, 0.01]),
+            ],
+            crs=CRS.from_epsg(4326),
+        )
+    ]
+    vector_response = [
+        {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'id': 'first',
+                    'properties': {'mean': 0.5},
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [-0.01, -0.01],
+                    },
+                },
+            ],
+        },
+        {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'id': 'second',
+                    'properties': {'mean': 0.6},
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [0.01, 0.01],
+                    },
+                },
+            ],
+        },
+    ]
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[0])
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[1])
+
+    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    agg_stats = ['mean']
+
+    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+
+    # dimensions of example vectors here: h, w = (223, 221)
+    response_gdf = operator.compute_vector(
+        index=NaturalnessIndex.NDVI,
+        aggregation_stats=agg_stats,
+        vectors=vectors,
+        time_range=time_range,
+        max_raster_size=150,
+    )
+
+    mocked_utility_response.assert_call_count(url='http://localhost:80/NDVI/vector/', count=2)
+
+    expected_output = gpd.GeoDataFrame(
+        index=['first', 'second'],
+        data={'mean': [0.5, 0.6]},
+        geometry=[
+            Point([-0.01, -0.01]),
+            Point([0.01, 0.01]),
+        ],
+        crs=CRS.from_epsg(4326),
+    )
+    testing.assert_geodataframe_equal(response_gdf, expected_output)
+
+
+@pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 4], [100, 16]])
+def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, mocked_utility_response):
+    # (h, w) of default vectors = (221, 223)
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     vectors = gpd.GeoSeries(
         data=[
-            Polygon([[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1], [0, 0]]),
-            Polygon([[0, 0], [-0.1, 0], [-0.1, -0.1], [0, -0.1], [0, 0]]),
+            Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]),
+            Polygon([[0, 0], [-0.01, 0], [-0.01, -0.01], [0, -0.01], [0, 0]]),
+            Polygon([[-0.01, -0.01], [0.01, -0.01], [0.01, 0.01], [-0.01, 0.01], [-0.01, -0.01]]),
         ],
         crs=CRS.from_epsg(4326),
     )
 
-    vector_groups = operator.adjust_vectors(vectors=[vectors], max_unit_size=max_unit_size)
+    with pytest.warns(
+        UserWarning,
+        match='The dimensions of at least one of the provided vector GeoSeries exceeds the max_unit_size. '
+        'The returned geometries will be segmented into smaller parts to meet computation limits.',
+    ):
+        vector_groups = operator.split_vectors(vectors=[vectors], max_unit_size=max_unit_size)
     assert len(vector_groups) == expected_groups
