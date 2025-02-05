@@ -7,6 +7,13 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.0.2...main)
 
+### Fixed
+
+- Reduce the max raster size for the naturalness utility to handle SentinelHub errors
+- Batch the inputs properly in Naturalness compute_vector in case multiple API requests are required
+- Set the return index dtype from Naturalness compute_vector to match the input index dtype (Closes [#145](https://gitlab.heigit.org/climate-action/climatoology/-/issues/145))
+
+
 ## [6.1.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.0) - 2025-01-29
 
 ### Changed
