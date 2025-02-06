@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "climatoology"
-version = "6.1.0"
+version = "6.1.1"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
     "Maciej Adamiak <maciej.adamiak@heigit.org>",
