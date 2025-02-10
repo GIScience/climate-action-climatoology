@@ -72,7 +72,7 @@ def test_compute_raster_with_invalid_inputs(mocked_utility_response):
 
 def test_compute_raster_single_unit(mocked_utility_response):
     with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post('http://localhost:80/NDVI/raster/', body=raster.read())
+        mocked_utility_response.post('http://localhost:80/NDVI/raster', body=raster.read())
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
 
@@ -93,7 +93,7 @@ def test_compute_vector_single_unit(mocked_utility_response, default_zonal_vecto
         crs=CRS.from_epsg(4326),
     )
     mocked_utility_response.post(
-        'http://localhost:80/NDVI/vector/',
+        'http://localhost:80/NDVI/vector',
         json=default_zonal_vector_response,
         match=[
             matchers.json_params_matcher(
@@ -192,7 +192,7 @@ def test_compute_vector_retain_index_dtype(index_dtype, mocked_utility_response)
             },
         ],
     }
-    mocked_utility_response.post('http://localhost:80/NDVI/vector/', json=vector_response)
+    mocked_utility_response.post('http://localhost:80/NDVI/vector', json=vector_response)
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
@@ -255,8 +255,8 @@ def test_compute_vector_multi_unit(mocked_utility_response):
             ],
         },
     ]
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[0])
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[1])
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[0])
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[1])
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
@@ -321,8 +321,8 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
             ],
         },
     ]
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[0])
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector/', json=vector_response[1])
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[0])
+    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[1])
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
@@ -338,7 +338,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
         max_raster_size=150,
     )
 
-    mocked_utility_response.assert_call_count(url='http://localhost:80/NDVI/vector/', count=2)
+    mocked_utility_response.assert_call_count(url='http://localhost:80/NDVI/vector', count=2)
 
     expected_output = gpd.GeoDataFrame(
         index=['first', 'second'],

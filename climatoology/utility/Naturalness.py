@@ -139,7 +139,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
     def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rasterio.DatasetReader:
         try:
-            url = f'{self.base_url}{index}/raster/'
+            url = f'{self.base_url}{index}/raster'
 
             log.debug(f'Requesting raster from Naturalness Utility at {url} for region {unit.model_dump()}')
             response = self.session.post(url=url, json=unit.model_dump(mode='json'))
@@ -159,7 +159,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         time_range: TimeRange,
     ) -> gpd.GeoDataFrame:
         try:
-            url = f'{self.base_url}{index}/vector/'
+            url = f'{self.base_url}{index}/vector'
             log.debug(f'Requesting zonal statistics from Naturalness Utility at {url}')
 
             request_json = {

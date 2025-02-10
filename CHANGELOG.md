@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.1.1...main)
 
+### Fixed
+
+- Removed the trailing slash in the naturalness utility URLS ([#151](https://gitlab.heigit.org/climate-action/climatoology/-/issues/151))
+
 
 ## [6.1.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.1) - 2025-02-06
 
