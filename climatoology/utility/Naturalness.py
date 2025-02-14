@@ -8,7 +8,6 @@ from enum import StrEnum
 from functools import partial
 from io import BytesIO
 from typing import Tuple, List, ContextManager
-import warnings
 
 import geopandas as gpd
 import pandas as pd
@@ -189,7 +188,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         adjusted_units = []
         for unit in units:
             bounds = adjust_bounds(unit.bbox, max_unit_size=max_unit_size, resolution=10)
-            adjusted_units.extend([unit.model_copy(update={'bbox': list(b)}, deep=True) for b in bounds])
+            adjusted_units.extend([unit.model_copy(update={'bbox': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units
 
     @staticmethod
@@ -202,9 +201,8 @@ class NaturalnessUtility(PlatformHttpUtility):
             adjusted_vectors.extend([f for f in split_features if not f.empty])
 
         if len(adjusted_vectors) > len(vectors):
-            warnings.warn(
-                message='The dimensions of at least one of the provided vector GeoSeries exceeds the max_unit_size. '
-                'The returned geometries will be segmented into smaller parts to meet computation limits.',
-                category=UserWarning,
+            log.warning(
+                'The dimensions of at least one of the provided vector GeoSeries exceeds the max_unit_size. '
+                'The returned geometries will be segmented into smaller parts to meet computation limits.'
             )
         return adjusted_vectors
