@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 
 import geopandas as gpd
@@ -279,7 +280,6 @@ def test_compute_vector_multi_unit(mocked_utility_response):
     testing.assert_geodataframe_equal(response_gdf, expected_output)
 
 
-@pytest.mark.filterwarnings('ignore:The dimensions of*:UserWarning')
 def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
     vectors = [
         gpd.GeoSeries(
@@ -353,7 +353,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
 
 
 @pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 4], [100, 16]])
-def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, mocked_utility_response):
+def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, mocked_utility_response, caplog):
     # (h, w) of default vectors = (221, 223)
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     vectors = gpd.GeoSeries(
@@ -365,10 +365,13 @@ def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, m
         crs=CRS.from_epsg(4326),
     )
 
-    with pytest.warns(
-        UserWarning,
-        match='The dimensions of at least one of the provided vector GeoSeries exceeds the max_unit_size. '
-        'The returned geometries will be segmented into smaller parts to meet computation limits.',
-    ):
+    expected_warning = (
+        'The dimensions of at least one of the provided vector GeoSeries exceeds the max_unit_size. '
+        'The returned geometries will be segmented into smaller parts to meet computation limits.'
+    )
+
+    with caplog.at_level(logging.WARNING):
         vector_groups = operator.split_vectors(vectors=[vectors], max_unit_size=max_unit_size)
+
+    assert expected_warning in caplog.messages
     assert len(vector_groups) == expected_groups

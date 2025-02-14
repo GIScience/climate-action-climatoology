@@ -222,5 +222,5 @@ class LulcUtility(PlatformHttpUtility):
         adjusted_units = []
         for unit in units:
             bounds = adjust_bounds(unit.area_coords, max_unit_size=max_unit_size, resolution=10)
-            adjusted_units.extend([unit.model_copy(update={'area_coords': list(b)}, deep=True) for b in bounds])
+            adjusted_units.extend([unit.model_copy(update={'area_coords': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units
