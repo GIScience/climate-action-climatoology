@@ -128,10 +128,10 @@ def test_minio_get_artifact_url(mocked_object_store, general_uuid):
 
 
 def test_get_icon_url(mocked_object_store):
-    _ = mocked_object_store['minio_storage'].get_icon_url(plugin_id='test_plugin', plugin_version='0.0.1')
+    _ = mocked_object_store['minio_storage'].get_icon_url(plugin_id='test_plugin')
     mocked_object_store['minio_client']().presigned_get_object.assert_called_once_with(
         bucket_name='test_bucket',
-        object_name='assets/test_plugin/0.0.1/ICON.jpeg',
+        object_name='assets/test_plugin/latest/ICON.jpeg',
         expires=timedelta(days=7),
     )
 
@@ -147,7 +147,7 @@ def test_minio_synchronise_icon(mocked_object_store):
         mocked_thumbnail_call.assert_called_once_with(Path(__file__).parent.parent / 'resources/big_testing_image.jpeg')
         mocked_object_store['minio_client']().put_object.assert_called_once_with(
             bucket_name='test_bucket',
-            object_name='assets/test_plugin/0.0.1/ICON.jpeg',
+            object_name='assets/test_plugin/latest/ICON.jpeg',
             data=ANY,
             metadata={'Type': DataGroup.ASSET.value},
             length=4723,
@@ -158,12 +158,12 @@ def test_minio_synchronise_asset(mocked_object_store):
     stat_object_mock = Mock(
         side_effect=S3Error(
             code='NoSuchKey',
-            message='Object does not exist, resource: /test-bucket/assets/test_plugin/0.0.1/ICON.jpeg',
-            resource='/test-bucket/assets/test_plugin/0.0.1/ICON.jpeg',
+            message='Object does not exist, resource: /test-bucket/assets/test_plugin/latest/ICON.jpeg',
+            resource='/test-bucket/assets/test_plugin/latest/ICON.jpeg',
             request_id='1809657212C91FBD',
             host_id='localhost',
             bucket_name='test_bucket',
-            object_name='assets/test_plugin/0.0.1/ICON.jpeg',
+            object_name='assets/test_plugin/latest/ICON.jpeg',
             response=HTTPResponse(),
         )
     )
@@ -175,7 +175,7 @@ def test_minio_synchronise_asset(mocked_object_store):
     )
     mocked_object_store['minio_client']().put_object.assert_called_once_with(
         bucket_name='test_bucket',
-        object_name='assets/test_plugin/0.0.1/ICON.jpeg',
+        object_name='assets/test_plugin/latest/ICON.jpeg',
         data=ANY,
         metadata={'Type': DataGroup.ASSET.value},
         length=654,
@@ -198,7 +198,7 @@ def test_minio_synchronise_asset_existing_overwrite(mocked_object_store):
     )
     mocked_object_store['minio_client']().put_object.assert_called_once_with(
         bucket_name='test_bucket',
-        object_name='assets/test_plugin/0.0.1/ICON.jpeg',
+        object_name='assets/test_plugin/latest/ICON.jpeg',
         data=ANY,
         metadata={'Type': DataGroup.ASSET.value},
         length=654,
@@ -210,9 +210,11 @@ def test_minio_synchronise_asset_rewrites_asset_object(mocked_object_store):
     new_assets = mocked_object_store['minio_storage'].synch_assets(
         plugin_id='test_plugin', plugin_version='0.0.1', assets=assets, overwrite=False
     )
-    assert new_assets.icon == 'assets/test_plugin/0.0.1/ICON.jpeg'
+    assert new_assets.icon == 'assets/test_plugin/latest/ICON.jpeg'
 
 
 def test_generate_asset_object_name():
-    computed_asset_object_name = Storage.generate_asset_object_name('test_plugin', '0.0.1', AssetType.ICON)
-    assert computed_asset_object_name == 'assets/test_plugin/0.0.1/ICON.jpeg'
+    computed_asset_object_name = Storage.generate_asset_object_name(
+        plugin_id='test_plugin', plugin_version='latest', asset_type=AssetType.ICON
+    )
+    assert computed_asset_object_name == 'assets/test_plugin/latest/ICON.jpeg'

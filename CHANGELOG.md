@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.1.2...main)
 
+### Changed
+
+- Removed `plugin_version` from `get_icon_url()` and storing under 'latest' instead ([#155](https://gitlab.heigit.org/climate-action/climatoology/-/issues/155))
+
 ## [6.1.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.2) - 2025-02-06
 
 ### Fixed
