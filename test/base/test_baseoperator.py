@@ -1,7 +1,7 @@
 import re
 import uuid
 from typing import List
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import shapely
@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from semver import Version
 from shapely import get_srid
 
-from climatoology.base.artifact import _Artifact
+from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.base.computation import ComputationScope, ComputationResources
 from climatoology.base.info import _Info
@@ -22,25 +22,6 @@ def test_default_aoi_init(default_aoi_geom_shapely):
 
 def test_default_aoi_properties_init(default_aoi_properties):
     assert isinstance(default_aoi_properties, AoiProperties)
-
-
-def test_operator_typing(
-    default_operator, default_computation_resources, default_aoi_geom_shapely, default_aoi_properties
-):
-    default_operator.compute_unsafe(
-        resources=default_computation_resources,
-        aoi=default_aoi_geom_shapely,
-        aoi_properties=default_aoi_properties,
-        params={'id': 1234, 'name': 'test'},
-    )
-
-    with pytest.raises(InputValidationError):
-        default_operator.compute_unsafe(
-            resources=default_computation_resources,
-            aoi=default_aoi_geom_shapely,
-            aoi_properties=default_aoi_properties,
-            params={'id': 'ID:1234', 'name': 'test'},
-        )
 
 
 def test_operator_scope():
@@ -133,13 +114,57 @@ def test_operator_startup_checks_for_aoi_fields(default_info):
         TestOperator()
 
 
-def test_operator_compute_missing_input_validation(
-    default_operator, default_computation_resources, default_aoi_geom_shapely, default_aoi_properties
-):
+def test_operator_validate_params(default_operator):
+    # Valid
+    default_operator.validate_params(params={'id': 1234, 'name': 'test'})
+
+    # Invalid
     with pytest.raises(InputValidationError, match='The given user input is invalid'):
+        default_operator.validate_params(params={'id': 'ID:1234', 'name': 'test'})
+
+    # Missing
+    with pytest.raises(InputValidationError, match='The given user input is invalid'):
+        default_operator.validate_params(params={})
+
+
+def test_operator_compute_unsafe_must_return_results(
+    default_operator, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
+):
+    compute_mock = Mock(return_value=[])
+    default_operator.compute = compute_mock
+
+    with pytest.raises(AssertionError, match='The computation returned no results.'):
         default_operator.compute_unsafe(
-            resources=default_computation_resources,
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params={},
+            params=dict(),
+            resources=default_computation_resources,
+        )
+
+
+def test_operator_compute_unsafe_results_no_computation_info(
+    general_uuid,
+    default_operator,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+    default_computation_resources,
+    default_info,
+):
+    computation_info_artifact = _Artifact(
+        name='Computation Info',
+        modality=ArtifactModality.COMPUTATION_INFO,
+        file_path='metadata.json',
+        summary='Computation information of correlation_uuid {general_uuid}',
+        correlation_uuid=general_uuid,
+    )
+
+    compute_mock = Mock(return_value=[computation_info_artifact])
+    default_operator.compute = compute_mock
+
+    with pytest.raises(AssertionError, match='Computation-info files are not allowed as plugin result'):
+        default_operator.compute_unsafe(
+            aoi=default_aoi_geom_shapely,
+            aoi_properties=default_aoi_properties,
+            params={'id': 1},
+            resources=default_computation_resources,
         )
