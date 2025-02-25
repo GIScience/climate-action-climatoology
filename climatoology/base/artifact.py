@@ -14,7 +14,7 @@ from PIL.Image import Image
 from affine import Affine
 from geopandas import GeoSeries, GeoDataFrame
 from numpy.typing import ArrayLike
-from pandas import DataFrame
+from pandas import DataFrame, MultiIndex
 from pydantic import (
     BaseModel,
     Field,
@@ -484,12 +484,17 @@ def create_geojson_artifact(
 
     assert len(label) == features.size, 'The number of labels does not match the number of features.'
 
-    gdf = GeoDataFrame({'color': color, 'label': label}, geometry=features.reset_index(drop=True))
+    if isinstance(features.index, MultiIndex):
+        # Format the index the same way a tuple index would be rendered in `to_file()`
+        features.index = "('" + features.index.map("', '".join) + "')"
+
+    gdf = GeoDataFrame({'color': color, 'label': label}, index=features.index, geometry=features)
     gdf = gdf.to_crs(4326)
     gdf.geometry = shapely.set_precision(gdf.geometry, grid_size=0.0000001)
 
     gdf.to_file(
         file_path.absolute().as_posix(),
+        index=True,
         driver='GeoJSON',
         engine='pyogrio',
         layer_options={'SIGNIFICANT_FIGURES': 7, 'RFC7946': 'YES', 'WRITE_NAME': 'NO'},
