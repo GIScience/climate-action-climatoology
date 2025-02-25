@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 import climatoology
-from climatoology.base.artifact import _Artifact
+from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
 from climatoology.utility.exception import InputValidationError
@@ -91,29 +91,41 @@ class BaseOperator(ABC, Generic[T_co]):
         pass
 
     @final
+    def validate_params(self, params: Dict) -> T_co:
+        """
+        Translate the incoming parameters to the declared pydantic model and validate them.
+
+        :param params: computation configuration parameters
+        :return: the validated parameters
+        """
+        log.debug('Validating input parameters')
+        try:
+            return self._model.model_validate(params)
+        except Exception as e:
+            raise InputValidationError('The given user input is invalid') from e
+
+    @final
     def compute_unsafe(
-        self, resources: ComputationResources, aoi: shapely.MultiPolygon, aoi_properties: AoiProperties, params: Dict
+        self, resources: ComputationResources, aoi: shapely.MultiPolygon, aoi_properties: AoiProperties, params: T_co
     ) -> List[_Artifact]:
         """
-        Translated the incoming parameters to a declared pydantic model,
-        validates input and runs the compute procedure.
+        Runs the compute procedure, checks and filters the returned artifacts.
 
         :param resources: computation ephemeral resources
         :param aoi: Area of interest for the computation
         :param aoi_properties: Properties of the area of interest for the computation
         :param params: computation configuration parameters
-        :return:
+        :return: a list of artifacts
         """
-        try:
-            validate_params = self._model.model_validate(params)
-        except Exception as e:
-            raise InputValidationError('The given user input is invalid') from e
-        logging.debug(f'Compute parameters of correlation_uuid {resources.correlation_uuid} validated')
-
-        artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=validate_params)
+        logging.debug(f'Beginning computation for correlation_uuid {resources.correlation_uuid}')
+        artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params)
 
         artifacts = list(filter(None, artifacts))
         assert len(artifacts) > 0, 'The computation returned no results.'
+        for artifact in artifacts:
+            assert (
+                artifact.modality != ArtifactModality.COMPUTATION_INFO
+            ), 'Computation-info files are not allowed as plugin result'
 
         return artifacts
 

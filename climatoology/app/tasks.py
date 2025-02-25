@@ -82,17 +82,13 @@ class CAPlatformComputeTask(Task):
         try:
             log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
 
-            log.debug(f'Computing with parameters {params}')
+            validated_params = self.operator.validate_params(params)
+            log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
 
             with ComputationScope(correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(
-                    resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=params
+                    resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
                 )
-
-                for artifact in artifacts:
-                    assert (
-                        artifact.modality != ArtifactModality.COMPUTATION_INFO
-                    ), 'Computation-info files are not allowed as plugin result'
 
                 plugin_artifacts = [
                     _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
@@ -103,7 +99,7 @@ class CAPlatformComputeTask(Task):
                 computation_info = ComputationInfo(
                     correlation_uuid=correlation_uuid,
                     timestamp=datetime.datetime.now(datetime.timezone.utc),
-                    params=params,
+                    params=validated_params.model_dump(),
                     aoi=aoi,
                     artifacts=plugin_artifacts,
                     plugin_info=PluginBaseInfo(

@@ -6,10 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.1.2...main)
-
 ### Changed
 
 - Removed `plugin_version` from `get_icon_url()` and storing under 'latest' instead ([#155](https://gitlab.heigit.org/climate-action/climatoology/-/issues/155))
+- Validate input parameters in a standalone function and save full set of parameters in computation info ([#141](https://gitlab.heigit.org/climate-action/climatoology/-/issues/141))
 
 ### Fixed
 

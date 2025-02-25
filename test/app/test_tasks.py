@@ -1,20 +1,13 @@
 import datetime
 import tempfile
 from pathlib import Path
-from typing import List
 from unittest.mock import patch, Mock, ANY
 
-from pydantic import BaseModel
-import pytest
-import shapely
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformInfoTask, ComputationInfo, CAPlatformComputeTask, PluginBaseInfo
 from climatoology.base.artifact import _Artifact, ArtifactModality
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
-from climatoology.base.computation import ComputationResources
 from climatoology.base.event import ComputeCommandStatus
-from climatoology.base.info import _Info
 
 
 def test_computation_task_init(default_computation_task):
@@ -37,35 +30,6 @@ def test_computation_task_run(
     assert computed_result == expected_result
 
 
-def test_computation_task_run_must_return_results(
-    default_info, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
-):
-    class TestModel(BaseModel):
-        pass
-
-    class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
-
-        def compute(
-            self,
-            resources: ComputationResources,
-            aoi: shapely.MultiPolygon,
-            aoi_properties: AoiProperties,
-            params: TestModel,
-        ) -> List[_Artifact]:
-            return []
-
-    with pytest.raises(AssertionError, match='The computation returned no results.'):
-        operator = TestOperator()
-        operator.compute_unsafe(
-            aoi=default_aoi_geom_shapely,
-            aoi_properties=default_aoi_properties,
-            params=dict(),
-            resources=default_computation_resources,
-        )
-
-
 def test_computation_task_run_forward_input(
     default_computation_task,
     default_artifact,
@@ -78,6 +42,7 @@ def test_computation_task_run_forward_input(
     default_computation_task.operator.compute_unsafe = compute_unsafe_mock
 
     method_input_params = {'id': 1, 'name': 'test'}
+    method_input_params_obj = default_computation_task.operator._model(**method_input_params)
 
     with patch('uuid.uuid4', return_value=general_uuid):
         computed_result = default_computation_task.run(
@@ -88,13 +53,37 @@ def test_computation_task_run_forward_input(
     expected_result = [default_artifact.model_dump(mode='json')]
 
     compute_unsafe_mock.assert_called_once_with(
-        resources=ANY, aoi=default_aoi_geom_shapely, aoi_properties=default_aoi_properties, params=method_input_params
+        resources=ANY,
+        aoi=default_aoi_geom_shapely,
+        aoi_properties=default_aoi_properties,
+        params=method_input_params_obj,
     )
     assert get_srid(compute_unsafe_mock.mock_calls[0].kwargs.get('aoi')) == 4326
     assert computed_result == expected_result
 
 
-def test_computation_task_run_saves_metadata(
+def test_computation_task_run_input_validated(
+    default_computation_task, default_aoi_feature_pure_dict, default_aoi_geom_shapely, default_aoi_properties
+):
+    compute_unsafe_mock = Mock(side_effect=default_computation_task.operator.compute_unsafe)
+    default_computation_task.operator.compute_unsafe = compute_unsafe_mock
+
+    method_input_params = {'id': 99}
+
+    default_computation_task.run(
+        aoi=default_aoi_feature_pure_dict,
+        params=method_input_params,
+    )
+
+    compute_unsafe_mock.assert_called_once_with(
+        resources=ANY,
+        aoi=default_aoi_geom_shapely,
+        aoi_properties=default_aoi_properties,
+        params=default_computation_task.operator._model(id=99, name='John Doe'),
+    )
+
+
+def test_computation_task_run_saves_metadata_with_full_params(
     default_computation_task,
     general_uuid,
     default_aoi_feature_geojson_pydantic,
@@ -104,7 +93,7 @@ def test_computation_task_run_saves_metadata(
     expected_computation_info = ComputationInfo(
         correlation_uuid=general_uuid,
         timestamp=datetime.datetime(day=1, month=1, year=2021),
-        params={'id': 1, 'name': 'test'},
+        params={'id': 1, 'name': 'John Doe'},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='3.1.0'),
@@ -114,7 +103,7 @@ def test_computation_task_run_saves_metadata(
     save_metadata_mock = Mock(side_effect=default_computation_task._save_computation_info)
     default_computation_task._save_computation_info = save_metadata_mock
 
-    method_input_params = {'id': 1, 'name': 'test'}
+    method_input_params = {'id': 1}
 
     with (
         patch('uuid.uuid4', return_value=general_uuid),
