@@ -241,8 +241,10 @@ class MinioStorage(Storage):
         object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
         return self._get_object_url(object_name=object_name, expires=expires)
 
-    def get_icon_url(self, plugin_id: str, plugin_version: str) -> Optional[str]:
-        object_name = Storage.generate_asset_object_name(plugin_id, plugin_version, AssetType.ICON)
+    def get_icon_url(self, plugin_id: str) -> Optional[str]:
+        object_name = Storage.generate_asset_object_name(
+            plugin_id=plugin_id, plugin_version='latest', asset_type=AssetType.ICON
+        )
         return self._get_object_url(object_name=object_name, expires=timedelta(days=7))
 
     def _get_object_url(self, object_name: str, expires: timedelta) -> Optional[str]:
@@ -258,17 +260,17 @@ class MinioStorage(Storage):
             raise e
         return url
 
-    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:
-        icon_filename = self._synch_icon(
-            icon_path=assets.icon, plugin_id=plugin_id, plugin_version=plugin_version, overwrite=overwrite
-        )
+    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:  # noqa F481
+        icon_filename = self._synch_icon(icon_path=assets.icon, plugin_id=plugin_id, overwrite=overwrite)
 
         new_assets = Assets(icon=icon_filename)
 
         return new_assets
 
-    def _synch_icon(self, icon_path: str, plugin_id: str, plugin_version: str, overwrite: bool) -> str:
-        object_name = Storage.generate_asset_object_name(plugin_id, plugin_version, AssetType.ICON)
+    def _synch_icon(self, icon_path: str, plugin_id: str, overwrite: bool) -> str:
+        object_name = Storage.generate_asset_object_name(
+            plugin_id=plugin_id, plugin_version='latest', asset_type=AssetType.ICON
+        )
         if not overwrite:
             try:
                 self.client.stat_object(bucket_name=self.__bucket, object_name=object_name)
