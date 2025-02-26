@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 from semver import Version
 
-from climatoology.base.info import PluginAuthor, Concern, generate_plugin_info
+from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info
 
 
 def test_operator_info(default_info):
@@ -41,6 +41,12 @@ def test_info_name():
 
 def test_info_serialisable(default_info):
     assert default_info.model_dump(mode='json')
+
+
+def test_info_deserialisable(default_info_final):
+    serialised_info = default_info_final.model_dump(mode='json')
+    info = _Info(**serialised_info)
+    assert info == default_info_final
 
 
 def test_sources_are_optional(default_info):
