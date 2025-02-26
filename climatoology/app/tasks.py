@@ -76,6 +76,8 @@ class CAPlatformComputeTask(Task):
 
         aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
 
+        # through difficult typing above we know its a MultiPolygon but the type checker cannot know
+        # noinspection PyTypeChecker
         aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
         aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
 

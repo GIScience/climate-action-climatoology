@@ -10,7 +10,7 @@ import responses
 import shapely
 from celery import Celery
 from celery.utils.threads import LocalStack
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 from semver import Version
 from shapely import set_srid
 
@@ -51,6 +51,8 @@ def set_basic_envs(monkeypatch):
 
 @pytest.fixture
 def default_settings(set_basic_envs) -> CABaseSettings:
+    # the base settings are read from the env vars that are provided to this fixture
+    # noinspection PyArgumentList
     return CABaseSettings()
 
 
@@ -68,7 +70,7 @@ def default_info() -> _Info:
             PluginAuthor(
                 name='John Doe',
                 affiliation='HeiGIT gGmbH',
-                website='https://heigit.org/heigit-team/',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
         version=Version.parse('3.1.0'),
@@ -120,14 +122,20 @@ def default_artifact(general_uuid) -> _Artifact:
     )
 
 
+class TestModel(BaseModel):
+    id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
+    name: str = Field(
+        title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
+    )
+
+
+@pytest.fixture
+def default_input_model() -> TestModel:
+    return TestModel(id=1)
+
+
 @pytest.fixture
 def default_operator(default_info, default_artifact) -> BaseOperator:
-    class TestModel(BaseModel):
-        id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
-        name: str = Field(
-            title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
-        )
-
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
             return default_info.model_copy()

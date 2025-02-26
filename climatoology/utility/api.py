@@ -133,7 +133,7 @@ def compute_raster(
 
 
 def adjust_bounds(
-    bboxes: Tuple[float, float, float, float],
+    bbox: Tuple[float, float, float, float],
     max_unit_size: int = 2300,
     resolution: int = 10,
 ) -> list[BBox]:
@@ -152,17 +152,17 @@ def adjust_bounds(
                 yield outer_i
 
     def split(
-        bounds: Tuple[float, float, float, float], max_unit_size: int = 2300, resolution: int = 10
+        bounds: Tuple[float, float, float, float], max_edge_length: int, pixel_edge_length: int
     ) -> list[BBox | Any]:
         """Split bounds into Bboxes with a given maximum unit size."""
-        bbox = BBox(bounds, crs=CRS.WGS84)
-        h, w = bbox_to_dimensions(bbox, resolution=resolution)
-        if h > max_unit_size or w > max_unit_size:
+        bounds = BBox(bounds, crs=CRS.WGS84)
+        h, w = bbox_to_dimensions(bounds, resolution=pixel_edge_length)
+        if h > max_edge_length or w > max_edge_length:
             return [
-                split(b, max_unit_size=max_unit_size, resolution=resolution)
-                for b in BBoxSplitter([bbox], CRS.WGS84, (2, 2)).bbox_list
+                split(b, max_edge_length=max_edge_length, pixel_edge_length=pixel_edge_length)
+                for b in BBoxSplitter([bounds], CRS.WGS84, (2, 2)).bbox_list
             ]
         else:
-            return [bbox]
+            return [bounds]
 
-    return list(flatten(split(bboxes, max_unit_size=max_unit_size, resolution=resolution)))
+    return list(flatten(split(bounds=bbox, max_edge_length=max_unit_size, pixel_edge_length=resolution)))

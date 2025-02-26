@@ -1,5 +1,6 @@
 import re
 import uuid
+from pathlib import Path
 from typing import List
 from unittest.mock import Mock, patch
 
@@ -128,7 +129,11 @@ def test_operator_validate_params(default_operator):
 
 
 def test_operator_compute_unsafe_must_return_results(
-    default_operator, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
+    default_operator,
+    default_input_model,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+    default_computation_resources,
 ):
     compute_mock = Mock(return_value=[])
     default_operator.compute = compute_mock
@@ -137,7 +142,7 @@ def test_operator_compute_unsafe_must_return_results(
         default_operator.compute_unsafe(
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params=dict(),
+            params=default_input_model,
             resources=default_computation_resources,
         )
 
@@ -145,6 +150,7 @@ def test_operator_compute_unsafe_must_return_results(
 def test_operator_compute_unsafe_results_no_computation_info(
     general_uuid,
     default_operator,
+    default_input_model,
     default_aoi_geom_shapely,
     default_aoi_properties,
     default_computation_resources,
@@ -153,7 +159,7 @@ def test_operator_compute_unsafe_results_no_computation_info(
     computation_info_artifact = _Artifact(
         name='Computation Info',
         modality=ArtifactModality.COMPUTATION_INFO,
-        file_path='metadata.json',
+        file_path=Path('metadata.json'),
         summary='Computation information of correlation_uuid {general_uuid}',
         correlation_uuid=general_uuid,
     )
@@ -165,6 +171,6 @@ def test_operator_compute_unsafe_results_no_computation_info(
         default_operator.compute_unsafe(
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params={'id': 1},
+            params=default_input_model,
             resources=default_computation_resources,
         )
