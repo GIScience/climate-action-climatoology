@@ -1,4 +1,3 @@
-from itertools import repeat
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -7,6 +6,7 @@ from datetime import datetime
 from enum import StrEnum
 from functools import partial
 from io import BytesIO
+from itertools import repeat
 from typing import Tuple, List, ContextManager
 
 import geopandas as gpd
@@ -133,6 +133,8 @@ class NaturalnessUtility(PlatformHttpUtility):
                     pbar.update()
                     slices.append(dataset)
 
+        # pd.concat correctly returns a GeoDataFrame but the type checker cannot know
+        # noinspection PyTypeChecker
         result: gpd.GeoDataFrame = pd.concat(slices)
         return result
 
@@ -196,7 +198,10 @@ class NaturalnessUtility(PlatformHttpUtility):
         """Split vectors into separate GeoSeries, such that the total bounds of each GeoSeries is less than max_unit_size"""
         adjusted_vectors = []
         for vector in vectors:
-            bounds = adjust_bounds(tuple(vector.total_bounds), max_unit_size=max_unit_size, resolution=10)
+            # the total bounds are a np.array of length 4 and the tuple command correctly turns it into a tuple
+            # noinspection PyTypeChecker
+            bbox: Tuple[float, float, float, float] = tuple(vector.total_bounds)
+            bounds = adjust_bounds(bbox=bbox, max_unit_size=max_unit_size, resolution=10)
             split_features = [gpd.clip(gdf=vector, mask=b.geometry, keep_geom_type=True) for b in bounds]
             adjusted_vectors.extend([f for f in split_features if not f.empty])
 

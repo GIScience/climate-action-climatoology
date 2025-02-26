@@ -63,7 +63,7 @@ def test_chart_check_length():
         Chart2dData(
             x=[1, 2, 3],
             y=[3, 2, 1],
-            color=['green', 'yellow'],
+            color=[Color('green'), Color('yellow')],
             chart_type=ChartType.SCATTER,
         )
 
@@ -786,10 +786,13 @@ def test_disallow_colormap_for_incompatible_dtype(default_computation_resources)
         )
 
 
-def test_rasterinfo_from_rastario(default_computation_resources, general_uuid):
+def test_rasterinfo_from_rasterio(default_computation_resources, general_uuid):
     with rasterio.open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff') as raster:
+        # the Colormap type is the correct type for rasterio colormaps
+        # noinspection PyTypeChecker
+        colormap: Colormap = raster.colormap(1)
         generated_info = RasterInfo(
-            data=raster.read(), crs=raster.crs, transformation=raster.transform, colormap=raster.colormap(1)
+            data=raster.read(), crs=raster.crs, transformation=raster.transform, colormap=colormap
         )
 
     assert generated_info

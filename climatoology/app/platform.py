@@ -58,6 +58,9 @@ class Platform(ABC):
 class CeleryPlatform(Platform):
     def __init__(self):
         sender_config = SenderSettings()
+
+        # we require the user to set the settings via a .env file or via env variables
+        # noinspection PyArgumentList
         settings = CABaseSettings()
 
         self.celery_app = CeleryPlatform.construct_celery_app(settings, sender_config)

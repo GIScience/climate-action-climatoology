@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import ValidationError, HttpUrl
 from semver import Version
 
 from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info
@@ -57,7 +57,7 @@ def test_sources_are_optional(default_info):
             PluginAuthor(
                 name='John Doe',
                 affiliation='HeiGIT gGmbH',
-                website='https://heigit.org/heigit-team/',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
         version=Version.parse('3.1.0'),

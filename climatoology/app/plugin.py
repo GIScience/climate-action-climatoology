@@ -14,6 +14,8 @@ def start_plugin(operator: BaseOperator) -> Optional[int]:
     :param operator: The Operator that fills the plugin with life
     :return: This method does not return until the plugin is stopped. Then it will return the exit code
     """
+    # we require the user to set the settings via a .env file or via env variables
+    # noinspection PyArgumentList
     settings = CABaseSettings()
     plugin = _create_plugin(operator, settings)
 
