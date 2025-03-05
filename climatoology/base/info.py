@@ -1,3 +1,5 @@
+import json
+import logging
 import re
 from enum import Enum
 from io import BytesIO
@@ -5,12 +7,18 @@ from pathlib import Path
 from typing import Optional, List, Set
 
 import bibtexparser
+import geojson_pydantic
 from PIL import Image
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
 import climatoology
+from climatoology.base import T_co
+
+log = logging.getLogger(__name__)
+
+DEMO_AOI_PATH = Path(__file__).parent.parent / 'resources/Heidelberg_AOI.geojson'
 
 
 class Concern(Enum):
@@ -46,6 +54,34 @@ class Assets(BaseModel):
     """Static data linked to the plugin that should be stored in the object store."""
 
     icon: str = Field(description='The icon asset', examples=['icon.jpeg'])
+
+
+class DemoConfig(BaseModel):
+    """Configuration to run a demonstration of a plugin."""
+
+    aoi: geojson_pydantic.MultiPolygon = Field(
+        description='The the area of interest the demo will be run in.',
+        examples=[
+            geojson_pydantic.MultiPolygon(
+                **{
+                    'type': 'MultiPolygon',
+                    'coordinates': [
+                        [
+                            [
+                                [0.0, 0.0],
+                                [0.0, 1.0],
+                                [1.0, 1.0],
+                                [0.0, 0.0],
+                            ]
+                        ]
+                    ],
+                }
+            )
+        ],
+        default=geojson_pydantic.MultiPolygon(**json.loads(DEMO_AOI_PATH.read_text())),
+        validate_default=True,
+    )
+    params: dict = Field(description='The input parameters used for the demo.')
 
 
 class _Info(BaseModel, extra='forbid'):
@@ -87,6 +123,9 @@ class _Info(BaseModel, extra='forbid'):
             ]
         ],
         default=None,
+    )
+    demo_config: Optional[DemoConfig] = Field(
+        description='Configuration to run a demonstration of a plugin.', default=None
     )
     assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.jpeg')])
     plugin_id: Optional[str] = Field(
@@ -152,6 +191,7 @@ def _convert_bib(sources: Path = None) -> Optional[JsonSchemaValue]:
 
 
 def generate_plugin_info(
+    *,
     name: str,
     authors: List[PluginAuthor],
     icon: Path,
@@ -159,6 +199,8 @@ def generate_plugin_info(
     concerns: Set[Concern],
     purpose: Path,
     methodology: Path,
+    demo_input_parameters: T_co = None,
+    demo_aoi: Path = None,
     sources: Path = None,
 ) -> _Info:
     """Generate a plugin info object.
@@ -175,11 +217,30 @@ def generate_plugin_info(
       [markdown](https://www.markdownguide.org/) formatting.
     :param methodology: How does this plugin achieve its goal? Provide a text file that can have
       [markdown](https://www.markdownguide.org/) formatting.
+    :param demo_input_parameters: An instance of the input parameters for the demo computation. It is currently
+      optional, but if not provided, users will be unable to view a demo and therefore will have to log in to the
+      platform to try the plugin. It will be required in a future release.
+    :param demo_aoi: A path to the file containing the geojson geometry for the area of interest for the demo
+      computation. It could be an administrative boundary or an arbitrary geometry. The default is the municipality of
+      Heidelberg, but make sure to provide another region if this is not suitable for your plugin. The computation will
+      only be done once (and then cached) so the size of the area may not be the biggest concern as long as it can be
+      computed within ~30min.
     :param sources: A list of sources that were used in the process or are related. Self-citations are welcome and
       even preferred! Provide a [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
       file. You can extract such a file from most common bibliography management systems.
     :return: An _Info object that can be used to announce the plugin on the platform.
     """
+    if demo_input_parameters is None:
+        log.warning(
+            'This plugin will not have the option to compute a Demo. The demo_input_parameters will become '
+            'mandatory in a future release!'
+        )
+        demo_config = None
+    else:
+        demo_aoi_path = demo_aoi or DEMO_AOI_PATH
+        demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(demo_aoi_path.read_text()))
+        demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())
+
     assets = Assets(icon=str(icon))
     return _Info(
         name=name,
@@ -190,4 +251,5 @@ def generate_plugin_info(
         methodology=methodology.read_text(),
         sources=_convert_bib(sources),
         assets=assets,
+        demo_config=demo_config,
     )

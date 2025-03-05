@@ -65,7 +65,6 @@ def general_uuid() -> uuid.UUID:
 def default_info() -> _Info:
     info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent / 'resources/test_icon.jpeg',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -73,11 +72,14 @@ def default_info() -> _Info:
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
+        icon=Path(__file__).parent / 'resources/test_icon.jpeg',
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         purpose=Path(__file__).parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent / 'resources/test_methodology.md',
         sources=Path(__file__).parent / 'resources/test.bib',
+        demo_input_parameters=TestModel(id=1),
+        demo_aoi=Path(__file__).parent / 'resources/test_aoi.geojson',
     )
     return info
 

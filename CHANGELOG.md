@@ -24,6 +24,12 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - Include ID field in geojson artifacts ([#140](https://gitlab.heigit.org/climate-action/climatoology/-/issues/140))
 
+### Added
+
+- The info creation method now has two additional inputs to specify the demo parameters and demo AOI. This enables the
+  platform to provide an indefinitely cached demo computation that can be provided for a quick demonstration of the
+  plugins' capabilities ([#29](https://gitlab.heigit.org/climate-action/climatoology/-/issues/29)).
+
 ## [6.1.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.2) - 2025-02-06
 
 ### Fixed

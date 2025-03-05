@@ -9,14 +9,13 @@ from pydantic import BaseModel
 from pydantic import Field
 
 import climatoology
+from climatoology.base import T_co
 from climatoology.base.artifact import _Artifact, ArtifactModality
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
 from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)
-
-T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
 
 
 class AoiProperties(BaseModel):
