@@ -6,10 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.1.2...main)
+
 ### Changed
 
-- Removed `plugin_version` from `get_icon_url()` and storing under 'latest' instead ([#155](https://gitlab.heigit.org/climate-action/climatoology/-/issues/155))
-- Validate input parameters in a standalone function and save full set of parameters in computation info ([#141](https://gitlab.heigit.org/climate-action/climatoology/-/issues/141))
+- Removed `plugin_version` from `get_icon_url()` and storing under 'latest'
+  instead ([#155](https://gitlab.heigit.org/climate-action/climatoology/-/issues/155))
+- Validate input parameters in a standalone function and save full set of parameters in computation
+  info ([#141](https://gitlab.heigit.org/climate-action/climatoology/-/issues/141))
+
+### Added
+
+- A new artifact creation method for charts that accepts plotly figures as input and stores them into a json file that
+  can be read by the front-end to be
+  rendered ([#124](https://gitlab.heigit.org/climate-action/climatoology/-/issues/124))
 
 ### Fixed
 
@@ -19,7 +28,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fixed
 
-- Removed the trailing slash in the naturalness utility URLS ([#151](https://gitlab.heigit.org/climate-action/climatoology/-/issues/151))
+- Removed the trailing slash in the naturalness utility
+  URLS ([#151](https://gitlab.heigit.org/climate-action/climatoology/-/issues/151))
 
 ## [6.1.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.1) - 2025-02-06
 
@@ -27,8 +37,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - Reduce the max raster size for the naturalness utility to handle SentinelHub errors
 - Batch the inputs properly in Naturalness compute_vector in case multiple API requests are required
-- Set the return index dtype from Naturalness compute_vector to match the input index dtype (Closes [#145](https://gitlab.heigit.org/climate-action/climatoology/-/issues/145))
-
+- Set the return index dtype from Naturalness compute_vector to match the input index dtype (
+  Closes [#145](https://gitlab.heigit.org/climate-action/climatoology/-/issues/145))
 
 ## [6.1.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.0) - 2025-01-29
 
