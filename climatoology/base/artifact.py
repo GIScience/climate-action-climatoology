@@ -8,6 +8,8 @@ from typing import Optional, Union, List, Dict, Any, Tuple, NewType, Set
 from uuid import UUID
 
 import numpy as np
+import plotly
+import plotly.io as pio
 import rasterio
 import shapely
 from PIL.Image import Image
@@ -15,6 +17,7 @@ from affine import Affine
 from geopandas import GeoSeries, GeoDataFrame
 from numpy.typing import ArrayLike
 from pandas import DataFrame, MultiIndex
+from plotly.graph_objs import Figure
 from pydantic import (
     BaseModel,
     Field,
@@ -28,10 +31,13 @@ from pydantic import (
 )
 from pydantic_extra_types.color import Color
 from rasterio import CRS
+from typing_extensions import deprecated
 
 from climatoology.base.computation import ComputationResources
 
 log = logging.getLogger(__name__)
+
+pio.templates.default = 'plotly_white'
 
 Colormap = NewType(
     'colormap_type',
@@ -124,6 +130,7 @@ class ArtifactModality(Enum):
     TABLE = 'TABLE'
     IMAGE = 'IMAGE'
     CHART = 'CHART'
+    CHART_PLOTLY = 'CHART_PLOTLY'
     MAP_LAYER_GEOJSON = 'MAP_LAYER_GEOJSON'
     MAP_LAYER_GEOTIFF = 'MAP_LAYER_GEOTIFF'
     COMPUTATION_INFO = 'COMPUTATION_INFO'
@@ -395,6 +402,9 @@ def create_image_artifact(
     return result
 
 
+@deprecated(
+    'This function is deprecated and will be removed in the next major release. Use the plotly equivalent instead.'
+)
 def create_chart_artifact(
     data: Chart2dData,
     title: str,
@@ -429,6 +439,50 @@ def create_chart_artifact(
     result = _Artifact(
         name=title,
         modality=ArtifactModality.CHART,
+        file_path=file_path,
+        summary=caption,
+        description=description,
+        tags=tags,
+        primary=primary,
+    )
+    log.debug(f'Returning Artifact: {result.model_dump()}.')
+
+    return result
+
+
+def create_plotly_chart_artifact(
+    figure: Figure,
+    title: str,
+    caption: str,
+    resources: ComputationResources,
+    primary: bool = True,
+    description: str = None,
+    tags: Set[StrEnum] = (),
+    filename: str = uuid.uuid4(),
+) -> _Artifact:
+    """Create a chart artifact using the plotly library.
+
+    This will create a JSON file holding all information required to plot the defined chart.
+
+    :param figure: Plotly figure object.
+    :param title: Title for the resulting artifact.
+    :param caption: Caption for the resulting plot that describes the content.
+    :param description: A longer description of the chart content.
+    :param tags: Association tags this artifact belongs to.
+    :param resources: The computation resources of the plugin.
+    :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
+    :param filename: A filename for the created file (without extension!).
+    :return: The artifact that contains a path-pointer to the created file.
+    """
+    file_path = resources.computation_dir / f'{filename}.json'
+    log.debug(f'Writing chart {file_path}')
+
+    with open(file_path, 'x') as out_file:
+        plotly.io.write_json(figure, out_file)
+
+    result = _Artifact(
+        name=title,
+        modality=ArtifactModality.CHART_PLOTLY,
         file_path=file_path,
         summary=caption,
         description=description,

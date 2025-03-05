@@ -5,6 +5,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import plotly
+import plotly.express as px
 import pytest
 import rasterio
 from PIL import Image
@@ -33,6 +35,7 @@ from climatoology.base.artifact import (
     AttachmentType,
     Legend,
     Colormap,
+    create_plotly_chart_artifact,
 )
 
 
@@ -230,7 +233,37 @@ def test_create_chart_artifact(
     assert generated_content == expected_content
 
 
-EXPECTED_GEOJSON = """{
+def test_create_plotly_chart_artifact(
+    default_computation_resources,
+    general_uuid,
+    default_association_tags,
+):
+    expected_artifact = _Artifact(
+        name='Test Plotly Chart',
+        modality=ArtifactModality.CHART_PLOTLY,
+        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+        summary='Chart caption',
+        tags=default_association_tags,
+    )
+    method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+
+    generated_artifact = create_plotly_chart_artifact(
+        figure=method_input,
+        title='Test Plotly Chart',
+        caption='Chart caption',
+        resources=default_computation_resources,
+        filename=str(general_uuid),
+        tags=default_association_tags,
+    )
+
+    assert generated_artifact == expected_artifact
+
+    generated_chart = plotly.io.read_json(generated_artifact.file_path)
+    assert generated_chart == method_input
+
+
+def test_create_geojson_artifact(default_computation_resources, general_uuid, default_association_tags):
+    expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
 { "type": "Feature", "properties": { "index": 0, "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
@@ -239,9 +272,6 @@ EXPECTED_GEOJSON = """{
 ]
 }
 """
-
-
-def test_create_geojson_artifact(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='Test Vector',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
@@ -280,7 +310,7 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid, de
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
 
-        assert generated_content == EXPECTED_GEOJSON
+        assert generated_content == expected_geojson
 
 
 def test_create_geojson_artifact_continuous_legend(default_computation_resources, general_uuid):
