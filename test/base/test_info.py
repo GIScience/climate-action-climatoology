@@ -4,7 +4,8 @@ import pytest
 from pydantic import ValidationError, HttpUrl
 from semver import Version
 
-from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info
+from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info, DemoConfig
+from test.conftest import TestModel
 
 
 def test_operator_info(default_info):
@@ -17,8 +18,8 @@ def test_info_name():
     with pytest.raises(ValidationError, match=r'Special characters and numbers are not allowed in the name.'):
         generate_plugin_info(
             name='Test Plugin With $pecial Charact3ers',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
             authors=[PluginAuthor(name='John Doe')],
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
             version=Version.parse('3.1.0'),
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
@@ -28,8 +29,8 @@ def test_info_name():
 
     info = generate_plugin_info(
         name='Test-Plugin with spaces',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
         authors=[PluginAuthor(name='John Doe')],
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
@@ -49,7 +50,7 @@ def test_info_deserialisable(default_info_final):
     assert info == default_info_final
 
 
-def test_sources_are_optional(default_info):
+def test_sources_are_optional():
     assert generate_plugin_info(
         name='Test Plugin',
         icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
@@ -64,4 +65,67 @@ def test_sources_are_optional(default_info):
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        demo_input_parameters=TestModel(id=1),
     )
+
+
+def test_provide_demo_params_and_aoi(default_aoi_feature_geojson_pydantic):
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        demo_input_parameters=TestModel(id=1),
+        demo_aoi=Path(__file__).parent.parent / 'resources/test_aoi.geojson',
+    )
+    assert computed_info.demo_config == DemoConfig(
+        params={'id': 1, 'name': 'John Doe'}, aoi=default_aoi_feature_geojson_pydantic.geometry
+    )
+
+
+def test_provide_demo_params_and_no_aoi():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        demo_input_parameters=TestModel(id=1),
+    )
+    assert isinstance(computed_info.demo_config, DemoConfig)
+
+
+def test_provide_no_demo_params_or_aoi():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+    )
+    assert computed_info.demo_config is None
