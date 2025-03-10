@@ -23,6 +23,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Fixed
 
 - Include ID field in geojson artifacts ([#140](https://gitlab.heigit.org/climate-action/climatoology/-/issues/140))
+- GeoTiffs are now created with overviews ([#129](https://gitlab.heigit.org/climate-action/climatoology/-/issues/129))
 
 ### Added
 

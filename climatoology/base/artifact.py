@@ -31,6 +31,8 @@ from pydantic import (
 )
 from pydantic_extra_types.color import Color
 from rasterio import CRS
+from rasterio.enums import OverviewResampling
+from rasterio.rio.overview import get_maximum_overview_level
 from typing_extensions import deprecated
 
 from climatoology.base.computation import ComputationResources
@@ -636,6 +638,8 @@ def create_geotiff_artifact(
     file_path = resources.computation_dir / f'{filename}.tiff'
     log.debug(f'Writing raster dataset {file_path}.')
 
+    resampling = 'nearest'
+
     data_array = np.ma.masked_array(raster_info.data)
 
     assert np.issubdtype(data_array.dtype, np.number), 'Array must be numeric'
@@ -668,6 +672,12 @@ def create_geotiff_artifact(
 
     with rasterio.open(file_path, mode='w', **profile) as out_map_file:
         out_map_file.write(data_array, indexes=indexes)
+
+        max_overview_level = get_maximum_overview_level(width, height)
+        overview_levels = [2**j for j in range(1, max_overview_level + 1)]
+        out_map_file.build_overviews(overview_levels, OverviewResampling[resampling])
+        out_map_file.update_tags(ns='rio_overview', resampling=resampling)
+
         if raster_info.colormap:
             assert data_array.dtype in (np.uint8, np.uint16), f'Colormaps are not allowed for dtype {data_array.dtype}.'
             out_map_file.write_colormap(1, raster_info.colormap)
