@@ -792,6 +792,88 @@ def test_geotiff_creation_option_warnings(default_computation_resources, general
     assert caplog.messages == []
 
 
+def test_small_geotiff_created_without_overviews(default_computation_resources, general_uuid):
+    method_input = RasterInfo(
+        data=np.ones(shape=(10, 10), dtype=np.uint8),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=str(general_uuid),
+    )
+
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert generated_content.overviews(1) == []
+
+
+def test_geotiff_created_with_overviews(default_computation_resources, general_uuid):
+    method_input = RasterInfo(
+        data=np.ones(shape=(1000, 1000), dtype=np.uint8),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap=Colormap({1: (0, 255, 0)}),
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=str(general_uuid),
+    )
+
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert generated_content.overviews(1) == [2, 4]
+
+
+def test_geotiff_tiled(default_computation_resources, general_uuid):
+    method_input = RasterInfo(
+        data=np.ones(shape=(1000, 1000), dtype=np.uint8),
+        crs=CRS({'init': 'epsg:4326'}),
+        transformation=Affine.from_gdal(
+            c=8.7,
+            a=0.1,
+            b=0.0,
+            f=49.4,
+            d=0.0,
+            e=0.1,
+        ),
+        colormap=Colormap({1: (0, 255, 0)}),
+    )
+
+    generated_artifact = create_geotiff_artifact(
+        method_input,
+        layer_name='Test Raster',
+        caption='Raster caption',
+        resources=default_computation_resources,
+        filename=str(general_uuid),
+    )
+
+    with rasterio.open(generated_artifact.file_path) as generated_content:
+        assert generated_content.profile['tiled']
+        assert generated_content.profile['blockxsize'] == 512
+        assert generated_content.profile['blockysize'] == 512
+
+
 def test_disallow_colormap_for_incompatible_dtype(default_computation_resources):
     method_input = RasterInfo(
         data=np.ones(shape=(4, 5), dtype=float),
