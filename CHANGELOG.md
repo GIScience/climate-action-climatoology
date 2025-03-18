@@ -14,12 +14,6 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - Validate input parameters in a standalone function and save full set of parameters in computation
   info ([#141](https://gitlab.heigit.org/climate-action/climatoology/-/issues/141))
 
-### Added
-
-- A new artifact creation method for charts that accepts plotly figures as input and stores them into a json file that
-  can be read by the front-end to be
-  rendered ([#124](https://gitlab.heigit.org/climate-action/climatoology/-/issues/124))
-
 ### Fixed
 
 - Include ID field in geojson artifacts ([#140](https://gitlab.heigit.org/climate-action/climatoology/-/issues/140))
@@ -30,6 +24,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - The info creation method now has two additional inputs to specify the demo parameters and demo AOI. This enables the
   platform to provide an indefinitely cached demo computation that can be provided for a quick demonstration of the
   plugins' capabilities ([#29](https://gitlab.heigit.org/climate-action/climatoology/-/issues/29)).
+- A new artifact creation method for charts that accepts plotly figures as input and stores them into a json file that
+  can be read by the front-end to be
+  rendered ([#124](https://gitlab.heigit.org/climate-action/climatoology/-/issues/124))
+- Added `expires` as an input to `get_icon_url()` to make this configurable by the API Gateway
 
 ## [6.1.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.2) - 2025-02-06
 

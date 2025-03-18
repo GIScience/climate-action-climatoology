@@ -132,7 +132,7 @@ def test_get_icon_url(mocked_object_store):
     mocked_object_store['minio_client']().presigned_get_object.assert_called_once_with(
         bucket_name='test_bucket',
         object_name='assets/test_plugin/latest/ICON.jpeg',
-        expires=timedelta(days=7),
+        expires=timedelta(days=1),
     )
 
 

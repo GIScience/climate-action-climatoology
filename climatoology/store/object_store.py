@@ -241,11 +241,11 @@ class MinioStorage(Storage):
         object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
         return self._get_object_url(object_name=object_name, expires=expires)
 
-    def get_icon_url(self, plugin_id: str) -> Optional[str]:
+    def get_icon_url(self, plugin_id: str, expires: timedelta = timedelta(days=1)) -> Optional[str]:
         object_name = Storage.generate_asset_object_name(
             plugin_id=plugin_id, plugin_version='latest', asset_type=AssetType.ICON
         )
-        return self._get_object_url(object_name=object_name, expires=timedelta(days=7))
+        return self._get_object_url(object_name=object_name, expires=expires)
 
     def _get_object_url(self, object_name: str, expires: timedelta) -> Optional[str]:
         try:
