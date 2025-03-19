@@ -1,16 +1,16 @@
 import logging
 import uuid
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from functools import cached_property
-from typing import Optional, List, Generic, TypeVar, Dict, Type, Any, get_origin, get_args, final
+from typing import Any, ContextManager, Dict, Generic, List, Optional, Type, TypeVar, final, get_args, get_origin
 
 import shapely
-from pydantic import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 import climatoology
 from climatoology.base import T_co
-from climatoology.base.artifact import _Artifact, ArtifactModality
+from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
 from climatoology.utility.exception import InputValidationError
@@ -143,3 +143,22 @@ class BaseOperator(ABC, Generic[T_co]):
         :return: list of artifacts (files) produced by the operator
         """
         pass
+
+    @final
+    @staticmethod
+    @contextmanager
+    def catch_exceptions(indicator_name: str, resources: ComputationResources) -> ContextManager[Any]:
+        """Catch any errors in the statements within this context manager, without failing. If the inner code fails,
+        save the `indicator_name` to `resources.artifact_errors`. Use it
+        as `with catch_exceptions('ghg_budget', resources=resources):
+
+        :param indicator_name: the indicator name, used to provide context to the error messages in the front end.
+        :param resources: the `ComputationResources` containing computation-specific attributes.
+        """
+        try:
+            yield
+        except Exception as e:
+            resources.artifact_errors.append(indicator_name)
+            log.error(
+                f'{indicator_name} computation failed for correlation id {resources.correlation_uuid}', exc_info=e
+            )

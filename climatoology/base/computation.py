@@ -1,16 +1,18 @@
 import shutil
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
+from typing import List
 from uuid import UUID
 
+from pydantic import BaseModel
 
-@dataclass
-class ComputationResources:
+
+class ComputationResources(BaseModel):
     """A directory computation resource."""
 
     correlation_uuid: UUID
     computation_dir: Path
+    artifact_errors: List[str] = []
 
 
 class ComputationScope:

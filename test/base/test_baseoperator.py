@@ -1,3 +1,4 @@
+import logging
 import re
 import uuid
 from pathlib import Path
@@ -6,13 +7,13 @@ from unittest.mock import Mock, patch
 
 import pytest
 import shapely
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from semver import Version
 from shapely import get_srid
 
-from climatoology.base.artifact import _Artifact, ArtifactModality
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
-from climatoology.base.computation import ComputationScope, ComputationResources
+from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.baseoperator import AoiProperties, BaseOperator
+from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import _Info
 from climatoology.utility.exception import InputValidationError
 
@@ -174,3 +175,128 @@ def test_operator_compute_unsafe_results_no_computation_info(
             params=default_input_model,
             resources=default_computation_resources,
         )
+
+
+class TestModel(BaseModel):
+    id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
+    name: str = Field(
+        title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
+    )
+
+
+def test_operator_create_artifact_safely_with_only_good_artifact(
+    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties
+):
+    def good_fn():
+        return default_artifact
+
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            artifacts = []
+            with self.catch_exceptions(indicator_name='test_indicator', resources=resources):
+                artifacts.append(good_fn())
+            return artifacts
+
+    operator = TestOperator()
+    resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir='')
+    artifacts = operator.compute_unsafe(
+        resources=resources,
+        aoi=default_aoi_geom_shapely,
+        aoi_properties=default_aoi_properties,
+        params={'id': 1},
+    )
+    assert artifacts == [default_artifact]
+    assert len(resources.artifact_errors) == 0
+
+
+def test_operator_create_artifact_safely_with_only_bad_artifact(
+    default_info,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+):
+    def bad_fn():
+        raise ValueError('Artifact computation failed')
+
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            artifacts = []
+            with self.catch_exceptions(indicator_name='test_indicator', resources=resources):
+                artifacts.append(bad_fn())
+            return artifacts
+
+    operator = TestOperator()
+    resources = ComputationResources(correlation_uuid=str(uuid.uuid4()), computation_dir='')
+
+    with pytest.raises(AssertionError, match='The computation returned no results.'):
+        operator.compute_unsafe(
+            resources=resources,
+            aoi=default_aoi_geom_shapely,
+            aoi_properties=default_aoi_properties,
+            params={'id': 1},
+        )
+
+
+def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
+    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties, caplog
+):
+    def bad_fn():
+        raise ValueError('Test artifact computation failed')
+
+    def good_fn():
+        return default_artifact
+
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            artifacts = []
+
+            with self.catch_exceptions(indicator_name='bad_indicator', resources=resources):
+                artifacts.append(bad_fn())
+
+            with self.catch_exceptions(indicator_name='good_indicator', resources=resources):
+                artifacts.append(good_fn())
+
+            return artifacts
+
+    failed_indicators = ['bad_indicator']
+    log_msg = f'bad_indicator computation failed for correlation id {default_artifact.correlation_uuid}'
+
+    operator = TestOperator()
+    resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir='')
+    with caplog.at_level(logging.ERROR):
+        artifacts = operator.compute_unsafe(
+            resources=resources,
+            aoi=default_aoi_geom_shapely,
+            aoi_properties=default_aoi_properties,
+            params={'id': 1},
+        )
+
+    assert artifacts == [default_artifact]
+    assert resources.artifact_errors == failed_indicators
+    assert log_msg in caplog.messages
