@@ -35,6 +35,7 @@ class ComputationInfo(BaseModel, extra='forbid'):
     plugin_info: PluginBaseInfo
     status: ComputeCommandStatus
     message: Optional[str] = '-'
+    artifact_errors: Optional[List[str]] = []
 
 
 class CAPlatformComputeTask(Task):
@@ -109,6 +110,7 @@ class CAPlatformComputeTask(Task):
                         plugin_version=self.operator.info_enriched.version,
                     ),
                     status=ComputeCommandStatus.COMPLETED,
+                    artifact_errors=resources.artifact_errors,
                 )
                 self._save_computation_info(computation_info=computation_info)
 
