@@ -13,6 +13,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   instead ([#155](https://gitlab.heigit.org/climate-action/climatoology/-/issues/155))
 - Validate input parameters in a standalone function and save full set of parameters in computation
   info ([#141](https://gitlab.heigit.org/climate-action/climatoology/-/issues/141))
+- Customise error messages from input validation and use a custom state with metadata to make the messages available to
+  the gateway ([#128](https://gitlab.heigit.org/climate-action/climatoology/-/issues/128))
 
 ### Fixed
 

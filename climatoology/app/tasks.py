@@ -8,6 +8,7 @@ from uuid import UUID
 import geojson_pydantic
 import shapely
 from celery import Task
+from celery.exceptions import Ignore
 from pydantic import BaseModel
 from shapely import set_srid
 
@@ -74,6 +75,7 @@ class CAPlatformComputeTask(Task):
 
     def run(self, aoi: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
+        log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
 
         aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
 
@@ -83,46 +85,46 @@ class CAPlatformComputeTask(Task):
         aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
 
         try:
-            log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
-
             validated_params = self.operator.validate_params(params)
             log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
+        except InputValidationError as e:
+            log.warning(f'Input validation failed for correlation id {correlation_uuid}', exc_info=e)
+            self.update_state(state=ComputeCommandStatus.FAILED__WRONG_INPUT.name, meta={'message': str(e)})
+            raise Ignore()
 
+        try:
             with ComputationScope(correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(
                     resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
                 )
-
+                artifact_errors = resources.artifact_errors
                 plugin_artifacts = [
                     _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
                     for artifact in artifacts
                 ]
                 self.storage.save_all(plugin_artifacts)
-
-                computation_info = ComputationInfo(
-                    correlation_uuid=correlation_uuid,
-                    timestamp=datetime.datetime.now(datetime.timezone.utc),
-                    params=validated_params.model_dump(),
-                    aoi=aoi,
-                    artifacts=plugin_artifacts,
-                    plugin_info=PluginBaseInfo(
-                        plugin_id=self.operator.info_enriched.plugin_id,
-                        plugin_version=self.operator.info_enriched.version,
-                    ),
-                    status=ComputeCommandStatus.COMPLETED,
-                    artifact_errors=resources.artifact_errors,
-                )
-                self._save_computation_info(computation_info=computation_info)
-
-            log.debug(f'{correlation_uuid} successfully computed')
-            encoded_result = [artifact.model_dump(mode='json') for artifact in plugin_artifacts]
-            return encoded_result
-        except InputValidationError as e:
-            log.warning(f'Input validation failed for correlation id {correlation_uuid}', exc_info=e)
-            raise e
         except Exception as e:
             log.warning(f'Computation failed for correlation id {correlation_uuid}', exc_info=e)
             raise e
+
+        computation_info = ComputationInfo(
+            correlation_uuid=correlation_uuid,
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            params=validated_params.model_dump(),
+            aoi=aoi,
+            artifacts=plugin_artifacts,
+            plugin_info=PluginBaseInfo(
+                plugin_id=self.operator.info_enriched.plugin_id,
+                plugin_version=self.operator.info_enriched.version,
+            ),
+            status=ComputeCommandStatus.COMPLETED,
+            artifact_errors=artifact_errors,
+        )
+        self._save_computation_info(computation_info=computation_info)
+
+        log.debug(f'{correlation_uuid} successfully computed')
+        encoded_result = [artifact.model_dump(mode='json') for artifact in plugin_artifacts]
+        return encoded_result
 
 
 class CAPlatformInfoTask(Task):
