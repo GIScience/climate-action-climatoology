@@ -1,5 +1,6 @@
 from unittest.mock import patch, ANY, Mock
 
+import celery.exceptions
 import pytest
 from celery.result import AsyncResult
 from semver import Version
@@ -112,6 +113,33 @@ def test_send_compute_produces_result(
     default_artifact.store_id = ANY
     artifacts = [_Artifact.model_validate(artifact) for artifact in artifacts]
     assert artifacts == [default_artifact]
+
+
+def test_send_compute_state_reflects_input_validation_error(
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    general_uuid,
+    default_artifact,
+    celery_app,
+):
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 'test_invalid_id', 'name': 'John Doe'},
+        correlation_uuid=general_uuid,
+    )
+
+    assert isinstance(result, AsyncResult)
+
+    with pytest.raises(celery.exceptions.TimeoutError):
+        _ = result.get(timeout=5)
+
+    assert result.state == 'FAILED__WRONG_INPUT'
+    assert result.result == {
+        'message': 'ID: Input should be a valid integer, unable to parse string as an integer. You provided: test_invalid_id.'
+    }
 
 
 def test_send_compute_reaches_worker(

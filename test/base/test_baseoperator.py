@@ -1,13 +1,14 @@
 import logging
 import re
 import uuid
+from datetime import date
 from pathlib import Path
 from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
 import shapely
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from semver import Version
 from shapely import get_srid
 
@@ -16,6 +17,7 @@ from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import _Info
 from climatoology.utility.exception import InputValidationError
+from test.conftest import TestModel
 
 
 def test_default_aoi_init(default_aoi_geom_shapely):
@@ -116,17 +118,70 @@ def test_operator_startup_checks_for_aoi_fields(default_info):
         TestOperator()
 
 
-def test_operator_validate_params(default_operator):
-    # Valid
-    default_operator.validate_params(params={'id': 1234, 'name': 'test'})
+def test_operator_validate_params_valid(default_operator):
+    expected_params = default_operator._model(id=1234, name='test')
+    computed_params = default_operator.validate_params(params={'id': 1234, 'name': 'test'})
+    assert computed_params == expected_params
 
-    # Invalid
-    with pytest.raises(InputValidationError, match='The given user input is invalid'):
-        default_operator.validate_params(params={'id': 'ID:1234', 'name': 'test'})
 
-    # Missing
-    with pytest.raises(InputValidationError, match='The given user input is invalid'):
+def test_operator_validate_params_invalid_exception(default_operator):
+    expected_error = re.escape(
+        'ID: Input should be a valid integer, unable to parse string as an integer. You provided: s1234.'
+    )
+
+    with pytest.raises(InputValidationError, match=expected_error):
+        default_operator.validate_params(params={'id': 's1234', 'name': 'test'})
+
+
+def test_operator_validate_params_invalid_exception_multiple(default_operator):
+    expected_error = re.escape(
+        'ID: Input should be a valid integer, unable to parse string as an integer. You provided: s1234.\n'
+        'Name: Input should be a valid string. You provided: 1.0.'
+    )
+
+    with pytest.raises(InputValidationError, match=expected_error):
+        default_operator.validate_params(params={'id': 's1234', 'name': 1.0})
+
+
+def test_operator_validate_params_missing_exception(default_operator):
+    expected_error = re.escape('ID: Field required. You provided: {}.')
+
+    with pytest.raises(InputValidationError, match=expected_error):
         default_operator.validate_params(params={})
+
+
+def test_operator_validate_params_invalid_custom_validation_exception(default_info, default_artifact):
+    class TestModelValidateParams(BaseModel):
+        first_date: date = Field(title='Period Start')
+        last_date: date = Field(title='Period End')
+
+        @model_validator(mode='after')
+        def check_order(self):
+            if not self.last_date > self.first_date:
+                raise ValueError('Period start must be before period end')
+            return self
+
+    class TestOperatorValidateParams(BaseOperator[TestModelValidateParams]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            return [default_artifact]
+
+    operator = TestOperatorValidateParams()
+    expected_error = re.escape(
+        "Value error, Period start must be before period end. You provided: {'Period Start': "
+        "datetime.date(2017, 2, 15), 'Period End': datetime.date(2017, 1, 15)}."
+    )
+
+    with pytest.raises(InputValidationError, match=expected_error):
+        operator.validate_params(params={'first_date': date(2017, 2, 15), 'last_date': date(2017, 1, 15)})
 
 
 def test_operator_compute_unsafe_must_return_results(
@@ -175,13 +230,6 @@ def test_operator_compute_unsafe_results_no_computation_info(
             params=default_input_model,
             resources=default_computation_resources,
         )
-
-
-class TestModel(BaseModel):
-    id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
-    name: str = Field(
-        title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
-    )
 
 
 def test_operator_create_artifact_safely_with_only_good_artifact(

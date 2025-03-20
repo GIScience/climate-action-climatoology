@@ -6,7 +6,7 @@ from functools import cached_property
 from typing import Any, ContextManager, Dict, Generic, List, Optional, Type, TypeVar, final, get_args, get_origin
 
 import shapely
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ValidationError, Field
 
 import climatoology
 from climatoology.base import T_co
@@ -100,8 +100,8 @@ class BaseOperator(ABC, Generic[T_co]):
         log.debug('Validating input parameters')
         try:
             return self._model.model_validate(params)
-        except Exception as e:
-            raise InputValidationError('The given user input is invalid') from e
+        except ValidationError as e:
+            raise InputValidationError(e, fields=self._model.model_fields)
 
     @final
     def compute_unsafe(
