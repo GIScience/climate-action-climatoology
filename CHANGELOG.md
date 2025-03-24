@@ -32,6 +32,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - A new 'safe' artifact creation context manager which can be used to catch errors safely while generating artifacts,
   capturing the error messages in the computation info and as
   warnings ([#150](https://gitlab.heigit.org/climate-action/climatoology/-/issues/150))
+- A `ClimatoologyUserError` class that plugins can use to relay failure messages to the end
+  user ([#158](https://gitlab.heigit.org/climate-action/climatoology/-/issues/158))
 - Added `expires` as an input to `get_icon_url()` to make this configurable by the API Gateway
 
 ## [6.1.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.2) - 2025-02-06

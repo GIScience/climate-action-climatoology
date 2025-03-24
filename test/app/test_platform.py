@@ -1,13 +1,21 @@
-from unittest.mock import patch, ANY, Mock
+import uuid
+from typing import List
+from unittest.mock import ANY, Mock, patch
 
 import celery.exceptions
 import pytest
+import shapely
 from celery.result import AsyncResult
 from semver import Version
 
 from climatoology.app.platform import CeleryPlatform
+from climatoology.app.plugin import _create_plugin
 from climatoology.base.artifact import _Artifact
-from climatoology.utility.exception import ClimatoologyVersionMismatchException
+from climatoology.base.baseoperator import AoiProperties, BaseOperator
+from climatoology.base.computation import ComputationResources
+from climatoology.base.info import _Info
+from climatoology.utility.exception import ClimatoologyUserError, ClimatoologyVersionMismatchException
+from test.conftest import TestModel
 
 
 def test_platform_has_storage(default_platform_connection):
@@ -115,7 +123,7 @@ def test_send_compute_produces_result(
     assert artifacts == [default_artifact]
 
 
-def test_send_compute_state_reflects_input_validation_error(
+def test_send_compute_state_receives_input_validation_error(
     default_platform_connection,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
@@ -140,6 +148,47 @@ def test_send_compute_state_reflects_input_validation_error(
     assert result.result == {
         'message': 'ID: Input should be a valid integer, unable to parse string as an integer. You provided: test_invalid_id.'
     }
+
+
+def test_send_compute_state_receives_ClimatoologyUserError(
+    default_info,
+    celery_app,
+    celery_worker,
+    default_settings,
+    default_aoi_feature_geojson_pydantic,
+    default_platform_connection,
+):
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            raise ClimatoologyUserError('Error message to store for the user')
+
+    operator = TestOperator()
+    with patch('climatoology.app.plugin.Celery', return_value=celery_app):
+        _ = _create_plugin(operator=operator, settings=default_settings)
+        celery_worker.reload()
+
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1, 'name': 'John Doe'},
+        correlation_uuid=uuid.uuid4(),
+    )
+
+    assert isinstance(result, AsyncResult)
+    with pytest.raises(celery.exceptions.TimeoutError):
+        _ = result.get(timeout=5)
+
+    assert result.state == 'FAILED'
+    assert result.result == {'message': 'Error message to store for the user'}
 
 
 def test_send_compute_reaches_worker(

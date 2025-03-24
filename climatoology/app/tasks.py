@@ -17,7 +17,7 @@ from climatoology.base.baseoperator import BaseOperator, AoiProperties
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputeCommandStatus
 from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
-from climatoology.utility.exception import InputValidationError
+from climatoology.utility.exception import ClimatoologyUserError, InputValidationError
 
 log = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ class CAPlatformComputeTask(Task):
             validated_params = self.operator.validate_params(params)
             log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
         except InputValidationError as e:
-            log.warning(f'Input validation failed for correlation id {correlation_uuid}', exc_info=e)
+            log.error(f'Input validation failed for correlation id {correlation_uuid}', exc_info=e)
             self.update_state(state=ComputeCommandStatus.FAILED__WRONG_INPUT.name, meta={'message': str(e)})
             raise Ignore()
 
@@ -104,8 +104,12 @@ class CAPlatformComputeTask(Task):
                 ]
                 self.storage.save_all(plugin_artifacts)
         except Exception as e:
-            log.warning(f'Computation failed for correlation id {correlation_uuid}', exc_info=e)
-            raise e
+            log.error(f'Computation failed for correlation id {correlation_uuid}', exc_info=e)
+            if isinstance(e, ClimatoologyUserError):
+                self.update_state(state=ComputeCommandStatus.FAILED.name, meta={'message': str(e)})
+                raise Ignore()
+            else:
+                raise e
 
         computation_info = ComputationInfo(
             correlation_uuid=correlation_uuid,

@@ -1,13 +1,17 @@
 import datetime
+import logging
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import ANY, Mock, patch
 
+import pytest
+from celery.exceptions import Ignore
 from shapely import get_srid
 
-from climatoology.app.tasks import CAPlatformInfoTask, ComputationInfo, CAPlatformComputeTask, PluginBaseInfo
-from climatoology.base.artifact import _Artifact, ArtifactModality
+from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask, ComputationInfo, PluginBaseInfo
+from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.event import ComputeCommandStatus
+from climatoology.utility.exception import ClimatoologyUserError
 
 
 def test_computation_task_init(default_computation_task):
@@ -81,6 +85,31 @@ def test_computation_task_run_input_validated(
         aoi_properties=default_aoi_properties,
         params=default_computation_task.operator._model(id=99, name='John Doe'),
     )
+
+
+def test_computation_task_run_raises_ClimatoologyUserError(
+    default_computation_task,
+    default_artifact,
+    general_uuid,
+    default_aoi_feature_pure_dict,
+    caplog,
+):
+    compute_mock = Mock(side_effect=ClimatoologyUserError('Test error'))
+    default_computation_task.operator.compute = compute_mock
+
+    update_state_mock = Mock(return_value=None)
+    default_computation_task.update_state = update_state_mock
+
+    with pytest.raises(Ignore):
+        with caplog.at_level(logging.ERROR):
+            with patch('uuid.uuid4', return_value=general_uuid):
+                default_computation_task.run(
+                    aoi=default_aoi_feature_pure_dict,
+                    params={'id': 1, 'name': 'test'},
+                )
+
+    update_state_mock.assert_called_once_with(state=ComputeCommandStatus.FAILED.name, meta={'message': 'Test error'})
+    assert caplog.messages == [f'Computation failed for correlation id {general_uuid}']
 
 
 def test_computation_task_run_saves_metadata_with_full_params(
