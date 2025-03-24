@@ -1,4 +1,5 @@
 from typing import Any
+
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 
@@ -17,6 +18,12 @@ class InfoNotReceivedException(Exception):
 
 class ClimatoologyVersionMismatchException(Exception):
     """The plugins' library version does not match the required minimum version."""
+
+    pass
+
+
+class ClimatoologyUserError(Exception):
+    """A non-recoverable error from the plugin whose cause should be forwarded to the user."""
 
     pass
 
