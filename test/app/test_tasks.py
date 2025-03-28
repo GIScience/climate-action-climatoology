@@ -1,17 +1,13 @@
 import datetime
-import logging
 import tempfile
 from pathlib import Path
 from unittest.mock import ANY, Mock, patch
 
-import pytest
-from celery.exceptions import Ignore
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask, ComputationInfo, PluginBaseInfo
 from climatoology.base.artifact import ArtifactModality, _Artifact
-from climatoology.base.event import ComputeCommandStatus
-from climatoology.utility.exception import ClimatoologyUserError
+from climatoology.base.event import ComputationState
 
 
 def test_computation_task_init(default_computation_task):
@@ -32,6 +28,7 @@ def test_computation_task_run(
     expected_result = [default_artifact.model_dump(mode='json')]
 
     assert computed_result == expected_result
+    default_computation_task.update_state.assert_called_once_with(task_id=general_uuid, state='STARTED')
 
 
 def test_computation_task_run_forward_input(
@@ -87,31 +84,6 @@ def test_computation_task_run_input_validated(
     )
 
 
-def test_computation_task_run_raises_ClimatoologyUserError(
-    default_computation_task,
-    default_artifact,
-    general_uuid,
-    default_aoi_feature_pure_dict,
-    caplog,
-):
-    compute_mock = Mock(side_effect=ClimatoologyUserError('Test error'))
-    default_computation_task.operator.compute = compute_mock
-
-    update_state_mock = Mock(return_value=None)
-    default_computation_task.update_state = update_state_mock
-
-    with pytest.raises(Ignore):
-        with caplog.at_level(logging.ERROR):
-            with patch('uuid.uuid4', return_value=general_uuid):
-                default_computation_task.run(
-                    aoi=default_aoi_feature_pure_dict,
-                    params={'id': 1, 'name': 'test'},
-                )
-
-    update_state_mock.assert_called_once_with(state=ComputeCommandStatus.FAILED.name, meta={'message': 'Test error'})
-    assert caplog.messages == [f'Computation failed for correlation id {general_uuid}']
-
-
 def test_computation_task_run_saves_metadata_with_full_params(
     default_computation_task,
     general_uuid,
@@ -126,7 +98,7 @@ def test_computation_task_run_saves_metadata_with_full_params(
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='3.1.0'),
-        status=ComputeCommandStatus.COMPLETED,
+        status=ComputationState.SUCCESS,
     )
 
     save_metadata_mock = Mock(side_effect=default_computation_task._save_computation_info)
@@ -184,7 +156,7 @@ def test_save_computation_info(
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[],
         plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='0.0.1'),
-        status=ComputeCommandStatus.COMPLETED,
+        status=ComputationState.SUCCESS,
     )
 
     save_mock = Mock()

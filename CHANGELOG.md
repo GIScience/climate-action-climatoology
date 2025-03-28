@@ -13,8 +13,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   instead ([#155](https://gitlab.heigit.org/climate-action/climatoology/-/issues/155))
 - Validate input parameters in a standalone function and save full set of parameters in computation
   info ([#141](https://gitlab.heigit.org/climate-action/climatoology/-/issues/141))
-- Customise error messages from input validation and use a custom state with metadata to make the messages available to
-  the gateway ([#128](https://gitlab.heigit.org/climate-action/climatoology/-/issues/128))
+- Customise error messages from input
+  validation ([#128](https://gitlab.heigit.org/climate-action/climatoology/-/issues/128))
+- Renamed `ComputeCommandStatus` to `ComputationState` and updated the options to use the celery state naming
 
 ### Fixed
 
@@ -34,6 +35,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   warnings ([#150](https://gitlab.heigit.org/climate-action/climatoology/-/issues/150))
 - A `ClimatoologyUserError` class that plugins can use to relay failure messages to the end
   user ([#158](https://gitlab.heigit.org/climate-action/climatoology/-/issues/158))
+- Record `'STARTED'` state at the start of computation tasks
 - Added `expires` as an input to `get_icon_url()` to make this configurable by the API Gateway
 
 ## [6.1.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.2) - 2025-02-06

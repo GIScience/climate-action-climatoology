@@ -2,22 +2,20 @@ import datetime
 import logging
 import tempfile
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
 
 import geojson_pydantic
 import shapely
 from celery import Task
-from celery.exceptions import Ignore
 from pydantic import BaseModel
 from shapely import set_srid
 
-from climatoology.base.artifact import _Artifact, ArtifactModality
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
+from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
-from climatoology.base.event import ComputeCommandStatus
-from climatoology.store.object_store import Storage, COMPUTATION_INFO_FILENAME
-from climatoology.utility.exception import ClimatoologyUserError, InputValidationError
+from climatoology.base.event import ComputationState
+from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, Storage
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +32,7 @@ class ComputationInfo(BaseModel, extra='forbid'):
     aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
     artifacts: Optional[List[_Artifact]] = []
     plugin_info: PluginBaseInfo
-    status: ComputeCommandStatus
+    status: ComputationState
     message: Optional[str] = '-'
     artifact_errors: Optional[List[str]] = []
 
@@ -75,6 +73,7 @@ class CAPlatformComputeTask(Task):
 
     def run(self, aoi: dict, params: dict) -> List[dict]:
         correlation_uuid = self.request.correlation_id
+        self.update_state(task_id=self.request.correlation_id, state='STARTED')
         log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
 
         aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
@@ -84,32 +83,19 @@ class CAPlatformComputeTask(Task):
         aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
         aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
 
-        try:
-            validated_params = self.operator.validate_params(params)
-            log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
-        except InputValidationError as e:
-            log.error(f'Input validation failed for correlation id {correlation_uuid}', exc_info=e)
-            self.update_state(state=ComputeCommandStatus.FAILED__WRONG_INPUT.name, meta={'message': str(e)})
-            raise Ignore()
+        validated_params = self.operator.validate_params(params)
+        log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
 
-        try:
-            with ComputationScope(correlation_uuid) as resources:
-                artifacts = self.operator.compute_unsafe(
-                    resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
-                )
-                artifact_errors = resources.artifact_errors
-                plugin_artifacts = [
-                    _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
-                    for artifact in artifacts
-                ]
-                self.storage.save_all(plugin_artifacts)
-        except Exception as e:
-            log.error(f'Computation failed for correlation id {correlation_uuid}', exc_info=e)
-            if isinstance(e, ClimatoologyUserError):
-                self.update_state(state=ComputeCommandStatus.FAILED.name, meta={'message': str(e)})
-                raise Ignore()
-            else:
-                raise e
+        with ComputationScope(correlation_uuid) as resources:
+            artifacts = self.operator.compute_unsafe(
+                resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
+            )
+            artifact_errors = resources.artifact_errors
+            plugin_artifacts = [
+                _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
+                for artifact in artifacts
+            ]
+            self.storage.save_all(plugin_artifacts)
 
         computation_info = ComputationInfo(
             correlation_uuid=correlation_uuid,
@@ -121,7 +107,7 @@ class CAPlatformComputeTask(Task):
                 plugin_id=self.operator.info_enriched.plugin_id,
                 plugin_version=self.operator.info_enriched.version,
             ),
-            status=ComputeCommandStatus.COMPLETED,
+            status=ComputationState.SUCCESS,
             artifact_errors=artifact_errors,
         )
         self._save_computation_info(computation_info=computation_info)

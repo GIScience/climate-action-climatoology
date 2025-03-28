@@ -12,21 +12,26 @@ class InfoCommand(BaseModel):
     correlation_uuid: UUID
 
 
-class ComputeCommandStatus(Enum):
-    """Available stati of computations."""
+class ComputationState(Enum):
+    """Available stati of computations.
 
-    SCHEDULED = 'scheduled'
-    IN_PROGRESS = 'in-progress'
-    COMPLETED = 'completed'
-    FAILED = 'failed'
-    FAILED__WRONG_INPUT = 'wrong-input'
+    Based on the Celery states (https://docs.celeryq.dev/en/stable/userguide/tasks.html#built-in-states) plus some
+    custom states.
+    """
+
+    PENDING = 'PENDING'
+    STARTED = 'STARTED'
+    SUCCESS = 'SUCCESS'
+    FAILURE = 'FAILURE'
+    RETRY = 'RETRY'
+    REVOKED = 'REVOKED'
 
 
 class ComputeCommandResult(BaseModel):
     """Attributes of compute command return messages."""
 
     correlation_uuid: UUID
-    status: ComputeCommandStatus
+    status: ComputationState
     message: Optional[str] = None
     timestamp: datetime
 

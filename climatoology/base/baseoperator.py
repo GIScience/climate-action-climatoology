@@ -13,7 +13,7 @@ from climatoology.base import T_co
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
-from climatoology.utility.exception import InputValidationError
+from climatoology.utility.exception import InputValidationError, creaty_pretty_validation_message
 
 log = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ class BaseOperator(ABC, Generic[T_co]):
         try:
             return self._model.model_validate(params)
         except ValidationError as e:
-            raise InputValidationError(e, fields=self._model.model_fields)
+            raise InputValidationError(creaty_pretty_validation_message(e, model_fields=self._model.model_fields))
 
     @final
     def compute_unsafe(

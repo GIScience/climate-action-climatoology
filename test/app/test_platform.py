@@ -2,7 +2,6 @@ import uuid
 from typing import List
 from unittest.mock import ANY, Mock, patch
 
-import celery.exceptions
 import pytest
 import shapely
 from celery.result import AsyncResult
@@ -14,7 +13,11 @@ from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
-from climatoology.utility.exception import ClimatoologyUserError, ClimatoologyVersionMismatchException
+from climatoology.utility.exception import (
+    ClimatoologyUserError,
+    ClimatoologyVersionMismatchException,
+    InputValidationError,
+)
 from test.conftest import TestModel
 
 
@@ -141,13 +144,14 @@ def test_send_compute_state_receives_input_validation_error(
 
     assert isinstance(result, AsyncResult)
 
-    with pytest.raises(celery.exceptions.TimeoutError):
+    with pytest.raises(InputValidationError):
         _ = result.get(timeout=5)
 
-    assert result.state == 'FAILED__WRONG_INPUT'
-    assert result.result == {
-        'message': 'ID: Input should be a valid integer, unable to parse string as an integer. You provided: test_invalid_id.'
-    }
+    assert result.state == 'FAILURE'
+    assert (
+        str(result.info)
+        == 'ID: Input should be a valid integer, unable to parse string as an integer. You provided: test_invalid_id.'
+    )
 
 
 def test_send_compute_state_receives_ClimatoologyUserError(
@@ -184,11 +188,11 @@ def test_send_compute_state_receives_ClimatoologyUserError(
     )
 
     assert isinstance(result, AsyncResult)
-    with pytest.raises(celery.exceptions.TimeoutError):
+    with pytest.raises(ClimatoologyUserError):
         _ = result.get(timeout=5)
 
-    assert result.state == 'FAILED'
-    assert result.result == {'message': 'Error message to store for the user'}
+    assert result.state == 'FAILURE'
+    assert str(result.info) == 'Error message to store for the user'
 
 
 def test_send_compute_reaches_worker(
