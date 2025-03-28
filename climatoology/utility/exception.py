@@ -31,38 +31,48 @@ class ClimatoologyUserError(Exception):
 class InputValidationError(Exception):
     """The user input validation failed."""
 
-    def __init__(self, validation_errors: ValidationError, fields: dict[str, FieldInfo] = None):
-        self._errors = validation_errors.errors()
-        self._model_fields = fields
+    pass
 
-    def __str__(self):
-        error_description = [
-            f'{self._create_prefix(e["loc"])}{e["msg"]}. You provided: {self._clean_inputs(e["input"])}.'
-            for e in self._errors
-        ]
-        return '\n'.join(error_description)
 
-    def _create_prefix(self, error_loc: tuple) -> str:
-        if not self._model_fields or len(error_loc) < 1:
+def creaty_pretty_validation_message(
+    validation_error: ValidationError, model_fields: dict[str, FieldInfo] = None
+) -> str:
+    """Create a pretty validation message from a pydantic validation error.
+
+    :param validation_error: the pydantic ValidationError
+    :param model_fields: the `model_fields` attribute from the pydantic base model which triggered the validation
+    :return: a string containing the pretty error message
+    """
+
+    def _create_prefix(error_fields: tuple) -> str:
+        """Create a comma separated list of the `title` attributes of the `error_fields`, ending with a colon."""
+        if not model_fields or len(error_fields) < 1:
             return ''
 
         field_names = []
-        for f in error_loc:
+        for f in error_fields:
             try:
-                field_names.append(self._model_fields[f].title)
+                field_names.append(model_fields[f].title)
             except Exception:
                 field_names.append(title=f)
 
         return ','.join(field_names) + ': '
 
-    def _clean_inputs(self, input_vals: Any) -> Any:
-        if not self._model_fields or not isinstance(input_vals, dict):
+    def _clean_inputs(input_vals: Any) -> Any:
+        """If `input_vals` is a dict, replace the attribute keys with their corresponding `title` value."""
+        if not model_fields or not isinstance(input_vals, dict):
             return input_vals
 
         for k in list(input_vals.keys()):
             try:
-                input_vals[self._model_fields[k].title] = input_vals[k]
+                input_vals[model_fields[k].title] = input_vals[k]
                 input_vals.pop(k)
             except Exception:
                 continue
         return input_vals
+
+    error_description = [
+        f'{_create_prefix(e["loc"])}{e["msg"]}. You provided: {_clean_inputs(e["input"])}.'
+        for e in validation_error.errors()
+    ]
+    return '\n'.join(error_description)

@@ -233,6 +233,7 @@ def mocked_object_store() -> dict:
 @pytest.fixture
 def default_computation_task(default_operator, mocked_object_store, general_uuid) -> CAPlatformComputeTask:
     compute_task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store['minio_storage'])
+    compute_task.update_state = Mock()
     request = Mock()
     request.correlation_id = general_uuid
     compute_task.request_stack = LocalStack()
