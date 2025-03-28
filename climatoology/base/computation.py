@@ -1,7 +1,6 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -12,7 +11,7 @@ class ComputationResources(BaseModel):
 
     correlation_uuid: UUID
     computation_dir: Path
-    artifact_errors: List[str] = []
+    artifact_errors: dict[str, str] = {}
 
 
 class ComputationScope:

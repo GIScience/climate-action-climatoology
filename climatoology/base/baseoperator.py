@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 from abc import ABC, abstractmethod
@@ -6,14 +7,14 @@ from functools import cached_property
 from typing import Any, ContextManager, Dict, Generic, List, Optional, Type, TypeVar, final, get_args, get_origin
 
 import shapely
-from pydantic import BaseModel, ValidationError, Field
+from pydantic import BaseModel, Field, ValidationError
 
 import climatoology
 from climatoology.base import T_co
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
-from climatoology.utility.exception import InputValidationError, creaty_pretty_validation_message
+from climatoology.utility.exception import ClimatoologyUserError, InputValidationError, creaty_pretty_validation_message
 
 log = logging.getLogger(__name__)
 
@@ -118,9 +119,17 @@ class BaseOperator(ABC, Generic[T_co]):
         """
         logging.debug(f'Beginning computation for correlation_uuid {resources.correlation_uuid}')
         artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params)
-
         artifacts = list(filter(None, artifacts))
-        assert len(artifacts) > 0, 'The computation returned no results.'
+
+        if len(artifacts) < 1:
+            if resources.artifact_errors:
+                raise ClimatoologyUserError(
+                    'Failed to create any indicators due to the following errors: '
+                    + json.dumps(resources.artifact_errors)
+                )
+            else:
+                raise AssertionError('The computation returned no results')
+
         for artifact in artifacts:
             assert (
                 artifact.modality != ArtifactModality.COMPUTATION_INFO
@@ -149,16 +158,21 @@ class BaseOperator(ABC, Generic[T_co]):
     @contextmanager
     def catch_exceptions(indicator_name: str, resources: ComputationResources) -> ContextManager[Any]:
         """Catch any errors in the statements within this context manager, without failing. If the inner code fails,
-        save the `indicator_name` to `resources.artifact_errors`. Use it
-        as `with catch_exceptions('ghg_budget', resources=resources):
+        update the dictionary of `resources.artifact_errors` to include an item with:
+        - key: `indicator_name`
+        - value: error message if the exception is of type `ClimatoologyUserError` (otherwise an empty string)
 
-        :param indicator_name: the indicator name, used to provide context to the error messages in the front end.
+        Use it as, for example `with catch_exceptions('GHG Budget', resources=resources):
+
+        :param indicator_name: the indicator name, used to provide context for the users in the front end. Ideally this
+        should match the name that is given to the artifact creation within the inner code.
         :param resources: the `ComputationResources` containing computation-specific attributes.
         """
         try:
             yield
         except Exception as e:
-            resources.artifact_errors.append(indicator_name)
+            msg = str(e) if isinstance(e, ClimatoologyUserError) else ''
+            resources.artifact_errors[indicator_name] = msg
             log.error(
                 f'{indicator_name} computation failed for correlation id {resources.correlation_uuid}', exc_info=e
             )

@@ -16,7 +16,7 @@ from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import _Info
-from climatoology.utility.exception import InputValidationError
+from climatoology.utility.exception import ClimatoologyUserError, InputValidationError
 from test.conftest import TestModel
 
 
@@ -194,7 +194,7 @@ def test_operator_compute_unsafe_must_return_results(
     compute_mock = Mock(return_value=[])
     default_operator.compute = compute_mock
 
-    with pytest.raises(AssertionError, match='The computation returned no results.'):
+    with pytest.raises(AssertionError, match='The computation returned no results'):
         default_operator.compute_unsafe(
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
@@ -263,7 +263,7 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
         params={'id': 1},
     )
     assert artifacts == [default_artifact]
-    assert len(resources.artifact_errors) == 0
+    assert resources.artifact_errors == {}
 
 
 def test_operator_create_artifact_safely_with_only_bad_artifact(
@@ -273,6 +273,9 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
 ):
     def bad_fn():
         raise ValueError('Artifact computation failed')
+
+    def bad_fn_with_reason():
+        raise ClimatoologyUserError('Error message to store for the user')
 
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
@@ -286,14 +289,22 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
             params: TestModel,
         ) -> List[_Artifact]:
             artifacts = []
-            with self.catch_exceptions(indicator_name='test_indicator', resources=resources):
+            with self.catch_exceptions(indicator_name='First Indicator', resources=resources):
                 artifacts.append(bad_fn())
+
+            with self.catch_exceptions(indicator_name='Second Indicator', resources=resources):
+                artifacts.append(bad_fn_with_reason())
+
             return artifacts
 
     operator = TestOperator()
     resources = ComputationResources(correlation_uuid=str(uuid.uuid4()), computation_dir='')
 
-    with pytest.raises(AssertionError, match='The computation returned no results.'):
+    with pytest.raises(
+        ClimatoologyUserError,
+        match='Failed to create any indicators due to the following errors: '
+        '{"First Indicator": "", "Second Indicator": "Error message to store for the user"}',
+    ):
         operator.compute_unsafe(
             resources=resources,
             aoi=default_aoi_geom_shapely,
@@ -307,6 +318,9 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
 ):
     def bad_fn():
         raise ValueError('Test artifact computation failed')
+
+    def bad_fn_with_reason():
+        raise ClimatoologyUserError('Error message to store for the user')
 
     def good_fn():
         return default_artifact
@@ -324,16 +338,21 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
         ) -> List[_Artifact]:
             artifacts = []
 
-            with self.catch_exceptions(indicator_name='bad_indicator', resources=resources):
+            with self.catch_exceptions(indicator_name='First Indicator', resources=resources):
                 artifacts.append(bad_fn())
 
-            with self.catch_exceptions(indicator_name='good_indicator', resources=resources):
+            with self.catch_exceptions(indicator_name='Second Indicator', resources=resources):
+                artifacts.append(bad_fn_with_reason())
+
+            with self.catch_exceptions(indicator_name='Good Indicator', resources=resources):
                 artifacts.append(good_fn())
 
             return artifacts
 
-    failed_indicators = ['bad_indicator']
-    log_msg = f'bad_indicator computation failed for correlation id {default_artifact.correlation_uuid}'
+    expected_log_msgs = [
+        f'First Indicator computation failed for correlation id {default_artifact.correlation_uuid}',
+        f'Second Indicator computation failed for correlation_id {default_artifact.correlation_uuid}',
+    ]
 
     operator = TestOperator()
     resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir='')
@@ -346,5 +365,8 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
         )
 
     assert artifacts == [default_artifact]
-    assert resources.artifact_errors == failed_indicators
-    assert log_msg in caplog.messages
+    assert resources.artifact_errors == {
+        'First Indicator': '',
+        'Second Indicator': 'Error message to store for the user',
+    }
+    assert [m in caplog.messages for m in expected_log_msgs]
