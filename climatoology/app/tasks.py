@@ -34,7 +34,7 @@ class ComputationInfo(BaseModel, extra='forbid'):
     plugin_info: PluginBaseInfo
     status: ComputationState
     message: Optional[str] = '-'
-    artifact_errors: Optional[List[str]] = []
+    artifact_errors: Optional[dict[str, str]] = {}
 
 
 class CAPlatformComputeTask(Task):
