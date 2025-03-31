@@ -132,6 +132,7 @@ def test_compute_vector_single_unit(mocked_utility_response, default_zonal_vecto
                         'bbox': [-0.01, -0.01, 0.01, 0.01],
                     },
                     'aggregation_stats': ['mean'],
+                    'resolution': 90,
                 }
             )
         ],
