@@ -2,22 +2,21 @@ import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime
 from enum import StrEnum
 from functools import partial
 from io import BytesIO
 from itertools import repeat
-from typing import Tuple, List, ContextManager
+from typing import ContextManager, List, Tuple
 
 import geopandas as gpd
 import pandas as pd
 import rasterio
 import requests
-from pydantic import BaseModel, Field, confloat
+from pydantic import BaseModel, Field, confloat, conint
 from shapely.geometry import shape
 from tqdm import tqdm
 
-from climatoology.utility.api import PlatformHttpUtility, adjust_bounds, compute_raster, TimeRange
+from climatoology.utility.api import PlatformHttpUtility, TimeRange, adjust_bounds, compute_raster
 from climatoology.utility.exception import PlatformUtilityException
 
 log = logging.getLogger(__name__)
@@ -35,14 +34,20 @@ class NaturalnessWorkUnit(BaseModel):
     time_range: TimeRange = Field(
         title='Time Range',
         description='The time range of satellite observations to base the index on.',
-        examples=[TimeRange(end_date=datetime.now().date())],
+        examples=[TimeRange()],
+    )
+    resolution: conint(ge=10) = Field(
+        title='Resolution',
+        description='Resolution of the resulting raster image. Will be down sampled, if necessary.',
+        default=90,
+        examples=[90],
     )
     bbox: Tuple[
         confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
     ] = Field(
         title='Area Coordinates',
         description='Bounding box coordinates in WGS 84 (west, south, east, north)',
-        examples=[[8.65, 49.38, 8.75, 49.41]],
+        examples=[[8.70, 49.41, 8.71, 49.42]],
     )
 
 
@@ -95,6 +100,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         aggregation_stats: list[str],
         vectors: List[gpd.GeoSeries],
         time_range: TimeRange,
+        resolution: int = 90,
         max_raster_size: int = 1000,
     ) -> gpd.GeoDataFrame:
         """Generate vector features with aggregated raster statistics.
@@ -108,6 +114,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         :param aggregation_stats: list of statistics methods for aggregating raster values
         :param vectors: list of GeoSeries of SimpleFeatures to calculate statistics for.
         :param time_range: time range for the analysis
+        :param resolution: raster pixel resolution in meters
         :param max_raster_size: Size in pixels used to determine whether the vectors have to be split to meet external
         service processing requirements for the raster input. The value applies to both height and width.
         :return: A GeoDataFrame with a column for each stat in aggregation_stats.
@@ -129,6 +136,7 @@ class NaturalnessUtility(PlatformHttpUtility):
                     repeat(aggregation_stats, n),
                     vectors,
                     repeat(time_range, n),
+                    repeat(resolution, n),
                 ):
                     pbar.update()
                     slices.append(dataset)
@@ -158,6 +166,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         aggregation_stats: list[str],
         vectors: gpd.GeoSeries,
         time_range: TimeRange,
+        resolution: int,
     ) -> gpd.GeoDataFrame:
         try:
             url = f'{self.base_url}{index}/vector'
@@ -167,6 +176,7 @@ class NaturalnessUtility(PlatformHttpUtility):
                 'time_range': time_range.model_dump(mode='json'),
                 'vectors': json.loads(vectors.to_json(to_wgs84=True)),
                 'aggregation_stats': aggregation_stats,
+                'resolution': resolution,
             }
 
             response = self.session.post(url=url, json=request_json)

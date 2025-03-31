@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Iterable, Any, List, Tuple, ContextManager, Optional
 
 import rasterio
@@ -22,14 +22,15 @@ class TimeRange(BaseModel):
         title='Start Date',
         description='Lower bound (inclusive) of remote sensing imagery acquisition date (UTC). '
         'If not set it will be automatically set to one year before `end_date`',
-        examples=['2023-05-01'],
+        examples=['2024-01-01'],
         default=None,
     )
     end_date: date = Field(
         title='End Date',
-        description="Upper bound (inclusive) of remote sensing imagery acquisition date (UTC). Defaults to today's date",
-        examples=['2024-05-01'],
-        default=datetime.now().date(),
+        description='Upper bound (inclusive) of remote sensing imagery acquisition date (UTC). '
+        'Defaults to the 31st December of last year.',
+        examples=['2024-12-31'],
+        default=date(date.today().year - 1, 12, 31),
     )
 
     @model_validator(mode='after')

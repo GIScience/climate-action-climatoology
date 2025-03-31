@@ -16,6 +16,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - Customise error messages from input
   validation ([#128](https://gitlab.heigit.org/climate-action/climatoology/-/issues/128))
 - Renamed `ComputeCommandStatus` to `ComputationState` and updated the options to use the celery state naming
+- Added `resolution` to `NaturalnessWorkUnit` and as an input to `NaturalnessUtility.compute_vector`
+- Edited the default `end_date` for `utility.api.TimeRange` objects to be the last calendar year
 
 ### Fixed
 
