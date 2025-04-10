@@ -5,30 +5,17 @@ from celery import Celery
 from climatoology.app.plugin import _create_plugin, generate_plugin_name
 
 
-def test_plugin_creation(default_operator, default_settings, mocked_object_store):
-    plugin = _create_plugin(operator=default_operator, settings=default_settings)
-    assert isinstance(plugin, Celery)
+def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):
+    with patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db):
+        plugin = _create_plugin(operator=default_operator, settings=default_settings)
+        assert isinstance(plugin, Celery)
 
 
-def test_plugin_register_task(default_operator, default_settings, mocked_object_store):
-    plugin = _create_plugin(operator=default_operator, settings=default_settings)
-
-    assert plugin.tasks.unregister('compute') is None
-    assert plugin.tasks.unregister('info') is None
-
-
-def test_worker_send_info_task(
-    default_operator, celery_app, celery_worker, default_info_final, mocked_object_store, default_settings
-):
-    with patch('climatoology.app.plugin.Celery', return_value=celery_app):
+def test_plugin_register_task(default_operator, default_settings, mocked_object_store, default_backend_db):
+    with patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db):
         plugin = _create_plugin(operator=default_operator, settings=default_settings)
 
-        celery_worker.reload()
-
-        expected_info_result = default_info_final.model_dump(mode='json')
-        computed_info_result = plugin.send_task('info').get(timeout=5)
-
-        assert computed_info_result == expected_info_result
+        assert plugin.tasks.unregister('compute') is None
 
 
 def test_worker_send_compute_task(default_plugin, default_artifact, general_uuid, default_aoi_feature_pure_dict):

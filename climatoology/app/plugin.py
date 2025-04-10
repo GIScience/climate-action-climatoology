@@ -2,10 +2,12 @@ from typing import Optional
 
 from celery import Celery
 
-from climatoology.app.settings import CABaseSettings, WorkerSettings, CELERY_HOST_PLACEHOLDER
-from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask
+from climatoology.app.settings import CELERY_HOST_PLACEHOLDER, CABaseSettings, WorkerSettings
+from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.store.object_store import MinioStorage
+from climatoology.base.info import _Info
+from climatoology.store.database.database import BackendDatabase
+from climatoology.store.object_store import MinioStorage, Storage
 
 
 def start_plugin(operator: BaseOperator) -> Optional[int]:
@@ -42,14 +44,31 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         secure=settings.minio_secure,
     )
 
-    compute_task = CAPlatformComputeTask(operator, storage)
-    plugin.register_task(compute_task)
+    backend_database = BackendDatabase(connection_string=settings.backend_connection_string)
 
-    info_task = CAPlatformInfoTask(operator=operator, storage=storage, overwrite_assets=settings.overwrite_assets)
-    plugin.register_task(info_task)
+    _ = synch_info(
+        info=operator.info_enriched, db=backend_database, storage=storage, overwrite=settings.overwrite_assets
+    )
+
+    compute_task = CAPlatformComputeTask(operator=operator, storage=storage, backend_db=backend_database)
+    plugin.register_task(compute_task)
 
     return plugin
 
 
 def generate_plugin_name(plugin_id: str) -> str:
     return f'{plugin_id}@{CELERY_HOST_PLACEHOLDER}'
+
+
+def synch_info(info: _Info, db: BackendDatabase, storage: Storage, overwrite: bool) -> _Info:
+    assets = storage.synch_assets(
+        plugin_id=info.plugin_id,
+        plugin_version=info.version,
+        assets=info.assets,
+        overwrite=overwrite,
+    )
+    info.assets = assets
+
+    _ = db.write_info(info=info, revert=overwrite)
+
+    return info

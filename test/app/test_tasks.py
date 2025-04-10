@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import List
 from unittest.mock import ANY, Mock, patch
 
-from pydantic import BaseModel
 import pytest
-from shapely import get_srid
 import shapely
+from pydantic import BaseModel
+from shapely import get_srid
 
-from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask, ComputationInfo, PluginBaseInfo
+from climatoology.app.tasks import CAPlatformComputeTask, ComputationInfo, PluginBaseInfo
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
@@ -156,35 +156,12 @@ def test_computation_task_run_saves_metadata_with_full_params(
         save_metadata_mock.assert_called_once_with(computation_info=expected_computation_info)
 
 
-def test_info_task_init(default_info_task):
-    assert default_info_task
-
-
-def test_info_task_run(default_info_task, default_info_final, general_uuid):
-    computed_result = default_info_task.run()
-    expected_result = default_info_final.model_dump(mode='json')
-    assert computed_result == expected_result
-
-
-def test_info_task_uploads_assets(default_operator, mocked_object_store):
-    storage = mocked_object_store['minio_storage']
-    synch_assets_mock = Mock(side_effect=storage.synch_assets)
-    storage.synch_assets = synch_assets_mock
-
-    _ = CAPlatformInfoTask(operator=default_operator, storage=storage, overwrite_assets=False)
-
-    synch_assets_mock.assert_called_once_with(
-        plugin_id='test_plugin',
-        plugin_version='3.1.0',
-        assets=ANY,
-        overwrite=False,
-    )
-
-
 def test_save_computation_info(
-    default_operator, mocked_object_store, general_uuid, default_aoi_feature_geojson_pydantic
+    default_operator, mocked_object_store, general_uuid, default_aoi_feature_geojson_pydantic, default_backend_db
 ):
-    task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store['minio_storage'])
+    task = CAPlatformComputeTask(
+        operator=default_operator, storage=mocked_object_store['minio_storage'], backend_db=default_backend_db
+    )
     info = ComputationInfo(
         correlation_uuid=general_uuid,
         timestamp=datetime.datetime(day=1, month=1, year=2021),

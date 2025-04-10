@@ -1,15 +1,15 @@
 import json
 import logging
 import re
-from enum import Enum
+from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import Optional, List, Set
+from typing import List, Optional, Set
 
 import bibtexparser
 import geojson_pydantic
 from PIL import Image
-from pydantic import BaseModel, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, conlist
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 DEMO_AOI_PATH = Path(__file__).parent.parent / 'resources/Heidelberg_AOI.geojson'
 
 
-class Concern(Enum):
+class Concern(StrEnum):
     """Keywords that group plugins by topic."""
 
     CLIMATE_ACTION__GHG_EMISSION = 'ghg_emission'
@@ -35,9 +35,11 @@ class Concern(Enum):
 
 
 class PluginAuthor(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     name: str = Field(description='The author name.', examples=['John Doe'])
     affiliation: Optional[str] = Field(
-        description="The author's affiliation statement. Leave blank if you are a " 'HeiGIT member.',
+        description="The author's affiliation statement. Leave blank if you are a HeiGIT member.",
         examples=['HeiGIT gGmbH'],
         default=None,
     )
@@ -87,8 +89,10 @@ class DemoConfig(BaseModel):
 class _Info(BaseModel, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     name: str = Field(description='The full name of the plugin.', examples=['The Plugin'])
-    authors: List[PluginAuthor] = Field(description='A list of plugin contributors.')
+    authors: conlist(item_type=PluginAuthor, min_length=1) = Field(description='A list of plugin contributors.')
     version: str = Field(
         description='The plugin version.',
         examples=[str(Version(0, 0, 1)), 'alpha-centauri'],
