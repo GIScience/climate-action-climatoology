@@ -1,8 +1,9 @@
+import os
 import uuid
 from enum import StrEnum
 from pathlib import Path
 from typing import List, Set
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import geojson_pydantic
 import pytest
@@ -13,16 +14,18 @@ from celery.utils.threads import LocalStack
 from pydantic import BaseModel, Field, HttpUrl
 from semver import Version
 from shapely import set_srid
+from pytest_postgresql.janitor import DatabaseJanitor
 
 import climatoology
 from climatoology.app.platform import CeleryPlatform
 from climatoology.app.plugin import _create_plugin, generate_plugin_name
 from climatoology.app.settings import CABaseSettings
-from climatoology.app.tasks import CAPlatformComputeTask, CAPlatformInfoTask
+from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
-from climatoology.base.baseoperator import BaseOperator, AoiProperties
+from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
+from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -155,8 +158,13 @@ def default_operator(default_info, default_artifact) -> BaseOperator:
 
 
 @pytest.fixture
-def default_plugin(celery_app, celery_worker, default_operator, default_settings, mocked_object_store) -> Celery:
-    with patch('climatoology.app.plugin.Celery', return_value=celery_app):
+def default_plugin(
+    celery_app, celery_worker, default_operator, default_settings, mocked_object_store, default_backend_db
+) -> Celery:
+    with (
+        patch('climatoology.app.plugin.Celery', return_value=celery_app),
+        patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db),
+    ):
         plugin = _create_plugin(operator=default_operator, settings=default_settings)
 
         celery_worker.reload()
@@ -231,8 +239,12 @@ def mocked_object_store() -> dict:
 
 
 @pytest.fixture
-def default_computation_task(default_operator, mocked_object_store, general_uuid) -> CAPlatformComputeTask:
-    compute_task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store['minio_storage'])
+def default_computation_task(
+    default_operator, mocked_object_store, default_backend_db, general_uuid
+) -> CAPlatformComputeTask:
+    compute_task = CAPlatformComputeTask(
+        operator=default_operator, storage=mocked_object_store['minio_storage'], backend_db=default_backend_db
+    )
     compute_task.update_state = Mock()
     request = Mock()
     request.correlation_id = general_uuid
@@ -242,25 +254,14 @@ def default_computation_task(default_operator, mocked_object_store, general_uuid
 
 
 @pytest.fixture
-def default_info_task(default_operator, mocked_object_store, general_uuid) -> CAPlatformInfoTask:
-    info_task = CAPlatformInfoTask(
-        operator=default_operator, storage=mocked_object_store['minio_storage'], overwrite_assets=False
-    )
-    request = Mock()
-    request.correlation_id = general_uuid
-    info_task.request_stack = LocalStack()
-    info_task.request_stack.push(request)
-    return info_task
-
-
-@pytest.fixture
-def default_platform_connection(celery_app, mocked_object_store, set_basic_envs) -> CeleryPlatform:
+def default_platform_connection(celery_app, mocked_object_store, set_basic_envs, default_backend_db) -> CeleryPlatform:
     with (
         patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
         patch(
             'climatoology.app.platform.CeleryPlatform.construct_storage',
             return_value=mocked_object_store['minio_storage'],
         ),
+        patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
     ):
         yield CeleryPlatform()
 
@@ -289,3 +290,32 @@ def default_association_tags() -> Set[StrEnum]:
         TAG_B = 'Tag B'
 
     return {ArtifactAssociation.TAG_A, ArtifactAssociation.TAG_B}
+
+
+@pytest.fixture
+def default_backend_db(request) -> BackendDatabase:
+    if os.getenv('CI', 'False').lower() == 'true':
+        pg_host = os.getenv('POSTGRES_HOST')
+        pg_port = os.getenv('POSTGRES_PORT')
+        pg_user = os.getenv('POSTGRES_USER')
+        pg_password = os.getenv('POSTGRES_PASSWORD')
+        pg_db = os.getenv('POSTGRES_DB')
+        pg_version = int(os.getenv('POSTGRES_VERSION'))
+
+        db_janitor = DatabaseJanitor(
+            host=pg_host,
+            port=pg_port,
+            user=pg_user,
+            password=pg_password,
+            dbname=pg_db,
+            version=Version(pg_version),
+        )
+        db_janitor.drop()
+        db_janitor.init()
+
+        connection_string = f'postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}'
+    else:
+        postgresql = request.getfixturevalue('postgresql')
+        connection_string = f'postgresql+psycopg2://{postgresql.info.user}:{postgresql.info.password}@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+
+    return BackendDatabase(connection_string=connection_string)

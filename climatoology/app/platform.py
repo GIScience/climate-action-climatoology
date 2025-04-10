@@ -9,14 +9,16 @@ from celery import Celery
 from celery.exceptions import TimeoutError
 from celery.result import AsyncResult
 from semver import Version
+from typing_extensions import deprecated
 
 import climatoology
 from climatoology.app.plugin import generate_plugin_name
 from climatoology.app.settings import CABaseSettings, SenderSettings
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
+from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import MinioStorage, Storage
-from climatoology.utility.exception import InfoNotReceivedException, ClimatoologyVersionMismatchException
+from climatoology.utility.exception import VersionMismatchException, InfoNotReceivedException
 
 log = logging.getLogger(__name__)
 
@@ -69,6 +71,8 @@ class CeleryPlatform(Platform):
 
         self.storage = CeleryPlatform.construct_storage(settings)
 
+        self.metadata_db = BackendDatabase(connection_string=settings.db_connection_string)
+
     @staticmethod
     def construct_celery_app(settings: CABaseSettings, sender_config: SenderSettings) -> Celery:
         celery_app = Celery(
@@ -97,7 +101,7 @@ class CeleryPlatform(Platform):
         :return: List of plugin ids
         """
         available_tasks = self.celery_app.control.inspect().registered() or dict()
-        plugins = {CeleryPlatform._extract_plugin_id(k) for k, v in available_tasks.items() if v == ['compute', 'info']}
+        plugins = {CeleryPlatform._extract_plugin_id(k) for k, v in available_tasks.items() if v == ['compute']}
 
         log.debug(f'Active plugins: {plugins}.')
 
@@ -108,31 +112,40 @@ class CeleryPlatform(Platform):
         correlation_uuid = str(uuid.uuid4())
 
         plugin_name = generate_plugin_name(plugin_id)
+        try:
+            info_return = self.metadata_db.read_info(plugin_id=plugin_id)
+        except InfoNotReceivedException:
+            info_return = self.get_info_via_task(correlation_uuid, plugin_name, ttl)
+            log.warning(
+                f'Plugin {plugin_id} is running on an old version of climatoology that will no longer be supported. Please update!'
+            )
+
+        if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
+            climatoology.__version__
+        ):
+            raise VersionMismatchException(
+                f'Refusing to register plugin '
+                f'{info_return.name} in version {info_return.version} due to a climatoology library '
+                f'version mismatch. '
+                f'Local library version: {climatoology.__version__} <-> '
+                f'Plugin library version: {info_return.library_version}'
+            )
+
+        return info_return
+
+    @deprecated('This method is kept for backwards compatibility until the next major release.')
+    def get_info_via_task(self, correlation_uuid, plugin_name, ttl):
         self.celery_app.send_task(
             'info', task_id=correlation_uuid, routing_key=plugin_name, exchange='C.dq2', expires=ttl
         )
         result = self.celery_app.AsyncResult(correlation_uuid)
-
         try:
             raw_info = result.get(timeout=ttl)
         except TimeoutError as e:
             raise InfoNotReceivedException(
                 f'The info request ({correlation_uuid}) did not respond within the time limit of {ttl} seconds.'
             ) from e
-
         info_return = _Info(**raw_info)
-
-        if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
-            climatoology.__version__
-        ):
-            raise ClimatoologyVersionMismatchException(
-                f'Refusing to register plugin '
-                f'{info_return.name} in version {info_return.version} due to a library '
-                f'version mismatch. '
-                f'Local library version: {climatoology.__version__} <-> '
-                f'Plugin library version: {info_return.library_version}'
-            )
-
         return info_return
 
     def send_compute_request(

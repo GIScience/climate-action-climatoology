@@ -33,8 +33,12 @@ class CABaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env.base')
 
     @property
+    def db_connection_string(self) -> str:
+        return f'postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}'
+
+    @property
     def backend_connection_string(self) -> str:
-        return f'db+postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}'
+        return f'db+{self.db_connection_string}'
 
     @property
     def broker_connection_string(self) -> str:

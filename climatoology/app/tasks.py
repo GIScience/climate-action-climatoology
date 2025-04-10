@@ -10,11 +10,13 @@ import shapely
 from celery import Task
 from pydantic import BaseModel
 from shapely import set_srid
+from sqlalchemy.orm import Session
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputationState
+from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, Storage
 
 log = logging.getLogger(__name__)
@@ -44,14 +46,29 @@ class CAPlatformComputeTask(Task):
     The main computation logic and workload is handled by the Operator.
     """
 
-    def __init__(self, operator: BaseOperator, storage: Storage):
+    def __init__(self, operator: BaseOperator, storage: Storage, backend_db: BackendDatabase):
         self.operator = operator
         self.storage = storage
         self.name = 'compute'
+        self.backend_db = backend_db
+        self.sessions = {}
 
         self.plugin_id = operator.info_enriched.plugin_id
 
         log.info(f'Compute task for {self.plugin_id} initialised')
+
+    def before_start(self, task_id, args, kwargs):
+        self.sessions[task_id] = Session(self.backend_db.engine)
+        super().before_start(task_id, args, kwargs)
+
+    def after_return(self, status, retval, task_id, args, kwargs, einfo):
+        session = self.sessions.pop(task_id)
+        session.close()
+        super().after_return(status, retval, task_id, args, kwargs, einfo)
+
+    @property
+    def session(self):
+        return self.sessions[self.request.id]
 
     def _save_computation_info(self, computation_info: ComputationInfo) -> str:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -115,33 +132,3 @@ class CAPlatformComputeTask(Task):
         log.debug(f'{correlation_uuid} successfully computed')
         encoded_result = [artifact.model_dump(mode='json') for artifact in plugin_artifacts]
         return encoded_result
-
-
-class CAPlatformInfoTask(Task):
-    """Climate Action Platform Task to get operator capabilities.
-
-    It's responsible for forwarding info requests to the user.
-    The info content is provided by the Operator.
-    """
-
-    def __init__(self, operator: BaseOperator, storage: Storage, overwrite_assets: bool):
-        self.name = 'info'
-        self.operator = operator
-        self.storage = storage
-        self.info = operator.info_enriched
-
-        assets = self.storage.synch_assets(
-            plugin_id=self.info.plugin_id,
-            plugin_version=self.info.version,
-            assets=self.info.assets,
-            overwrite=overwrite_assets,
-        )
-        self.info.assets = assets
-
-        log.info(f'Info task for {self.info.plugin_id} initialised')
-
-    def run(self) -> dict:
-        correlation_uuid = self.request.correlation_id
-        log.debug(f'Acquired info request ({correlation_uuid})')
-
-        return self.info.model_dump(mode='json')

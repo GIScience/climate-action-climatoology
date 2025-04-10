@@ -1,4 +1,5 @@
 import uuid
+from test.conftest import TestModel
 from typing import List
 from unittest.mock import ANY, Mock, patch
 
@@ -15,10 +16,9 @@ from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
 from climatoology.utility.exception import (
     ClimatoologyUserError,
-    ClimatoologyVersionMismatchException,
+    VersionMismatchException,
     InputValidationError,
 )
-from test.conftest import TestModel
 
 
 def test_platform_has_storage(default_platform_connection):
@@ -45,14 +45,12 @@ def test_list_active_plugins(default_platform_connection, celery_worker, default
 
 def test_request_info(default_platform_connection, default_info_final, default_plugin, celery_worker):
     computed_info = default_platform_connection.request_info(plugin_id='test_plugin')
-
-    assert celery_worker.stats()['total'].get('info') == 1
     assert computed_info == default_info_final
 
 
 @patch('climatoology.__version__', Version(1, 0, 0))
 def test_request_info_plugin_version_assert(default_platform_connection, default_info, default_plugin, celery_worker):
-    with pytest.raises(ClimatoologyVersionMismatchException, match='Refusing to register plugin.*'):
+    with pytest.raises(VersionMismatchException, match='Refusing to register plugin.*'):
         default_platform_connection.request_info(plugin_id='test_plugin')
 
 
@@ -161,6 +159,7 @@ def test_send_compute_state_receives_ClimatoologyUserError(
     default_settings,
     default_aoi_feature_geojson_pydantic,
     default_platform_connection,
+    default_backend_db,
 ):
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
@@ -176,7 +175,10 @@ def test_send_compute_state_receives_ClimatoologyUserError(
             raise ClimatoologyUserError('Error message to store for the user')
 
     operator = TestOperator()
-    with patch('climatoology.app.plugin.Celery', return_value=celery_app):
+    with (
+        patch('climatoology.app.plugin.Celery', return_value=celery_app),
+        patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db),
+    ):
         _ = _create_plugin(operator=operator, settings=default_settings)
         celery_worker.reload()
 
