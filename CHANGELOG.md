@@ -15,6 +15,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - the per-artifact metadata files are removed as they were duplicating the content of the central metadata
   file ([#108](https://gitlab.heigit.org/climate-action/climatoology/-/issues/108)).
 
+### Added
+
+- the unit of measurement for the x and y-axis of the Chart2dPlot data can now be
+  specified ([#94](https://gitlab.heigit.org/climate-action/climatoology/-/issues/94)).
+
 ## [6.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.2.0) - 2025-03-31
 
 ### Changed

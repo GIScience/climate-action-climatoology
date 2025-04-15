@@ -213,10 +213,12 @@ def test_create_chart_artifact(
     )
     method_input = Chart2dData(
         x=[1, 2, 3],
+        x_unit='m',
         y=[3, 2, 1],
+        y_unit='s',
         chart_type=ChartType.SCATTER,
     )
-    expected_content = """{"x": [1.0, 2.0, 3.0], "y": [3.0, 2.0, 1.0], "chart_type": "SCATTER", "color": "#590d08"}"""
+    expected_content = """{"x": [1.0, 2.0, 3.0], "x_unit": "m", "y": [3.0, 2.0, 1.0], "y_unit": "s", "chart_type": "SCATTER", "color": "#590d08"}"""
 
     generated_artifact = create_chart_artifact(
         data=method_input,

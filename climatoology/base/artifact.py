@@ -221,6 +221,7 @@ class Chart2dData(BaseModel):
         'the sum.',
         examples=[['first', 'second', 'third']],
     )
+    x_unit: Optional[str] = Field(title='x unit', description='The unit of measurement of the x-axis.', default=None)
     y: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(
         title='Y values',
         description='Data values on the Y axis. '
@@ -230,6 +231,7 @@ class Chart2dData(BaseModel):
         '(string).',
         examples=[[3, 2, 1]],
     )
+    y_unit: Optional[str] = Field(title='y unit', description='The unit of measurement of the y-axis.', default=None)
     chart_type: ChartType = Field(
         title='Chart Type', description='The type of chart to be created.', examples=[ChartType.SCATTER]
     )
