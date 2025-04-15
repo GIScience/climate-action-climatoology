@@ -101,7 +101,7 @@ class CeleryPlatform(Platform):
         :return: List of plugin ids
         """
         available_tasks = self.celery_app.control.inspect().registered() or dict()
-        plugins = {CeleryPlatform._extract_plugin_id(k) for k, v in available_tasks.items() if v == ['compute']}
+        plugins = {CeleryPlatform._extract_plugin_id(k) for k, v in available_tasks.items() if 'compute' in v}
 
         log.debug(f'Active plugins: {plugins}.')
 
