@@ -12,6 +12,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - the plugin info is now stored in the backend database on plugin start. The `PluginInfoTask` was removed in favour of
   getting the info from the backend
   database ([#132](https://gitlab.heigit.org/climate-action/climatoology/-/issues/132))
+- the per-artifact metadata files are removed as they were duplicating the content of the central metadata
+  file ([#108](https://gitlab.heigit.org/climate-action/climatoology/-/issues/108)).
 
 ## [6.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.2.0) - 2025-03-31
 

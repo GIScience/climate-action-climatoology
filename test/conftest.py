@@ -1,5 +1,6 @@
 import os
 import uuid
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import List, Set
@@ -24,9 +25,10 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
+from climatoology.base.event import ComputationState
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import MinioStorage
+from climatoology.store.object_store import MinioStorage, ComputationInfo, PluginBaseInfo
 from climatoology.utility.api import HealthCheck
 
 pytest_plugins = ('celery.contrib.pytest',)
@@ -89,8 +91,9 @@ def default_info() -> _Info:
 
 @pytest.fixture
 def default_info_enriched(default_info) -> _Info:
-    default_info.library_version = str(climatoology.__version__)
-    default_info.operator_schema = {
+    default_info_enriched = default_info.model_copy(deep=True)
+    default_info_enriched.library_version = str(climatoology.__version__)
+    default_info_enriched.operator_schema = {
         'properties': {
             'id': {'description': 'A required integer parameter.', 'examples': [1], 'title': 'ID', 'type': 'integer'},
             'name': {
@@ -105,13 +108,14 @@ def default_info_enriched(default_info) -> _Info:
         'title': 'TestModel',
         'type': 'object',
     }
-    return default_info
+    return default_info_enriched
 
 
 @pytest.fixture
 def default_info_final(default_info_enriched) -> _Info:
-    default_info_enriched.assets.icon = 'assets/test_plugin/latest/ICON.jpeg'
-    return default_info_enriched
+    default_info_final = default_info_enriched.model_copy(deep=True)
+    default_info_final.assets.icon = 'assets/test_plugin/latest/ICON.jpeg'
+    return default_info_final
 
 
 @pytest.fixture
@@ -143,7 +147,7 @@ def default_input_model() -> TestModel:
 def default_operator(default_info, default_artifact) -> BaseOperator:
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
-            return default_info.model_copy()
+            return default_info.model_copy(deep=True)
 
         def compute(
             self,
@@ -154,7 +158,7 @@ def default_operator(default_info, default_artifact) -> BaseOperator:
         ) -> List[_Artifact]:
             return [default_artifact]
 
-    yield TestOperator()
+    return TestOperator()
 
 
 @pytest.fixture
@@ -236,6 +240,21 @@ def mocked_object_store() -> dict:
             bucket='test_bucket',
         )
         yield {'minio_storage': minio_storage, 'minio_client': minio_client}
+
+
+@pytest.fixture
+def default_computation_info(
+    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact, default_info
+) -> ComputationInfo:
+    return ComputationInfo(
+        correlation_uuid=general_uuid,
+        timestamp=datetime.fromisoformat('2025-01-01'),
+        params=dict(),
+        aoi=default_aoi_feature_geojson_pydantic,
+        artifacts=[default_artifact],
+        plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=default_info.version),
+        status=ComputationState.SUCCESS,
+    )
 
 
 @pytest.fixture
