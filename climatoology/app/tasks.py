@@ -2,13 +2,11 @@ import datetime
 import logging
 import tempfile
 from pathlib import Path
-from typing import List, Optional
-from uuid import UUID
+from typing import List
 
 import geojson_pydantic
 import shapely
 from celery import Task
-from pydantic import BaseModel
 from shapely import set_srid
 from sqlalchemy.orm import Session
 
@@ -17,26 +15,9 @@ from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputationState
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, Storage
+from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, Storage, ComputationInfo, PluginBaseInfo
 
 log = logging.getLogger(__name__)
-
-
-class PluginBaseInfo(BaseModel):
-    plugin_id: str
-    plugin_version: str
-
-
-class ComputationInfo(BaseModel, extra='forbid'):
-    correlation_uuid: UUID
-    timestamp: datetime.datetime
-    params: dict
-    aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
-    artifacts: Optional[List[_Artifact]] = []
-    plugin_info: PluginBaseInfo
-    status: ComputationState
-    message: Optional[str] = '-'
-    artifact_errors: Optional[dict[str, str]] = {}
 
 
 class CAPlatformComputeTask(Task):
@@ -95,7 +76,7 @@ class CAPlatformComputeTask(Task):
 
         aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
 
-        # through difficult typing above we know its a MultiPolygon but the type checker cannot know
+        # through difficult typing above we know it's a MultiPolygon but the type checker cannot know
         # noinspection PyTypeChecker
         aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
         aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)

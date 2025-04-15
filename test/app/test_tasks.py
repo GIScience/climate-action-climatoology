@@ -9,7 +9,8 @@ import shapely
 from pydantic import BaseModel
 from shapely import get_srid
 
-from climatoology.app.tasks import CAPlatformComputeTask, ComputationInfo, PluginBaseInfo
+from climatoology.app.tasks import CAPlatformComputeTask
+from climatoology.store.object_store import PluginBaseInfo, ComputationInfo
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
@@ -157,7 +158,12 @@ def test_computation_task_run_saves_metadata_with_full_params(
 
 
 def test_save_computation_info(
-    default_operator, mocked_object_store, general_uuid, default_aoi_feature_geojson_pydantic, default_backend_db
+    default_operator,
+    mocked_object_store,
+    general_uuid,
+    default_aoi_feature_geojson_pydantic,
+    default_backend_db,
+    default_artifact,
 ):
     task = CAPlatformComputeTask(
         operator=default_operator, storage=mocked_object_store['minio_storage'], backend_db=default_backend_db
@@ -167,7 +173,7 @@ def test_save_computation_info(
         timestamp=datetime.datetime(day=1, month=1, year=2021),
         params={},
         aoi=default_aoi_feature_geojson_pydantic,
-        artifacts=[],
+        artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='0.0.1'),
         status=ComputationState.SUCCESS,
     )

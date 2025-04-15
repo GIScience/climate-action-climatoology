@@ -1,20 +1,43 @@
-import json
 import logging
 import uuid
 from abc import abstractmethod, ABC
 from datetime import timedelta
 from enum import Enum
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import List, Optional
 from uuid import UUID
 
+import geojson_pydantic
 from minio import Minio, S3Error
+from pydantic import BaseModel, conlist
+import datetime
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.baseoperator import AoiProperties
+from climatoology.base.event import ComputationState
 from climatoology.base.info import Assets, _convert_icon_to_thumbnail
 
 log = logging.getLogger(__name__)
+
+
+class PluginBaseInfo(BaseModel):
+    plugin_id: str
+    plugin_version: str
+
+
+class ComputationInfo(BaseModel, extra='forbid'):
+    correlation_uuid: UUID
+    timestamp: datetime.datetime
+    params: dict
+    aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
+    artifacts: conlist(item_type=_Artifact, min_length=1)
+    plugin_info: PluginBaseInfo
+    status: ComputationState
+    message: Optional[str] = '-'
+    artifact_errors: Optional[dict[str, str]] = {}
+
+
+COMPUTATION_INFO_FILENAME: str = 'metadata.json'
 
 
 class DataGroup(Enum):
@@ -28,9 +51,6 @@ class AssetType(Enum):
 
 
 ASSET_FILE_NAMES = {AssetType.ICON: 'ICON.jpeg'}
-
-
-COMPUTATION_INFO_FILENAME: str = 'metadata.json'
 
 
 class Storage(ABC):
@@ -132,13 +152,14 @@ class MinioStorage(Storage):
     def save(self, artifact: _Artifact) -> str:
         if artifact.modality == ArtifactModality.COMPUTATION_INFO:
             store_id = COMPUTATION_INFO_FILENAME
+            object_type = DataGroup.METADATA.value
         else:
             cleaned_filename = artifact.file_path.name.encode(encoding='ascii', errors='ignore').decode()
             store_id = f'{uuid.uuid4()}_{cleaned_filename}'
+            object_type = DataGroup.DATA.value
         artifact.store_id = store_id
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id)
-        metadata_object_name = f'{object_name}.metadata.json'
 
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} at {store_id}')
 
@@ -146,66 +167,33 @@ class MinioStorage(Storage):
             bucket_name=self.__bucket,
             object_name=object_name,
             file_path=str(artifact.file_path),
-            metadata={
-                'Type': DataGroup.DATA.value,
-                'Metadata-Object-Name': metadata_object_name,
-            },
+            metadata={'Type': object_type},
         )
 
-        self._save_artifact_metadata(artifact, metadata_object_name, object_name)
-
         return store_id
-
-    def _save_artifact_metadata(self, artifact: _Artifact, metadata_object_name: str, object_name: str) -> None:
-        metadata = artifact.model_dump(exclude={'file_path'}, mode='json')
-        metadata['file_path'] = str(artifact.file_path.name)
-
-        with NamedTemporaryFile(mode='x') as metadata_file:
-            json.dump(metadata, metadata_file, indent=None)
-            metadata_file.flush()
-
-            self.client.fput_object(
-                bucket_name=self.__bucket,
-                object_name=metadata_object_name,
-                file_path=metadata_file.name,
-                metadata={
-                    'Type': DataGroup.METADATA.value,
-                    'Data-Object-Name': object_name,
-                },
-            )
 
     def save_all(self, artifacts: List[_Artifact]) -> List[str]:
         return [self.save(artifact) for artifact in artifacts]
 
     def list_all(self, correlation_uuid: UUID) -> List[_Artifact]:
-        artifacts = []
-
-        objects = self.client.list_objects(
-            bucket_name=self.__bucket,
-            prefix=str(correlation_uuid),
-            recursive=True,
-            include_user_meta=True,
+        metadata_object_name = Storage.generate_object_name(
+            correlation_uuid=correlation_uuid, store_id=COMPUTATION_INFO_FILENAME
         )
-        for obj in objects:
-            if obj.metadata['X-Amz-Meta-Type'] == DataGroup.METADATA.value:
-                metadata = None
-                try:
-                    metadata = self.client.get_object(
-                        bucket_name=self.__bucket,
-                        object_name=obj.object_name,
-                    )
-                    plugin_artifact = _Artifact.model_validate(metadata.json())
-                    if plugin_artifact.modality == ArtifactModality.COMPUTATION_INFO:
-                        continue
-                    artifacts.append(plugin_artifact)
-                finally:
-                    if metadata:
-                        metadata.close()
-                        metadata.release_conn()
+        metadata = None
+        try:
+            metadata = self.client.get_object(
+                bucket_name=self.__bucket,
+                object_name=metadata_object_name,
+            )
+            metadata_obj = ComputationInfo.model_validate(metadata.json())
+        finally:
+            if metadata:
+                metadata.close()
+                metadata.release_conn()
 
-        log.debug(f'Found {len(artifacts)} artifacts for correlation_uuid {correlation_uuid}')
+        log.debug(f'Found {len(metadata_obj.artifacts)} artifacts for correlation_uuid {correlation_uuid}')
 
-        return artifacts
+        return metadata_obj.artifacts
 
     def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
         if not file_name:

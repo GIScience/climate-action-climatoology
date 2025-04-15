@@ -4,7 +4,6 @@ from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch, Mock, ANY
 
-import minio.datatypes
 from minio import S3Error
 from urllib3 import HTTPResponse
 
@@ -27,22 +26,10 @@ def test_minio_save(mocked_object_store, general_uuid, default_artifact):
         bucket_name='test_bucket',
         object_name=f'{general_uuid}/{store_id}',
         file_path=str(default_artifact.file_path),
-        metadata={
-            'Type': DataGroup.DATA.value,
-            'Metadata-Object-Name': f'{general_uuid}/{store_id}.metadata.json',
-        },
+        metadata={'Type': DataGroup.DATA.value},
     )
 
-    mocked_object_store['minio_client']().fput_object.assert_any_call(
-        bucket_name='test_bucket',
-        object_name=f'{general_uuid}/{store_id}.metadata.json',
-        file_path='/tmp/tmpaaaaaaaa',
-        metadata={
-            'Type': DataGroup.METADATA.value,
-            'Data-Object-Name': f'{general_uuid}/{store_id}',
-        },
-    )
-    assert mocked_object_store['minio_client']().fput_object.call_count == 2
+    assert mocked_object_store['minio_client']().fput_object.call_count == 1
 
 
 def test_minio_save_special_character_filename(mocked_object_store, general_uuid, default_artifact):
@@ -69,41 +56,19 @@ def test_minio_save_all(mocked_object_store, general_uuid, default_artifact):
         correlation_uuid=second_correlation_uuid,
     )
     mocked_object_store['minio_storage'].save_all([default_artifact, second_plugin_artifact])
-    assert mocked_object_store['minio_client']().fput_object.call_count == 4
+    assert mocked_object_store['minio_client']().fput_object.call_count == 2
 
 
-def test_minio_list_all(mocked_object_store, general_uuid, default_artifact):
-    return_mock = [
-        minio.datatypes.Object(
-            bucket_name='test_bucket',
-            object_name=f'{general_uuid}/{general_uuid}',
-            metadata={
-                'X-Amz-Meta-Type': DataGroup.DATA.value,
-                'X-Amz-Meta-Metadata-Object-Name': f'{general_uuid}/{general_uuid}.metadata.json',
-            },
-        ),
-        minio.datatypes.Object(
-            bucket_name='test_bucket',
-            object_name=f'{general_uuid}/{general_uuid}.metadata.json',
-            metadata={
-                'X-Amz-Meta-Type': DataGroup.METADATA.value,
-                'X-Amz-Meta-Data-Object-Name': f'{general_uuid}/{general_uuid}',
-            },
-        ),
-    ]
-    mocked_object_store['minio_client']().list_objects.return_value = iter(return_mock)
-    mocked_object_store['minio_client']().get_object.return_value.json.return_value = default_artifact.model_dump(
-        mode='json'
-    )
+def test_minio_list_all(mocked_object_store, general_uuid, default_artifact, default_computation_info):
+    mocked_object_store[
+        'minio_client'
+    ]().get_object.return_value.json.return_value = default_computation_info.model_dump(mode='json')
 
     result = mocked_object_store['minio_storage'].list_all(general_uuid)
     assert result == [default_artifact]
 
-    mocked_object_store['minio_client']().list_objects.assert_called_once_with(
-        bucket_name='test_bucket',
-        prefix=str(general_uuid),
-        recursive=True,
-        include_user_meta=True,
+    mocked_object_store['minio_client']().get_object.assert_called_once_with(
+        bucket_name='test_bucket', object_name=f'{general_uuid}/metadata.json'
     )
 
 
