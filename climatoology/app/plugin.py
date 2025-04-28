@@ -44,7 +44,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         secure=settings.minio_secure,
     )
 
-    backend_database = BackendDatabase(connection_string=settings.backend_connection_string)
+    backend_database = BackendDatabase(connection_string=settings.db_connection_string)
 
     _ = synch_info(
         info=operator.info_enriched, db=backend_database, storage=storage, overwrite=settings.overwrite_assets
