@@ -2,6 +2,7 @@ from typing import Optional
 
 from celery import Celery
 
+import climatoology
 from climatoology.app.settings import CELERY_HOST_PLACEHOLDER, CABaseSettings, WorkerSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
@@ -44,7 +45,10 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         secure=settings.minio_secure,
     )
 
-    backend_database = BackendDatabase(connection_string=settings.db_connection_string)
+    backend_database = BackendDatabase(
+        connection_string=settings.db_connection_string,
+        user_agent=f'Plugin {operator.info_enriched.plugin_id}/{operator.info_enriched.version} based on climatoology/{climatoology.__version__}',
+    )
 
     _ = synch_info(
         info=operator.info_enriched, db=backend_database, storage=storage, overwrite=settings.overwrite_assets

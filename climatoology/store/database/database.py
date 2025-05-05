@@ -30,8 +30,10 @@ log = logging.getLogger(__name__)
 
 
 class BackendDatabase:
-    def __init__(self, connection_string: str):
-        self.engine = create_engine(connection_string, plugins=['geoalchemy2'])
+    def __init__(self, connection_string: str, user_agent: str):
+        self.engine = create_engine(
+            connection_string, plugins=['geoalchemy2'], connect_args={'application_name': user_agent}
+        )
 
         with self.engine.connect() as connection:
             connection.execute(CreateSchema(SCHEMA_NAME, if_not_exists=True))

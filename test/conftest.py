@@ -341,7 +341,7 @@ def default_backend_db(request) -> BackendDatabase:
     with create_engine(connection_string).connect() as con:
         con.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
         con.commit()
-    return BackendDatabase(connection_string=connection_string)
+    return BackendDatabase(connection_string=connection_string, user_agent='Test Climatoology Backend')
 
 
 @pytest.fixture
