@@ -13,7 +13,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from climatoology.base.artifact import ArtifactModality, Attachments
 from climatoology.base.event import ComputationState
-from climatoology.base.info import Concern, DemoConfig, Assets
+from climatoology.base.info import Concern, DemoConfig, Assets, PluginState
 
 SCHEMA_NAME = 'ca-base'
 COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'
@@ -47,6 +47,7 @@ class InfoTable(Base):
     authors: Mapped[List[PluginAuthorTable]] = relationship(secondary=author_info_link_table)
     version: Mapped[Version] = mapped_column(String)
     concerns: Mapped[Set[Concern]] = mapped_column(ARRAY(sqlalchemy.Enum(Concern)))
+    state: Mapped[PluginState] = mapped_column(sqlalchemy.Enum(PluginState))
     teaser: Mapped[Optional[str]]
     purpose: Mapped[str]
     methodology: Mapped[str]

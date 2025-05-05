@@ -14,6 +14,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - a teaser sentence for plugins can now be specified to be displayed on hover in the
   front-end ([#162](https://gitlab.heigit.org/climate-action/climatoology/-/issues/162)).
 - a user agent (application name) to the backand database connection
+- a plugin state to transparently show the development state of a plugin to the
+  end-user ([#163](https://gitlab.heigit.org/climate-action/climatoology/-/issues/163)).
 
 ## [6.3.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.3.1) - 2025-04-28
 
