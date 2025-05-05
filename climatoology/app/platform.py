@@ -71,7 +71,9 @@ class CeleryPlatform(Platform):
 
         self.storage = CeleryPlatform.construct_storage(settings)
 
-        self.backend_db = BackendDatabase(connection_string=settings.db_connection_string)
+        self.backend_db = BackendDatabase(
+            connection_string=settings.db_connection_string, user_agent=f'CeleryPlatform/{climatoology.__version__}'
+        )
 
     @staticmethod
     def construct_celery_app(settings: CABaseSettings, sender_config: SenderSettings) -> Celery:
