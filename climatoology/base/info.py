@@ -34,6 +34,13 @@ class Concern(StrEnum):
     SUSTAINABILITY__WASTE = 'waste'
 
 
+class PluginState(StrEnum):
+    EXPERIMENTAL = 'experimental'
+    ACTIVE = 'active'
+    HIBERNATE = 'hibernate'
+    ARCHIVE = 'archive'
+
+
 class PluginAuthor(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -96,6 +103,11 @@ class _Info(BaseModel, extra='forbid'):
     version: str = Field(
         description='The plugin version.',
         examples=[str(Version(0, 0, 1)), 'alpha-centauri'],
+    )
+    state: PluginState = Field(
+        description='The current development state of the plugin using categories from https://github.com/GIScience/badges.',
+        examples=[PluginState.ACTIVE],
+        default=PluginState.ACTIVE,
     )
     concerns: Set[Concern] = Field(
         description='The domains or topics the plugin is tackling. It can be used as a set of keywords that '
@@ -209,6 +221,7 @@ def generate_plugin_info(
     concerns: Set[Concern],
     purpose: Path,
     methodology: Path,
+    state: PluginState = PluginState.ACTIVE,
     teaser: str = None,
     demo_input_parameters: T_co = None,
     demo_aoi: Path = None,
@@ -224,6 +237,7 @@ def generate_plugin_info(
       to the repository and HeiGIT has all legal rights to it (without attribution!).
     :param version: The plugin version. Make sure to adhere to [semantic versioning](https://semver.org/)!
     :param concerns: The domains or topics the plugin is tackling.
+    :param state: The current development state of the plugin using categories from https://github.com/GIScience/badges.
     :param teaser: A single sentence teaser for the plugins' functionality. The sentence must be between 20 and 150
       characters long, start with an upper case letter and end with a full stop.
     :param purpose: What will this plugin accomplish? Provide a text file that can have
@@ -263,6 +277,7 @@ def generate_plugin_info(
         authors=authors,
         version=str(version),
         concerns=concerns,
+        state=state,
         teaser=teaser,
         purpose=purpose.read_text(),
         methodology=methodology.read_text(),

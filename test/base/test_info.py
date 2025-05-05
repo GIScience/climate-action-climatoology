@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError, HttpUrl
 from semver import Version
 
-from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info, DemoConfig
+from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info, DemoConfig, PluginState
 from test.conftest import TestModel
 
 
@@ -229,3 +229,42 @@ def test_no_fullstop_teaser():
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         )
+
+
+def test_default_plugin_state():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+    )
+    assert computed_info.state == PluginState.ACTIVE
+
+
+def test_plugin_state():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        state=PluginState.ARCHIVE,
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+    )
+    assert computed_info.state == PluginState.ARCHIVE
