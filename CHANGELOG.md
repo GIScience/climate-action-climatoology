@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.3.1...main)
 
+### Added
+
+- computations are now stored in the backend database in a searchable
+  manner ([#154](https://gitlab.heigit.org/climate-action/climatoology/-/issues/154))
+
 ## [6.3.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.3.1) - 2025-04-28
 
 ### Fixed

@@ -32,10 +32,10 @@ from climatoology.base.artifact import (
     create_geotiff_artifact,
     RasterInfo,
     ContinuousLegendData,
-    AttachmentType,
     Legend,
     Colormap,
     create_plotly_chart_artifact,
+    Attachments,
 )
 
 
@@ -279,11 +279,9 @@ def test_create_geojson_artifact(default_computation_resources, general_uuid, de
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.geojson'),
         summary='Vector caption',
-        attachments={
-            AttachmentType.LEGEND: Legend(
-                legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}
-            )
-        },
+        attachments=Attachments(
+            legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
+        ),
         tags=default_association_tags,
     )
 
@@ -321,13 +319,13 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.geojson'),
         summary='Vector caption',
-        attachments={
-            AttachmentType.LEGEND: Legend(
+        attachments=Attachments(
+            legend=Legend(
                 legend_data=ContinuousLegendData(
                     cmap_name='plasma', ticks={'Black b': 0.0, 'Green c': 0.5, 'White a': 1.0}
                 )
             )
-        },
+        ),
     )
 
     method_input = GeoDataFrame(
@@ -450,11 +448,9 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.geojson'),
         summary='Vector caption',
-        attachments={
-            AttachmentType.LEGEND: Legend(
-                legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}
-            )
-        },
+        attachments=Attachments(
+            legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
+        ),
     )
 
     index = pd.MultiIndex.from_tuples(
@@ -559,7 +555,7 @@ def test_create_geotiff_artifact_2d(default_computation_resources, general_uuid,
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
-        attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#0f0')})},
+        attachments=Attachments(legend=Legend(legend_data={'1': Color('#0f0')})),
         tags=default_association_tags,
     )
 
@@ -598,7 +594,7 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
-        attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#00ff00fe')})},
+        attachments=Attachments(legend=Legend(legend_data={'1': Color('#00ff00fe')})),
     )
 
     method_input = RasterInfo(
@@ -662,7 +658,7 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
-        attachments={AttachmentType.LEGEND: Legend(legend_data={'A': Color('#f00')})},
+        attachments=Attachments(legend=Legend(legend_data={'A': Color('#f00')})),
     )
 
     method_input = RasterInfo(
@@ -700,7 +696,6 @@ def test_create_geotiff_without_legend(default_computation_resources, general_uu
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
-        attachments={},
     )
 
     method_input = RasterInfo(
@@ -736,7 +731,7 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid)
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.tiff'),
         summary='Raster caption',
-        attachments={AttachmentType.LEGEND: Legend(legend_data={'1': Color('#0f0')})},
+        attachments=Attachments(legend=Legend(legend_data={'1': Color('#0f0')})),
     )
 
     method_input = RasterInfo(

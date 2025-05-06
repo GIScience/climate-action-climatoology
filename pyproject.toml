@@ -34,10 +34,12 @@ geopandas = "^1.0.1"
 celery = { extras = ["sqlalchemy"], version = "^5.4.0" }
 psycopg2-binary = "^2.9.10"
 sqlalchemy = "^2.0.40"
+geoalchemy2 = "^0.17.1"
 plotly = "^6.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
+pytest-mock = "^3.14.0"
 pytest-postgresql = "^7.0.1"
 responses = "^0.25.3"
 

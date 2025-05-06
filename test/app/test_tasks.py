@@ -24,18 +24,23 @@ def test_computation_task_init(default_computation_task):
 
 def test_computation_task_run(
     default_computation_task,
-    default_artifact,
+    default_computation_info,
     general_uuid,
     default_aoi_feature_pure_dict,
+    backend_with_computation,
 ):
-    with patch('uuid.uuid4', return_value=general_uuid):
+    expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
+    with (
+        patch('uuid.uuid4', return_value=general_uuid),
+        patch('climatoology.app.tasks.datetime', wraps=datetime.datetime) as dt_mock,
+    ):
+        dt_mock.now.return_value = datetime.datetime(day=1, month=1, year=2025)
         computed_result = default_computation_task.run(
             aoi=default_aoi_feature_pure_dict,
-            params={'id': 1, 'name': 'test'},
+            params={'id': 1, 'name': 'John Doe'},
         )
-    expected_result = [default_artifact.model_dump(mode='json')]
 
-    assert computed_result == expected_result
+    assert computed_result == expected_computation_info
     default_computation_task.update_state.assert_called_once_with(task_id=general_uuid, state='STARTED')
 
 
@@ -70,25 +75,30 @@ def test_computation_task_run_must_return_results(
 
 def test_computation_task_run_forward_input(
     default_computation_task,
-    default_artifact,
+    default_computation_info,
     general_uuid,
     default_aoi_feature_pure_dict,
     default_aoi_properties,
     default_aoi_geom_shapely,
+    backend_with_computation,
 ):
+    expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
+
     compute_unsafe_mock = Mock(side_effect=default_computation_task.operator.compute_unsafe)
     default_computation_task.operator.compute_unsafe = compute_unsafe_mock
 
-    method_input_params = {'id': 1, 'name': 'test'}
+    method_input_params = {'id': 1, 'name': 'John Doe'}
     method_input_params_obj = default_computation_task.operator._model(**method_input_params)
 
-    with patch('uuid.uuid4', return_value=general_uuid):
+    with (
+        patch('uuid.uuid4', return_value=general_uuid),
+        patch('climatoology.app.tasks.datetime', wraps=datetime.datetime) as dt_mock,
+    ):
+        dt_mock.now.return_value = datetime.datetime(day=1, month=1, year=2025)
         computed_result = default_computation_task.run(
             aoi=default_aoi_feature_pure_dict,
             params=method_input_params,
         )
-
-    expected_result = [default_artifact.model_dump(mode='json')]
 
     compute_unsafe_mock.assert_called_once_with(
         resources=ANY,
@@ -97,11 +107,15 @@ def test_computation_task_run_forward_input(
         params=method_input_params_obj,
     )
     assert get_srid(compute_unsafe_mock.mock_calls[0].kwargs.get('aoi')) == 4326
-    assert computed_result == expected_result
+    assert computed_result == expected_computation_info
 
 
 def test_computation_task_run_input_validated(
-    default_computation_task, default_aoi_feature_pure_dict, default_aoi_geom_shapely, default_aoi_properties
+    default_computation_task,
+    default_aoi_feature_pure_dict,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+    backend_with_computation,
 ):
     compute_unsafe_mock = Mock(side_effect=default_computation_task.operator.compute_unsafe)
     default_computation_task.operator.compute_unsafe = compute_unsafe_mock
@@ -119,42 +133,6 @@ def test_computation_task_run_input_validated(
         aoi_properties=default_aoi_properties,
         params=default_computation_task.operator._model(id=99, name='John Doe'),
     )
-
-
-def test_computation_task_run_saves_metadata_with_full_params(
-    default_computation_task,
-    general_uuid,
-    default_aoi_feature_geojson_pydantic,
-    default_aoi_feature_pure_dict,
-    default_artifact,
-):
-    expected_computation_info = ComputationInfo(
-        correlation_uuid=general_uuid,
-        timestamp=datetime.datetime(day=1, month=1, year=2021),
-        params={'id': 1, 'name': 'John Doe'},
-        aoi=default_aoi_feature_geojson_pydantic,
-        artifacts=[default_artifact],
-        plugin_info=PluginBaseInfo(plugin_id='test_plugin', plugin_version='3.1.0'),
-        status=ComputationState.SUCCESS,
-    )
-
-    save_metadata_mock = Mock(side_effect=default_computation_task._save_computation_info)
-    default_computation_task._save_computation_info = save_metadata_mock
-
-    method_input_params = {'id': 1}
-
-    with (
-        patch('uuid.uuid4', return_value=general_uuid),
-        patch('climatoology.app.tasks.datetime.datetime', wraps=datetime.datetime) as dt_mock,
-    ):
-        dt_mock.now.return_value = datetime.datetime(day=1, month=1, year=2021)
-
-        _ = default_computation_task.run(
-            aoi=default_aoi_feature_pure_dict,
-            params=method_input_params,
-        )
-
-        save_metadata_mock.assert_called_once_with(computation_info=expected_computation_info)
 
 
 def test_save_computation_info(
