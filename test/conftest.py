@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, HttpUrl
 from semver import Version
 from shapely import set_srid
 from pytest_postgresql.janitor import DatabaseJanitor
+from sqlalchemy import create_engine, text
 
 import climatoology
 from climatoology.app.platform import CeleryPlatform
@@ -249,7 +250,7 @@ def default_computation_info(
     return ComputationInfo(
         correlation_uuid=general_uuid,
         timestamp=datetime.fromisoformat('2025-01-01'),
-        params=dict(),
+        params={'id': 1, 'name': 'John Doe'},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=default_info.version),
@@ -337,4 +338,20 @@ def default_backend_db(request) -> BackendDatabase:
         postgresql = request.getfixturevalue('postgresql')
         connection_string = f'postgresql+psycopg2://{postgresql.info.user}:{postgresql.info.password}@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
 
+    with create_engine(connection_string).connect() as con:
+        con.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
+        con.commit()
     return BackendDatabase(connection_string=connection_string)
+
+
+@pytest.fixture
+def backend_with_computation(default_backend_db, default_computation_info, default_info_final) -> BackendDatabase:
+    default_backend_db.write_info(info=default_info_final)
+    default_backend_db.register_computation(
+        correlation_uuid=default_computation_info.correlation_uuid,
+        params=default_computation_info.params,
+        aoi=default_computation_info.aoi,
+        plugin_id=default_computation_info.plugin_info.plugin_id,
+        plugin_version=default_computation_info.plugin_info.plugin_version,
+    )
+    return default_backend_db

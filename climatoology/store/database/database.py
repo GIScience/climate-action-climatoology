@@ -1,12 +1,29 @@
 import logging
+from datetime import UTC, datetime
+from typing import Optional
+from uuid import UUID
 
+import geoalchemy2
+import geojson_pydantic
 from semver import Version
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, column, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.ddl import CreateSchema
 
+from climatoology.base.baseoperator import AoiProperties
+from climatoology.base.event import ComputationState
 from climatoology.base.info import _Info
-from climatoology.store.database.tables import PluginAuthorTable, InfoTable, Base, author_info_link_table
+from climatoology.store.database.tables import (
+    PluginAuthorTable,
+    InfoTable,
+    Base,
+    author_info_link_table,
+    SCHEMA_NAME,
+    ComputationTable,
+    ArtifactTable,
+)
+from climatoology.store.object_store import ComputationInfo, PluginBaseInfo
 from climatoology.utility.exception import InfoNotReceivedException, VersionMismatchException
 
 log = logging.getLogger(__name__)
@@ -14,7 +31,12 @@ log = logging.getLogger(__name__)
 
 class BackendDatabase:
     def __init__(self, connection_string: str):
-        self.engine = create_engine(connection_string)
+        self.engine = create_engine(connection_string, plugins=['geoalchemy2'])
+
+        with self.engine.connect() as connection:
+            connection.execute(CreateSchema(SCHEMA_NAME, if_not_exists=True))
+            connection.commit()
+
         Base.metadata.create_all(self.engine)
 
     def write_info(self, info: _Info, revert: bool = False) -> str:
@@ -68,8 +90,7 @@ class BackendDatabase:
         log.debug(f'Connecting to the database and reading info for {plugin_id}')
         with Session(self.engine) as session:
             info_query = select(InfoTable).where(InfoTable.plugin_id == plugin_id)
-            result = session.execute(info_query)
-            result_scalars = result.scalars()
+            result_scalars = session.scalars(info_query)
             result = result_scalars.first()
 
             if result:
@@ -79,3 +100,90 @@ class BackendDatabase:
             else:
                 log.error(f'Info for {plugin_id} not available in database')
                 raise InfoNotReceivedException()
+
+    def register_computation(
+        self,
+        correlation_uuid: UUID,
+        params: dict,
+        aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
+        plugin_id: str,
+        plugin_version: Version,
+    ) -> UUID:
+        with Session(self.engine) as session:
+            computation = {
+                'correlation_uuid': correlation_uuid,
+                'timestamp': datetime.now(UTC),
+                'params': params,
+                'aoi_geom': aoi.geometry.wkt,
+                'aoi_name': aoi.properties.name,
+                'aoi_id': aoi.properties.id,
+                'plugin_id': plugin_id,
+                'plugin_version': plugin_version,
+                'status': ComputationState.PENDING,
+                'artifact_errors': {},
+            }
+            computation_insert_stmt = (
+                insert(ComputationTable).values(**computation).returning(column('correlation_uuid'))
+            )
+            insert_return = session.execute(computation_insert_stmt)
+            (db_correlation_uuid,) = insert_return.first()
+            session.commit()
+
+        return db_correlation_uuid
+
+    def read_computation(self, correlation_uuid: UUID) -> Optional[ComputationInfo]:
+        with Session(self.engine) as session:
+            computation_query = select(ComputationTable).where(ComputationTable.correlation_uuid == correlation_uuid)
+            result_scalars = session.scalars(computation_query)
+            result = result_scalars.first()
+
+            if result:
+                result.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+                    **{
+                        'type': 'Feature',
+                        'properties': {'name': result.aoi_name, 'id': result.aoi_id},
+                        'geometry': geoalchemy2.shape.to_shape(result.aoi_geom),
+                    }
+                )
+                result.plugin_info = PluginBaseInfo(
+                    plugin_id=result.plugin_id, plugin_version=str(result.plugin.version)
+                )
+                computation_info = ComputationInfo.model_validate(result)
+                log.debug(f'Computation {correlation_uuid} read from database')
+                return computation_info
+            else:
+                log.warning(f'Correlation {correlation_uuid} does not exist in database')
+                return None
+
+    def update_successful_computation(self, computation_info: ComputationInfo) -> None:
+        artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
+        artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
+
+        computation_update_stmt = (
+            update(ComputationTable)
+            .where(ComputationTable.correlation_uuid == computation_info.correlation_uuid)
+            .values(
+                timestamp=computation_info.timestamp,
+                status=computation_info.status,
+                artifact_errors=computation_info.artifact_errors,
+                message=computation_info.message,
+            )
+        )
+        with Session(self.engine) as session:
+            session.execute(artifact_insert_stmt)
+            session.execute(computation_update_stmt)
+            session.commit()
+
+    def update_failed_computation(self, correlation_uuid: str, failure_message: Optional[str]) -> None:
+        computation_update_stmt = (
+            update(ComputationTable)
+            .where(ComputationTable.correlation_uuid == correlation_uuid)
+            .values(
+                timestamp=datetime.now(UTC),
+                status=ComputationState.FAILURE,
+                message=failure_message,
+            )
+        )
+        with Session(self.engine) as session:
+            session.execute(computation_update_stmt)
+            session.commit()

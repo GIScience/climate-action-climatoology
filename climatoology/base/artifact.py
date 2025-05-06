@@ -4,7 +4,7 @@ import uuid
 from enum import Enum, StrEnum
 from numbers import Number
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Any, Tuple, NewType, Set
+from typing import Optional, Union, List, Dict, Tuple, NewType, Set
 from uuid import UUID
 
 import numpy as np
@@ -28,6 +28,7 @@ from pydantic import (
     confloat,
     field_validator,
     computed_field,
+    ConfigDict,
 )
 from pydantic_extra_types.color import Color
 from rasterio import CRS
@@ -138,8 +139,12 @@ class ArtifactModality(Enum):
     COMPUTATION_INFO = 'COMPUTATION_INFO'
 
 
-class AttachmentType(Enum):
-    LEGEND = 'LEGEND'
+class Attachments(BaseModel):
+    legend: Optional[Legend] = Field(
+        description='The legend attachment.',
+        examples=[Legend(legend_data={'The red object': Color('red')})],
+        default=None,
+    )
 
 
 class _Artifact(BaseModel):
@@ -148,6 +153,8 @@ class _Artifact(BaseModel):
     It should not be instantiated directly. Convenience creation methods for each artifact type are provided. This
     assures format consistency and reduces necessary plugin code changes.
     """
+
+    model_config = ConfigDict(from_attributes=True)
 
     name: str = Field(
         description='A short name for the artifact that could be used as an alias.',
@@ -192,10 +199,10 @@ class _Artifact(BaseModel):
         examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
         default=None,
     )
-    attachments: Dict[AttachmentType, Any] = Field(
+    attachments: Optional[Attachments] = Field(
         description='Additional information or files that are linked to this artifact.',
-        examples=[{AttachmentType.LEGEND: Legend(legend_data={'The red object': Color('red')})}],
-        default={},
+        examples=[Attachments(legend=Legend(legend_data={'The red object': Color('red')}))],
+        default=None,
     )
 
 
@@ -571,7 +578,7 @@ def create_geojson_artifact(
         description=description,
         tags=tags,
         primary=primary,
-        attachments={AttachmentType.LEGEND: Legend(legend_data=legend_data)},
+        attachments=Attachments(legend=Legend(legend_data=legend_data)),
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -698,7 +705,7 @@ def create_geotiff_artifact(
         description=description,
         tags=tags,
         primary=primary,
-        attachments={AttachmentType.LEGEND: legend} if legend else {},
+        attachments=Attachments(legend=legend) if legend else None,
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')

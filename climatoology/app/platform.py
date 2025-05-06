@@ -71,7 +71,7 @@ class CeleryPlatform(Platform):
 
         self.storage = CeleryPlatform.construct_storage(settings)
 
-        self.metadata_db = BackendDatabase(connection_string=settings.db_connection_string)
+        self.backend_db = BackendDatabase(connection_string=settings.db_connection_string)
 
     @staticmethod
     def construct_celery_app(settings: CABaseSettings, sender_config: SenderSettings) -> Celery:
@@ -113,7 +113,7 @@ class CeleryPlatform(Platform):
 
         plugin_name = generate_plugin_name(plugin_id)
         try:
-            info_return = self.metadata_db.read_info(plugin_id=plugin_id)
+            info_return = self.backend_db.read_info(plugin_id=plugin_id)
         except InfoNotReceivedException:
             info_return = self.get_info_via_task(correlation_uuid, plugin_name, ttl)
             log.warning(
@@ -157,8 +157,17 @@ class CeleryPlatform(Platform):
     ) -> AsyncResult:
         assert aoi.properties is not None, 'AOI properties are required'
 
-        plugin_name = generate_plugin_name(plugin_id)
+        # Register the task now, before it gets queued
+        plugin_info = self.request_info(plugin_id)
+        _ = self.backend_db.register_computation(
+            plugin_id=plugin_id,
+            plugin_version=plugin_info.version,
+            correlation_uuid=correlation_uuid,
+            params=params,
+            aoi=aoi,
+        )
 
+        plugin_name = generate_plugin_name(plugin_id)
         return self.celery_app.send_task(
             name='compute',
             kwargs={

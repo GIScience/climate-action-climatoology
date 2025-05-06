@@ -1,14 +1,13 @@
-import datetime
 import logging
 import tempfile
 from pathlib import Path
-from typing import List
+from typing import Dict, Tuple
 
 import geojson_pydantic
 import shapely
+from billiard.einfo import ExceptionInfo
 from celery import Task
 from shapely import set_srid
-from sqlalchemy.orm import Session
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
@@ -16,6 +15,7 @@ from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputationState
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, Storage, ComputationInfo, PluginBaseInfo
+from datetime import datetime, UTC
 
 log = logging.getLogger(__name__)
 
@@ -38,18 +38,15 @@ class CAPlatformComputeTask(Task):
 
         log.info(f'Compute task for {self.plugin_id} initialised')
 
-    def before_start(self, task_id, args, kwargs):
-        self.sessions[task_id] = Session(self.backend_db.engine)
-        super().before_start(task_id, args, kwargs)
+    def on_failure(self, exc: Exception, task_id: str, args: Tuple, kwargs: Dict, einfo: ExceptionInfo) -> None:
+        self.backend_db.update_failed_computation(correlation_uuid=task_id, failure_message=str(exc))
+        super().on_failure(exc, task_id, args, kwargs, einfo)
 
-    def after_return(self, status, retval, task_id, args, kwargs, einfo):
-        session = self.sessions.pop(task_id)
-        session.close()
-        super().after_return(status, retval, task_id, args, kwargs, einfo)
-
-    @property
-    def session(self):
-        return self.sessions[self.request.id]
+    def on_success(self, retval: dict, task_id: str, args: Tuple, kwargs: Dict):
+        computation_info = ComputationInfo.model_validate(retval)
+        self._save_computation_info(computation_info=computation_info)
+        self.backend_db.update_successful_computation(computation_info=computation_info)
+        super().on_success(retval, task_id, args, kwargs)
 
     def _save_computation_info(self, computation_info: ComputationInfo) -> str:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -69,7 +66,7 @@ class CAPlatformComputeTask(Task):
 
             return self.storage.save(result)
 
-    def run(self, aoi: dict, params: dict) -> List[dict]:
+    def run(self, aoi: dict, params: dict) -> dict:
         correlation_uuid = self.request.correlation_id
         self.update_state(task_id=self.request.correlation_id, state='STARTED')
         log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
@@ -97,7 +94,7 @@ class CAPlatformComputeTask(Task):
 
         computation_info = ComputationInfo(
             correlation_uuid=correlation_uuid,
-            timestamp=datetime.datetime.now(datetime.timezone.utc),
+            timestamp=datetime.now(UTC),
             params=validated_params.model_dump(),
             aoi=aoi,
             artifacts=plugin_artifacts,
@@ -108,8 +105,6 @@ class CAPlatformComputeTask(Task):
             status=ComputationState.SUCCESS,
             artifact_errors=artifact_errors,
         )
-        self._save_computation_info(computation_info=computation_info)
 
         log.debug(f'{correlation_uuid} successfully computed')
-        encoded_result = [artifact.model_dump(mode='json') for artifact in plugin_artifacts]
-        return encoded_result
+        return computation_info.model_dump(mode='json')

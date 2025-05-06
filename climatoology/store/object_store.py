@@ -9,7 +9,7 @@ from uuid import UUID
 
 import geojson_pydantic
 from minio import Minio, S3Error
-from pydantic import BaseModel, conlist
+from pydantic import BaseModel, ConfigDict
 import datetime
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
@@ -25,16 +25,18 @@ class PluginBaseInfo(BaseModel):
     plugin_version: str
 
 
-class ComputationInfo(BaseModel, extra='forbid'):
+class ComputationInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra='forbid')
+
     correlation_uuid: UUID
     timestamp: datetime.datetime
     params: dict
     aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
-    artifacts: conlist(item_type=_Artifact, min_length=1)
+    artifacts: List[_Artifact] = []
     plugin_info: PluginBaseInfo
     status: ComputationState
-    message: Optional[str] = '-'
-    artifact_errors: Optional[dict[str, str]] = {}
+    message: Optional[str] = None
+    artifact_errors: dict[str, str] = {}
 
 
 COMPUTATION_INFO_FILENAME: str = 'metadata.json'

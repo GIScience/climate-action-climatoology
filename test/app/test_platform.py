@@ -1,7 +1,10 @@
 import uuid
+
+from climatoology.base.event import ComputationState
+from climatoology.store.object_store import ComputationInfo
 from test.conftest import TestModel
 from typing import List
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import Mock, patch, ANY
 
 import pytest
 import shapely
@@ -100,15 +103,40 @@ def test_send_compute(
     )
 
 
+def test_send_compute_writes_to_backend(
+    default_platform_connection,
+    default_aoi_feature_geojson_pydantic,
+    general_uuid,
+    default_computation_info,
+    default_plugin,
+):
+    pre_compute = default_platform_connection.backend_db.read_computation(correlation_uuid=general_uuid)
+    assert pre_compute is None
+
+    _ = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={},
+        correlation_uuid=general_uuid,
+    )
+
+    stored_computation = default_platform_connection.backend_db.read_computation(correlation_uuid=general_uuid)
+    assert stored_computation.status == ComputationState.PENDING
+
+
 def test_send_compute_produces_result(
     default_platform_connection,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     celery_worker,
     general_uuid,
-    default_artifact,
+    default_computation_info,
     celery_app,
 ):
+    expected_computation_info = default_computation_info.model_copy(deep=True)
+    expected_computation_info.artifacts[0].store_id = ANY
+    expected_computation_info.timestamp = ANY
+
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
@@ -117,11 +145,10 @@ def test_send_compute_produces_result(
     )
 
     assert isinstance(result, AsyncResult)
-    artifacts = result.get(timeout=5)
+    computation_info = result.get(timeout=5)
+    computation_info = ComputationInfo.model_validate(computation_info)
 
-    default_artifact.store_id = ANY
-    artifacts = [_Artifact.model_validate(artifact) for artifact in artifacts]
-    assert artifacts == [default_artifact]
+    assert computation_info == expected_computation_info
 
 
 def test_send_compute_state_receives_input_validation_error(
