@@ -46,6 +46,7 @@ class InfoTable(Base):
     authors: Mapped[List[PluginAuthorTable]] = relationship(secondary=author_info_link_table)
     version: Mapped[Version] = mapped_column(String)
     concerns: Mapped[Set[Concern]] = mapped_column(ARRAY(sqlalchemy.Enum(Concern)))
+    teaser: Mapped[Optional[str]]
     purpose: Mapped[str]
     methodology: Mapped[str]
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)

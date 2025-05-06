@@ -129,3 +129,103 @@ def test_provide_no_demo_params_or_aoi():
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
     )
     assert computed_info.demo_config is None
+
+
+def test_teaser():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='This plugin does nothing.',
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+    )
+    assert computed_info.teaser == 'This plugin does nothing.'
+
+
+def test_short_teaser():
+    with pytest.raises(expected_exception=ValidationError, match=r'String should have at least 20 characters'):
+        generate_plugin_info(
+            name='Test Plugin',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            authors=[
+                PluginAuthor(
+                    name='John Doe',
+                    affiliation='HeiGIT gGmbH',
+                    website=HttpUrl('https://heigit.org/heigit-team/'),
+                )
+            ],
+            version=Version.parse('3.1.0'),
+            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            teaser='This.',
+            purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+            methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        )
+
+
+def test_long_teaser():
+    with pytest.raises(expected_exception=ValidationError, match=r'String should have at most 150 characters'):
+        generate_plugin_info(
+            name='Test Plugin',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            authors=[
+                PluginAuthor(
+                    name='John Doe',
+                    affiliation='HeiGIT gGmbH',
+                    website=HttpUrl('https://heigit.org/heigit-team/'),
+                )
+            ],
+            version=Version.parse('3.1.0'),
+            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
+            purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+            methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        )
+
+
+def test_small_start_teaser():
+    with pytest.raises(expected_exception=ValidationError, match=r'String should match pattern'):
+        _ = generate_plugin_info(
+            name='Test Plugin',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            authors=[
+                PluginAuthor(
+                    name='John Doe',
+                    affiliation='HeiGIT gGmbH',
+                    website=HttpUrl('https://heigit.org/heigit-team/'),
+                )
+            ],
+            version=Version.parse('3.1.0'),
+            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            teaser='this plugin does nothing.',
+            purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+            methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        )
+
+
+def test_no_fullstop_teaser():
+    with pytest.raises(expected_exception=ValidationError, match=r'String should match pattern'):
+        _ = generate_plugin_info(
+            name='Test Plugin',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            authors=[
+                PluginAuthor(
+                    name='John Doe',
+                    affiliation='HeiGIT gGmbH',
+                    website=HttpUrl('https://heigit.org/heigit-team/'),
+                )
+            ],
+            version=Version.parse('3.1.0'),
+            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            teaser='This plugin does nothing',
+            purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+            methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        )

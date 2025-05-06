@@ -9,7 +9,7 @@ from typing import List, Optional, Set
 import bibtexparser
 import geojson_pydantic
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, conlist
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, conlist, constr
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
@@ -101,6 +101,12 @@ class _Info(BaseModel, extra='forbid'):
         description='The domains or topics the plugin is tackling. It can be used as a set of keywords that '
         'group multiple plugins.',
         examples=[{Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION}],
+    )
+    teaser: Optional[constr(strip_whitespace=True, min_length=20, max_length=150, pattern='^[A-Z].*\\.$')] = Field(
+        description='A single sentence teaser for the plugins functionality. The sentence must be between 20 and 150 '
+        'characters long, start with an upper case letter and end with a full stop.',
+        examples=['Calculate your path to become CO2 neutral by 2030.'],
+        default=None,
     )
     purpose: str = Field(
         description='What will this plugin accomplish?',
@@ -203,6 +209,7 @@ def generate_plugin_info(
     concerns: Set[Concern],
     purpose: Path,
     methodology: Path,
+    teaser: str = None,
     demo_input_parameters: T_co = None,
     demo_aoi: Path = None,
     sources: Path = None,
@@ -217,6 +224,8 @@ def generate_plugin_info(
       to the repository and HeiGIT has all legal rights to it (without attribution!).
     :param version: The plugin version. Make sure to adhere to [semantic versioning](https://semver.org/)!
     :param concerns: The domains or topics the plugin is tackling.
+    :param teaser: A single sentence teaser for the plugins' functionality. The sentence must be between 20 and 150
+      characters long, start with an upper case letter and end with a full stop.
     :param purpose: What will this plugin accomplish? Provide a text file that can have
       [markdown](https://www.markdownguide.org/) formatting.
     :param methodology: How does this plugin achieve its goal? Provide a text file that can have
@@ -245,12 +254,16 @@ def generate_plugin_info(
         demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(demo_aoi_path.read_text()))
         demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())
 
+    if teaser is None:
+        log.warning('The teaser attribute of the info method will become mandatory in future release!')
+
     assets = Assets(icon=str(icon))
     return _Info(
         name=name,
         authors=authors,
         version=str(version),
         concerns=concerns,
+        teaser=teaser,
         purpose=purpose.read_text(),
         methodology=methodology.read_text(),
         sources=_convert_bib(sources),
