@@ -11,6 +11,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - computations are now stored in the backend database in a searchable
   manner ([#154](https://gitlab.heigit.org/climate-action/climatoology/-/issues/154))
+- a teaser sentence for plugins can now be specified to be displayed on hover in the
+  front-end ([#162](https://gitlab.heigit.org/climate-action/climatoology/-/issues/162)).
 
 ## [6.3.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.3.1) - 2025-04-28
 
