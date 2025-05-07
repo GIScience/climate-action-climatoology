@@ -183,10 +183,10 @@ class _Info(BaseModel, extra='forbid'):
 
     @model_validator(mode='after')
     def create_id(self) -> '_Info':
-        assert (
-            len(re.findall('[^a-zA-Z- ]', self.name)) == 0
-        ), 'Special characters and numbers are not allowed in the name.'
-        self.plugin_id, _ = re.subn('[- ]', '_', self.name.lower())
+        plugin_id = self.name.lower()
+        plugin_id = re.sub('[^a-zA-Z-\s]', '', plugin_id)
+        plugin_id = re.sub('\s', '_', plugin_id)
+        self.plugin_id = plugin_id
         return self
 
 

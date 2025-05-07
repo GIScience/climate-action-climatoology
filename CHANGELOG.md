@@ -17,6 +17,12 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - a plugin state to transparently show the development state of a plugin to the
   end-user ([#163](https://gitlab.heigit.org/climate-action/climatoology/-/issues/163)).
 
+### Changed
+
+- allow all characters for plugin names. Yet, any non-alphabetical characters are removed from the id meaning that two
+  plugins cannot have e.g. only a number in difference in the mane (e.g. plugin1 and
+  plugin2) ([#169](https://gitlab.heigit.org/climate-action/climatoology/-/issues/169)).
+
 ## [6.3.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.3.1) - 2025-04-28
 
 ### Fixed
