@@ -14,32 +14,6 @@ def test_operator_info(default_info):
     assert Path(default_info.assets.icon).is_file()
 
 
-def test_info_name():
-    with pytest.raises(ValidationError, match=r'Special characters and numbers are not allowed in the name.'):
-        generate_plugin_info(
-            name='Test Plugin With $pecial Charact3ers',
-            authors=[PluginAuthor(name='John Doe')],
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
-            version=Version.parse('3.1.0'),
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
-            methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-            sources=Path(__file__).parent.parent / 'resources/test.bib',
-        )
-
-    info = generate_plugin_info(
-        name='Test-Plugin with spaces',
-        authors=[PluginAuthor(name='John Doe')],
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
-        version=Version.parse('3.1.0'),
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
-        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        sources=Path(__file__).parent.parent / 'resources/test.bib',
-    )
-    assert info.plugin_id == 'test_plugin_with_spaces'
-
-
 def test_info_serialisable(default_info):
     assert default_info.model_dump(mode='json')
 
@@ -48,6 +22,39 @@ def test_info_deserialisable(default_info_final):
     serialised_info = default_info_final.model_dump(mode='json')
     info = _Info(**serialised_info)
     assert info == default_info_final
+
+
+def test_plugin_id():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+    )
+    assert computed_info.plugin_id == 'test_plugin'
+
+
+def test_plugin_id_special_characters():
+    computed_info = generate_plugin_info(
+        name='Test Plugin With $pecial Charact3ers²: CO₂',
+        authors=[PluginAuthor(name='John Doe')],
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        sources=Path(__file__).parent.parent / 'resources/test.bib',
+    )
+    assert computed_info.plugin_id == 'test_plugin_with_pecial_characters_co'
 
 
 def test_sources_are_optional():
