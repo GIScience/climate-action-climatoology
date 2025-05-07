@@ -7,7 +7,7 @@ from geoalchemy2 import Geometry, WKTElement
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
-from sqlalchemy import Table, Column, ForeignKey, String, JSON, MetaData
+from sqlalchemy import Table, Column, ForeignKey, String, JSON, MetaData, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -16,6 +16,7 @@ from climatoology.base.event import ComputationState
 from climatoology.base.info import Concern, DemoConfig, Assets
 
 SCHEMA_NAME = 'ca-base'
+COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'
 
 
 class Base(DeclarativeBase):
@@ -74,6 +75,11 @@ class ArtifactTable(Base):
 
 class ComputationTable(Base):
     __tablename__ = 'computation'
+    __table_args__ = (
+        UniqueConstraint(
+            'params', 'aoi_geom', 'plugin_id', 'plugin_version', name=COMPUTATION_DEDUPLICATION_CONSTRAINT
+        ),
+    )
 
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime.datetime]
@@ -88,3 +94,12 @@ class ComputationTable(Base):
     status: Mapped[ComputationState]
     message: Mapped[Optional[str]]
     artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)
+
+
+class ComputationLookup(Base):
+    __tablename__ = 'computation_lookup'
+
+    user_correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    request_ts: Mapped[datetime.datetime]
+    computation_id: Mapped[UUID] = mapped_column(ForeignKey('computation.correlation_uuid'))
+    computation: Mapped[ComputationTable] = relationship()
