@@ -9,8 +9,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
-- computations are now stored in the backend database in a searchable
-  manner ([#154](https://gitlab.heigit.org/climate-action/climatoology/-/issues/154))
+- computations are now stored and deduplicated in the backend database in a searchable
+  manner ([#154](https://gitlab.heigit.org/climate-action/climatoology/-/issues/154), [#110](https://gitlab.heigit.org/climate-action/climatoology/-/issues/110))
 - a teaser sentence for plugins can now be specified to be displayed on hover in the
   front-end ([#162](https://gitlab.heigit.org/climate-action/climatoology/-/issues/162)).
 - a user agent (application name) to the backand database connection

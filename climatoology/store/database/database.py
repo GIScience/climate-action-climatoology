@@ -8,7 +8,7 @@ import geojson_pydantic
 from semver import Version
 from sqlalchemy import create_engine, select, column, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.ddl import CreateSchema
 
 from climatoology.base.baseoperator import AoiProperties
@@ -22,6 +22,8 @@ from climatoology.store.database.tables import (
     SCHEMA_NAME,
     ComputationTable,
     ArtifactTable,
+    ComputationLookup,
+    COMPUTATION_DEDUPLICATION_CONSTRAINT,
 )
 from climatoology.store.object_store import ComputationInfo, PluginBaseInfo
 from climatoology.utility.exception import InfoNotReceivedException, VersionMismatchException
@@ -112,9 +114,10 @@ class BackendDatabase:
         plugin_version: Version,
     ) -> UUID:
         with Session(self.engine) as session:
+            request_ts = datetime.now(UTC)
             computation = {
                 'correlation_uuid': correlation_uuid,
-                'timestamp': datetime.now(UTC),
+                'timestamp': request_ts,
                 'params': params,
                 'aoi_geom': aoi.geometry.wkt,
                 'aoi_name': aoi.properties.name,
@@ -125,37 +128,62 @@ class BackendDatabase:
                 'artifact_errors': {},
             }
             computation_insert_stmt = (
-                insert(ComputationTable).values(**computation).returning(column('correlation_uuid'))
+                insert(ComputationTable)
+                .values(**computation)
+                .on_conflict_do_update(
+                    constraint=COMPUTATION_DEDUPLICATION_CONSTRAINT,
+                    # this is a hack (with currently irrelevant side effects) due to https://stackoverflow.com/questions/34708509/how-to-use-returning-with-on-conflict-in-postgresql:
+                    set_={'plugin_id': plugin_id},
+                )
+                .returning(column('correlation_uuid'))
             )
             insert_return = session.execute(computation_insert_stmt)
             (db_correlation_uuid,) = insert_return.first()
+
+            lookup_insert_stmt = insert(ComputationLookup).values(
+                user_correlation_uuid=correlation_uuid, request_ts=request_ts, computation_id=db_correlation_uuid
+            )
+            session.execute(lookup_insert_stmt)
             session.commit()
 
         return db_correlation_uuid
 
     def read_computation(self, correlation_uuid: UUID) -> Optional[ComputationInfo]:
         with Session(self.engine) as session:
-            computation_query = select(ComputationTable).where(ComputationTable.correlation_uuid == correlation_uuid)
+            computation_query = (
+                select(ComputationLookup)
+                .where(ComputationLookup.user_correlation_uuid == correlation_uuid)
+                .options(joinedload(ComputationLookup.computation, innerjoin=True))
+            )
             result_scalars = session.scalars(computation_query)
             result = result_scalars.first()
 
             if result:
-                result.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+                computation_info = result.computation
+                computation_info.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
                     **{
                         'type': 'Feature',
-                        'properties': {'name': result.aoi_name, 'id': result.aoi_id},
-                        'geometry': geoalchemy2.shape.to_shape(result.aoi_geom),
+                        'properties': {'name': computation_info.aoi_name, 'id': computation_info.aoi_id},
+                        'geometry': geoalchemy2.shape.to_shape(computation_info.aoi_geom),
                     }
                 )
-                result.plugin_info = PluginBaseInfo(
-                    plugin_id=result.plugin_id, plugin_version=str(result.plugin.version)
+                computation_info.plugin_info = PluginBaseInfo(
+                    plugin_id=computation_info.plugin_id, plugin_version=str(computation_info.plugin.version)
                 )
-                computation_info = ComputationInfo.model_validate(result)
+                computation_info = ComputationInfo.model_validate(computation_info)
                 log.debug(f'Computation {correlation_uuid} read from database')
                 return computation_info
             else:
                 log.warning(f'Correlation {correlation_uuid} does not exist in database')
                 return None
+
+    def resolve_computation_id(self, user_correlation_uuid: UUID) -> UUID:
+        with Session(self.engine) as session:
+            resolve_query = select(ComputationLookup.computation_id).where(
+                ComputationLookup.user_correlation_uuid == user_correlation_uuid
+            )
+            result_scalars = session.scalars(resolve_query)
+            return result_scalars.first()
 
     def update_successful_computation(self, computation_info: ComputationInfo) -> None:
         artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
