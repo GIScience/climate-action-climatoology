@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import List, Set
@@ -68,6 +68,11 @@ def general_uuid() -> uuid.UUID:
 
 
 @pytest.fixture
+def stop_time(time_machine):
+    time_machine.move_to(datetime(2018, 1, 1, 12, tzinfo=UTC), tick=False)
+
+
+@pytest.fixture
 def default_info() -> _Info:
     info = generate_plugin_info(
         name='Test Plugin',
@@ -86,6 +91,7 @@ def default_info() -> _Info:
         sources=Path(__file__).parent / 'resources/test.bib',
         demo_input_parameters=TestModel(id=1),
         demo_aoi=Path(__file__).parent / 'resources/test_aoi.geojson',
+        computation_shelf_life=timedelta(days=1),
     )
     return info
 
@@ -249,8 +255,11 @@ def default_computation_info(
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
-        timestamp=datetime.fromisoformat('2025-01-01'),
+        timestamp=datetime(2018, 1, 1, 12),
+        cache_epoch=17532,
+        valid_until=datetime(2018, 1, 2),
         params={'id': 1, 'name': 'John Doe'},
+        requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=default_info.version),
@@ -345,13 +354,16 @@ def default_backend_db(request) -> BackendDatabase:
 
 
 @pytest.fixture
-def backend_with_computation(default_backend_db, default_computation_info, default_info_final) -> BackendDatabase:
+def backend_with_computation(
+    default_backend_db, default_computation_info, default_info_final, set_basic_envs, stop_time
+) -> BackendDatabase:
     default_backend_db.write_info(info=default_info_final)
     default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
-        params=default_computation_info.params,
+        requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
         plugin_id=default_computation_info.plugin_info.plugin_id,
         plugin_version=default_computation_info.plugin_info.plugin_version,
+        computation_shelf_life=default_info_final.computation_shelf_life,
     )
     return default_backend_db

@@ -1,3 +1,4 @@
+from datetime import timedelta
 import logging
 import uuid
 from abc import ABC, abstractmethod
@@ -74,6 +75,7 @@ class CeleryPlatform(Platform):
         self.backend_db = BackendDatabase(
             connection_string=settings.db_connection_string, user_agent=f'CeleryPlatform/{climatoology.__version__}'
         )
+        self.deduplicate_computations = settings.deduplicate_computations
 
     @staticmethod
     def construct_celery_app(settings: CABaseSettings, sender_config: SenderSettings) -> Celery:
@@ -161,11 +163,13 @@ class CeleryPlatform(Platform):
 
         # Register the task now, before it gets queued
         plugin_info = self.request_info(plugin_id)
+        computation_shelf_life = plugin_info.computation_shelf_life if self.deduplicate_computations else timedelta(0)
         _ = self.backend_db.register_computation(
             plugin_id=plugin_id,
             plugin_version=plugin_info.version,
+            computation_shelf_life=computation_shelf_life,
             correlation_uuid=correlation_uuid,
-            params=params,
+            requested_params=params,
             aoi=aoi,
         )
 
