@@ -1,10 +1,6 @@
 import uuid
-
-from climatoology.base.event import ComputationState
-from climatoology.store.object_store import ComputationInfo
-from test.conftest import TestModel
 from typing import List
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 import shapely
@@ -16,12 +12,15 @@ from climatoology.app.plugin import _create_plugin
 from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
+from climatoology.base.event import ComputationState
 from climatoology.base.info import _Info
+from climatoology.store.object_store import ComputationInfo
 from climatoology.utility.exception import (
     ClimatoologyUserError,
-    VersionMismatchException,
     InputValidationError,
+    VersionMismatchException,
 )
+from test.conftest import TestModel
 
 
 def test_platform_has_storage(default_platform_connection):
@@ -132,15 +131,15 @@ def test_send_compute_produces_result(
     general_uuid,
     default_computation_info,
     celery_app,
+    stop_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
     expected_computation_info.artifacts[0].store_id = ANY
-    expected_computation_info.timestamp = ANY
 
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
-        params={'id': 1, 'name': 'John Doe'},
+        params={'id': 1},
         correlation_uuid=general_uuid,
     )
 
@@ -177,6 +176,30 @@ def test_send_compute_state_receives_input_validation_error(
         str(result.info)
         == 'ID: Input should be a valid integer, unable to parse string as an integer. You provided: test_invalid_id.'
     )
+
+
+def test_send_compute_input_validation_error_is_cached(
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    general_uuid,
+    default_artifact,
+    celery_app,
+    default_backend_db,
+):
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 'test_invalid_id', 'name': 'John Doe'},
+        correlation_uuid=general_uuid,
+    )
+
+    with pytest.raises(InputValidationError):
+        _ = result.get(timeout=5)
+
+    stored_computation_info = default_backend_db.read_computation(general_uuid)
+    assert stored_computation_info.cache_epoch == 0
 
 
 def test_send_compute_state_receives_ClimatoologyUserError(
@@ -222,6 +245,133 @@ def test_send_compute_state_receives_ClimatoologyUserError(
 
     assert result.state == 'FAILURE'
     assert str(result.info) == 'Error message to store for the user'
+
+
+def test_send_compute_ClimatoologyUserError_is_not_cached(
+    default_info,
+    celery_app,
+    celery_worker,
+    default_settings,
+    default_aoi_feature_geojson_pydantic,
+    default_platform_connection,
+    default_backend_db,
+):
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            raise ClimatoologyUserError('Error message to store for the user')
+
+    operator = TestOperator()
+    with (
+        patch('climatoology.app.plugin.Celery', return_value=celery_app),
+        patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db),
+    ):
+        _ = _create_plugin(operator=operator, settings=default_settings)
+        celery_worker.reload()
+
+    correlation_uuid = uuid.uuid4()
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1, 'name': 'John Doe'},
+        correlation_uuid=correlation_uuid,
+    )
+
+    with pytest.raises(ClimatoologyUserError):
+        _ = result.get(timeout=5)
+
+    stored_computation_info = default_backend_db.read_computation(correlation_uuid)
+    assert stored_computation_info.cache_epoch is None
+
+
+def test_send_compute_artifact_errors_invalidate_cache(
+    default_info,
+    default_artifact,
+    celery_app,
+    celery_worker,
+    default_settings,
+    default_aoi_feature_geojson_pydantic,
+    default_platform_connection,
+    default_backend_db,
+):
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> _Info:
+            return default_info.model_copy()
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[_Artifact]:
+            with self.catch_exceptions('failing_indicator', resources):
+                raise ClimatoologyUserError()
+
+            return [default_artifact]
+
+    operator = TestOperator()
+    with (
+        patch('climatoology.app.plugin.Celery', return_value=celery_app),
+        patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db),
+    ):
+        _ = _create_plugin(operator=operator, settings=default_settings)
+        celery_worker.reload()
+
+    correlation_uuid = uuid.uuid4()
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1, 'name': 'John Doe'},
+        correlation_uuid=correlation_uuid,
+    )
+    _ = result.get(timeout=5)
+
+    stored_computation_info = default_backend_db.read_computation(correlation_uuid)
+    assert stored_computation_info.cache_epoch is None
+
+
+def test_send_compute_uses_settings_deduplication_override(
+    monkeypatch,
+    celery_app,
+    mocked_object_store,
+    default_backend_db,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    general_uuid,
+    stop_time,
+):
+    monkeypatch.setenv('deduplicate_computations', 'false')
+    with (
+        patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
+        patch(
+            'climatoology.app.platform.CeleryPlatform.construct_storage',
+            return_value=mocked_object_store['minio_storage'],
+        ),
+        patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
+    ):
+        platform_connection = CeleryPlatform()
+
+    result = platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1},
+        correlation_uuid=general_uuid,
+    )
+
+    computation_info = result.get(timeout=5)
+    computation_info = ComputationInfo.model_validate(computation_info)
+
+    assert computation_info.cache_epoch is None
 
 
 def test_send_compute_reaches_worker(

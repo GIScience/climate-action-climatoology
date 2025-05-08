@@ -53,6 +53,7 @@ class InfoTable(Base):
     methodology: Mapped[str]
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
     demo_config: Mapped[Optional[DemoConfig]] = mapped_column(JSON)
+    computation_shelf_life: Mapped[Optional[datetime.timedelta]]
     assets: Mapped[Assets] = mapped_column(JSON)
     operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
     library_version: Mapped[Version] = mapped_column(String)
@@ -78,13 +79,21 @@ class ComputationTable(Base):
     __tablename__ = 'computation'
     __table_args__ = (
         UniqueConstraint(
-            'params', 'aoi_geom', 'plugin_id', 'plugin_version', name=COMPUTATION_DEDUPLICATION_CONSTRAINT
+            'cache_epoch',
+            'requested_params',
+            'aoi_geom',
+            'plugin_id',
+            'plugin_version',
+            name=COMPUTATION_DEDUPLICATION_CONSTRAINT,
         ),
     )
 
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime.datetime]
-    params: Mapped[dict] = mapped_column(JSONB)
+    cache_epoch: Mapped[Optional[int]]
+    valid_until: Mapped[datetime.datetime]
+    params: Mapped[Optional[dict]] = mapped_column(JSONB)
+    requested_params: Mapped[dict] = mapped_column(JSONB)
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     aoi_name: Mapped[str]
     aoi_id: Mapped[str]

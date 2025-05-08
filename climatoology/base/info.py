@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import re
@@ -149,6 +150,13 @@ class _Info(BaseModel, extra='forbid'):
     demo_config: Optional[DemoConfig] = Field(
         description='Configuration to run a demonstration of a plugin.', default=None
     )
+    computation_shelf_life: Optional[datetime.timedelta] = Field(
+        description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
+        'of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of 0 means '
+        'no caching while None means indefinite caching.',
+        examples=[datetime.timedelta(weeks=4)],
+        default=datetime.timedelta(0),
+    )
     assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.jpeg')])
     plugin_id: Optional[str] = Field(
         description='A cleaned plugin name.',
@@ -222,6 +230,7 @@ def generate_plugin_info(
     purpose: Path,
     methodology: Path,
     state: PluginState = PluginState.ACTIVE,
+    computation_shelf_life: datetime.timedelta = datetime.timedelta(0),
     teaser: str = None,
     demo_input_parameters: T_co = None,
     demo_aoi: Path = None,
@@ -244,6 +253,9 @@ def generate_plugin_info(
       [markdown](https://www.markdownguide.org/) formatting.
     :param methodology: How does this plugin achieve its goal? Provide a text file that can have
       [markdown](https://www.markdownguide.org/) formatting.
+    :param computation_shelf_life: How long are computations valid (at most). Computations will be valid within a fixed
+      time frame of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of
+      0 means no caching while None means indefinite caching.
     :param demo_input_parameters: An instance of the input parameters for the demo computation. It is currently
       optional, but if not provided, users will be unable to view a demo and therefore will have to log in to the
       platform to try the plugin. It will be required in a future release.
@@ -284,4 +296,5 @@ def generate_plugin_info(
         sources=_convert_bib(sources),
         assets=assets,
         demo_config=demo_config,
+        computation_shelf_life=computation_shelf_life,
     )

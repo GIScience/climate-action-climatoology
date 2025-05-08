@@ -29,6 +29,7 @@ class CABaseSettings(BaseSettings):
     postgres_database: str
 
     overwrite_assets: bool = False
+    deduplicate_computations: bool = True
 
     model_config = SettingsConfigDict(env_file='.env.base')
 

@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -108,17 +108,31 @@ class BackendDatabase:
     def register_computation(
         self,
         correlation_uuid: UUID,
-        params: dict,
+        requested_params: dict,
         aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
         plugin_id: str,
         plugin_version: Version,
+        computation_shelf_life: Optional[timedelta],
     ) -> UUID:
         with Session(self.engine) as session:
-            request_ts = datetime.now(UTC)
+            request_ts = datetime.now(UTC).replace(tzinfo=None)
+            if computation_shelf_life is None:  # cache forever
+                cache_epoch = 0
+                valid_until = datetime.max
+            elif computation_shelf_life == timedelta(0):  # don't cache
+                cache_epoch = None
+                valid_until = request_ts
+            else:
+                unix_time_zero = datetime.fromtimestamp(0, tz=UTC).replace(tzinfo=None)
+                cache_epoch = (request_ts - unix_time_zero) // computation_shelf_life
+                valid_until = unix_time_zero + (cache_epoch + 1) * computation_shelf_life
+
             computation = {
                 'correlation_uuid': correlation_uuid,
                 'timestamp': request_ts,
-                'params': params,
+                'cache_epoch': cache_epoch,
+                'valid_until': valid_until,
+                'requested_params': requested_params,
                 'aoi_geom': aoi.geometry.wkt,
                 'aoi_name': aoi.properties.name,
                 'aoi_id': aoi.properties.id,
@@ -185,31 +199,47 @@ class BackendDatabase:
             result_scalars = session.scalars(resolve_query)
             return result_scalars.first()
 
-    def update_successful_computation(self, computation_info: ComputationInfo) -> None:
+    def add_validated_params(self, correlation_uuid: UUID, params: dict) -> None:
+        computation_update_stmt = (
+            update(ComputationTable).where(ComputationTable.correlation_uuid == correlation_uuid).values(params=params)
+        )
+        with Session(self.engine) as session:
+            session.execute(computation_update_stmt)
+            session.commit()
+
+    def update_successful_computation(self, computation_info: ComputationInfo, invalidate_cache: bool = False) -> None:
+        updated_values = dict(
+            timestamp=computation_info.timestamp,
+            status=computation_info.status,
+            artifact_errors=computation_info.artifact_errors,
+            message=computation_info.message,
+        )
+        if invalidate_cache:
+            updated_values['cache_epoch'] = None
+            updated_values['valid_until'] = computation_info.timestamp
+
         artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
         artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
 
         computation_update_stmt = (
             update(ComputationTable)
             .where(ComputationTable.correlation_uuid == computation_info.correlation_uuid)
-            .values(
-                timestamp=computation_info.timestamp,
-                status=computation_info.status,
-                artifact_errors=computation_info.artifact_errors,
-                message=computation_info.message,
-            )
+            .values(updated_values)
         )
         with Session(self.engine) as session:
             session.execute(artifact_insert_stmt)
             session.execute(computation_update_stmt)
             session.commit()
 
-    def update_failed_computation(self, correlation_uuid: str, failure_message: Optional[str]) -> None:
+    def update_failed_computation(self, correlation_uuid: str, failure_message: Optional[str], cache: bool) -> None:
+        timestamp = datetime.now(UTC).replace(tzinfo=None)
         computation_update_stmt = (
             update(ComputationTable)
             .where(ComputationTable.correlation_uuid == correlation_uuid)
             .values(
-                timestamp=datetime.now(UTC),
+                timestamp=timestamp,
+                cache_epoch=0 if cache else None,
+                valid_until=datetime.max if cache else timestamp,
                 status=ComputationState.FAILURE,
                 message=failure_message,
             )

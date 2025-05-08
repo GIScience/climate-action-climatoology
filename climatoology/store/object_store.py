@@ -30,7 +30,10 @@ class ComputationInfo(BaseModel):
 
     correlation_uuid: UUID
     timestamp: datetime.datetime
-    params: dict
+    cache_epoch: Optional[int]
+    valid_until: datetime.datetime
+    params: Optional[dict]
+    requested_params: dict
     aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
     artifacts: List[_Artifact] = []
     plugin_info: PluginBaseInfo
