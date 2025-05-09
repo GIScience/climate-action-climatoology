@@ -36,12 +36,12 @@ psycopg2-binary = "^2.9.10"
 sqlalchemy = "^2.0.40"
 geoalchemy2 = "^0.17.1"
 plotly = "^6.0.0"
-time-machine = "^2.16.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
 pytest-mock = "^3.14.0"
 pytest-postgresql = "^7.0.1"
+time-machine = "^2.16.0"
 responses = "^0.25.3"
 
 [tool.poetry.group.dev.dependencies]
