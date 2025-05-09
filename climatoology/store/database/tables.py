@@ -7,7 +7,7 @@ from geoalchemy2 import Geometry, WKTElement
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
-from sqlalchemy import Table, Column, ForeignKey, String, JSON, MetaData, UniqueConstraint
+from sqlalchemy import Table, Column, ForeignKey, String, JSON, MetaData, UniqueConstraint, Computed
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -79,17 +79,17 @@ class ComputationTable(Base):
     __tablename__ = 'computation'
     __table_args__ = (
         UniqueConstraint(
+            'deduplication_key',  # using an md5 hash creates the possibility for cash collisions but raw columns will exceed the cache entry size
             'cache_epoch',
-            'requested_params',
-            'aoi_geom',
-            'plugin_id',
-            'plugin_version',
             name=COMPUTATION_DEDUPLICATION_CONSTRAINT,
         ),
     )
 
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime.datetime]
+    deduplication_key: Mapped[UUID] = mapped_column(
+        Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id||plugin_version)::uuid')
+    )
     cache_epoch: Mapped[Optional[int]]
     valid_until: Mapped[datetime.datetime]
     params: Mapped[Optional[dict]] = mapped_column(JSONB)

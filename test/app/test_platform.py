@@ -7,7 +7,7 @@ import shapely
 from celery.result import AsyncResult
 from semver import Version
 
-from climatoology.app.platform import CeleryPlatform
+from climatoology.app.platform import CacheOverrides, CeleryPlatform
 from climatoology.app.plugin import _create_plugin
 from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
@@ -148,6 +148,63 @@ def test_send_compute_produces_result(
     computation_info = ComputationInfo.model_validate(computation_info)
 
     assert computation_info == expected_computation_info
+
+
+def test_send_compute_unless_deduplicated(
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    default_computation_info,
+    celery_app,
+    stop_time,
+):
+    first_correlation_uuid = uuid.uuid4()
+    second_correlation_uuid = uuid.uuid4()
+
+    _ = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1},
+        correlation_uuid=first_correlation_uuid,
+    )
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1},
+        correlation_uuid=second_correlation_uuid,
+    )
+
+    assert isinstance(result, AsyncResult)
+    computation_info = result.get(timeout=5)
+
+    computation_info = ComputationInfo.model_validate(computation_info)
+    assert (
+        computation_info.correlation_uuid == first_correlation_uuid
+    )  # TODO: this may be confusing to receive a different ID from what was provided
+
+
+def test_send_compute_with_cache_override(
+    default_platform_connection,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    general_uuid,
+    celery_app,
+    stop_time,
+):
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1},
+        correlation_uuid=general_uuid,
+        override_shelf_life=CacheOverrides.FOREVER,
+    )
+
+    computation_info = result.get(timeout=5)
+    computation_info = ComputationInfo.model_validate(computation_info)
+
+    assert computation_info.cache_epoch == 0
 
 
 def test_send_compute_state_receives_input_validation_error(
