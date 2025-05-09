@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.3.1...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.0...main)
+
+## [6.4.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.0) - 2025-05-09
 
 ### Added
 
@@ -15,7 +17,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   [#157](https://gitlab.heigit.org/climate-action/climatoology/-/issues/157))
 - a teaser sentence for plugins can now be specified to be displayed on hover in the
   front-end ([#162](https://gitlab.heigit.org/climate-action/climatoology/-/issues/162)).
-- a user agent (application name) to the backand database connection
+- a user agent (application name) to the backend database connection
 - a plugin state to transparently show the development state of a plugin to the
   end-user ([#163](https://gitlab.heigit.org/climate-action/climatoology/-/issues/163)).
 
