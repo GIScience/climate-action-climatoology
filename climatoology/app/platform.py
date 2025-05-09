@@ -1,8 +1,9 @@
-from datetime import timedelta
+from enum import StrEnum
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Set
+from datetime import timedelta
+from typing import Optional, Set
 from uuid import UUID
 
 import geojson_pydantic
@@ -19,9 +20,14 @@ from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import MinioStorage, Storage
-from climatoology.utility.exception import VersionMismatchException, InfoNotReceivedException
+from climatoology.utility.exception import InfoNotReceivedException, VersionMismatchException
 
 log = logging.getLogger(__name__)
+
+
+class CacheOverrides(StrEnum):
+    FOREVER = 'forever-cache'
+    NEVER = 'no-cache'
 
 
 class Platform(ABC):
@@ -158,13 +164,24 @@ class CeleryPlatform(Platform):
         aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
         params: dict,
         correlation_uuid: UUID,
+        override_shelf_life: Optional[CacheOverrides] = None,
     ) -> AsyncResult:
         assert aoi.properties is not None, 'AOI properties are required'
 
-        # Register the task now, before it gets queued
         plugin_info = self.request_info(plugin_id)
-        computation_shelf_life = plugin_info.computation_shelf_life if self.deduplicate_computations else timedelta(0)
-        _ = self.backend_db.register_computation(
+
+        match override_shelf_life:
+            case CacheOverrides.FOREVER:
+                computation_shelf_life = None
+            case CacheOverrides.NEVER:
+                computation_shelf_life = timedelta(0)
+            case _:
+                computation_shelf_life = (
+                    plugin_info.computation_shelf_life if self.deduplicate_computations else timedelta(0)
+                )
+
+        # Register the task now, before it gets queued
+        deduplicated_correlation_uuid = self.backend_db.register_computation(
             plugin_id=plugin_id,
             plugin_version=plugin_info.version,
             computation_shelf_life=computation_shelf_life,
@@ -173,17 +190,23 @@ class CeleryPlatform(Platform):
             aoi=aoi,
         )
 
-        plugin_name = generate_plugin_name(plugin_id)
-        return self.celery_app.send_task(
-            name='compute',
-            kwargs={
-                'aoi': aoi.model_dump(mode='json'),
-                'params': params,
-            },
-            task_id=str(correlation_uuid),
-            routing_key=plugin_name,
-            exchange='C.dq2',
-        )
+        if deduplicated_correlation_uuid == correlation_uuid:
+            plugin_name = generate_plugin_name(plugin_id)
+            return self.celery_app.send_task(
+                name='compute',
+                kwargs={
+                    'aoi': aoi.model_dump(mode='json'),
+                    'params': params,
+                },
+                task_id=str(correlation_uuid),
+                routing_key=plugin_name,
+                exchange='C.dq2',
+            )
+        else:
+            log.info(
+                f'Computation request {correlation_uuid} is deduplicated with computation {deduplicated_correlation_uuid}'
+            )
+            return AsyncResult(id=str(deduplicated_correlation_uuid), app=self.celery_app)
 
     @staticmethod
     def _extract_plugin_id(plugin_id_with_suffix: str) -> str:

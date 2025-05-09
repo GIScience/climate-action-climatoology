@@ -256,6 +256,7 @@ def default_computation_info(
     return ComputationInfo(
         correlation_uuid=general_uuid,
         timestamp=datetime(2018, 1, 1, 12),
+        deduplication_key=uuid.UUID('397e25df-3445-42a1-7e49-03466b3be5ca'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
         params={'id': 1, 'name': 'John Doe'},

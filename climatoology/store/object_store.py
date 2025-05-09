@@ -28,8 +28,9 @@ class PluginBaseInfo(BaseModel):
 class ComputationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
-    correlation_uuid: UUID
+    correlation_uuid: UUID  # TODO: add fields here
     timestamp: datetime.datetime
+    deduplication_key: UUID
     cache_epoch: Optional[int]
     valid_until: datetime.datetime
     params: Optional[dict]
