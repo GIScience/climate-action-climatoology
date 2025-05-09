@@ -15,7 +15,7 @@ from climatoology.base.artifact import ArtifactModality, Attachments
 from climatoology.base.event import ComputationState
 from climatoology.base.info import Concern, DemoConfig, Assets, PluginState
 
-SCHEMA_NAME = 'ca-base'
+SCHEMA_NAME = 'ca_base'
 COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'
 
 
