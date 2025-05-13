@@ -4,6 +4,7 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 import shapely
+from celery.exceptions import TaskRevokedError
 from celery.result import AsyncResult
 from semver import Version
 
@@ -99,6 +100,8 @@ def test_send_compute(
         task_id=str(general_uuid),
         routing_key='test_plugin@_',
         exchange='C.dq2',
+        time_limit=None,
+        expires=None,
     )
 
 
@@ -451,6 +454,56 @@ def test_send_compute_reaches_worker(
 
     _ = result.get(timeout=5)
     assert celery_worker.stats()['total'].get('compute') == (previous_computations + 1)
+
+
+def test_send_compute_max_q_time(
+    mocked_object_store,
+    default_backend_db,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    general_uuid,
+    stop_time,
+    default_platform_connection,
+):
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1},
+        correlation_uuid=general_uuid,
+        q_time=-1,
+    )
+
+    with pytest.raises(TaskRevokedError):
+        _ = result.get(timeout=5)
+
+    # check db
+    computation_info = default_backend_db.read_computation(general_uuid)
+    assert computation_info.status == ComputationState.REVOKED
+    assert computation_info.cache_epoch is None
+
+
+@pytest.mark.skip(reason='TODO: test if the task time limit can also be sent via the platform')
+def test_send_compute_time_limit(
+    mocked_object_store,
+    default_backend_db,
+    default_plugin,
+    default_aoi_feature_geojson_pydantic,
+    celery_worker,
+    general_uuid,
+    stop_time,
+    default_platform_connection,
+):
+    result = default_platform_connection.send_compute_request(
+        plugin_id='test_plugin',
+        aoi=default_aoi_feature_geojson_pydantic,
+        params={'id': 1},
+        correlation_uuid=general_uuid,
+        task_time_limit=1.0,
+    )
+
+    # with pytest.raises(TaskRevokedError):
+    _ = result.get(timeout=5)
 
 
 def test_extract_plugin_id():

@@ -8,6 +8,7 @@ import shapely
 from billiard.einfo import ExceptionInfo
 from celery import Task
 from shapely import set_srid
+from celery.signals import task_revoked
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
@@ -109,3 +110,12 @@ class CAPlatformComputeTask(Task):
 
         log.debug(f'{correlation_uuid} successfully computed')
         return computation_info.model_dump(mode='json')
+
+
+@task_revoked.connect
+def record_task_revoked(**kwargs):
+    correlation_uuid = kwargs['request'].id
+    sender = kwargs['sender']
+    sender.backend_db.update_failed_computation(
+        correlation_uuid=correlation_uuid, failure_message=None, cache=False, status=ComputationState.REVOKED
+    )
