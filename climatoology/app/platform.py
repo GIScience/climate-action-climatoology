@@ -165,6 +165,8 @@ class CeleryPlatform(Platform):
         params: dict,
         correlation_uuid: UUID,
         override_shelf_life: Optional[CacheOverrides] = None,
+        task_time_limit: float = None,
+        q_time: float = None,
     ) -> AsyncResult:
         assert aoi.properties is not None, 'AOI properties are required'
 
@@ -201,6 +203,8 @@ class CeleryPlatform(Platform):
                 task_id=str(correlation_uuid),
                 routing_key=plugin_name,
                 exchange='C.dq2',
+                time_limit=task_time_limit,
+                expires=q_time,
             )
         else:
             log.info(

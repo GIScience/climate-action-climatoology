@@ -7,6 +7,13 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.0...main)
 
+## [6.4.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.1) - 2025-05-13
+
+### Added
+
+- the platform now has the ability to set a Q-time for tasks as well as a time limit that overwrites the
+  time limit set in the worker configuration.
+
 ## [6.4.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.0) - 2025-05-09
 
 ### Added
