@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.0...main)
 
+### Added
+
+- store extended result information in the celery table of the backend database
+
 ## [6.4.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.1) - 2025-05-13
 
 ### Added

@@ -54,6 +54,7 @@ class WorkerSettings(BaseSettings):
     task_time_limit: int = timedelta(hours=0.5).total_seconds()
     task_track_started: bool = True
     result_expires: Optional[int] = None
+    result_extended: bool = True
 
     model_config = SettingsConfigDict(env_file='.env.worker')
 
