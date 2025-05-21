@@ -191,7 +191,7 @@ class BackendDatabase:
                 log.warning(f'Correlation {correlation_uuid} does not exist in database')
                 return None
 
-    def resolve_computation_id(self, user_correlation_uuid: UUID) -> UUID:
+    def resolve_computation_id(self, user_correlation_uuid: UUID) -> Optional[UUID]:
         with Session(self.engine) as session:
             resolve_query = select(ComputationLookup.computation_id).where(
                 ComputationLookup.user_correlation_uuid == user_correlation_uuid
