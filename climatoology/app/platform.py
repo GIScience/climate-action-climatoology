@@ -168,6 +168,10 @@ class CeleryPlatform(Platform):
         task_time_limit: float = None,
         q_time: float = None,
     ) -> AsyncResult:
+        # Warning: task_time_limit is currently untested in the automated testing suite due to testing configuration
+        # issues. It was interactively tested at the time of implementation. Note that time limits requires the gevent
+        # or prefork pool: https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits
+
         assert aoi.properties is not None, 'AOI properties are required'
 
         plugin_info = self.request_info(plugin_id)
