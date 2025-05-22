@@ -96,7 +96,7 @@ def test_provide_demo_params_and_aoi(default_aoi_feature_geojson_pydantic):
         demo_aoi=Path(__file__).parent.parent / 'resources/test_aoi.geojson',
     )
     assert computed_info.demo_config == DemoConfig(
-        params={'id': 1, 'name': 'John Doe'}, aoi=default_aoi_feature_geojson_pydantic.geometry
+        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}, aoi=default_aoi_feature_geojson_pydantic.geometry
     )
 
 

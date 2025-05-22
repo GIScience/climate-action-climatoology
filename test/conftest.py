@@ -5,6 +5,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import List, Set
 from unittest.mock import Mock, patch
+import time
 
 import geojson_pydantic
 import pytest
@@ -110,6 +111,13 @@ def default_info_enriched(default_info) -> _Info:
                 'title': 'Name',
                 'type': 'string',
             },
+            'execution_time': {
+                'default': 0.0,
+                'description': 'The time for the compute to run (in seconds)',
+                'examples': [10.0],
+                'title': 'Execution time',
+                'type': 'number',
+            },
         },
         'required': ['id'],
         'title': 'TestModel',
@@ -143,6 +151,12 @@ class TestModel(BaseModel):
     name: str = Field(
         title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
     )
+    execution_time: float = Field(
+        title='Execution time',
+        description='The time for the compute to run (in seconds)',
+        examples=[10.0],
+        default=0.0,
+    )
 
 
 @pytest.fixture
@@ -163,6 +177,7 @@ def default_operator(default_info, default_artifact) -> BaseOperator:
             aoi_properties: AoiProperties,
             params: TestModel,
         ) -> List[_Artifact]:
+            time.sleep(params.execution_time)
             return [default_artifact]
 
     return TestOperator()
@@ -259,7 +274,7 @@ def default_computation_info(
         deduplication_key=uuid.UUID('397e25df-3445-42a1-7e49-03466b3be5ca'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
-        params={'id': 1, 'name': 'John Doe'},
+        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
@@ -298,7 +313,7 @@ def default_platform_connection(celery_app, mocked_object_store, set_basic_envs,
 
 @pytest.fixture
 def celery_config():
-    return {'worker_direct': True}
+    return {'worker_direct': True, 'worker_concurrency': 1}
 
 
 @pytest.fixture
