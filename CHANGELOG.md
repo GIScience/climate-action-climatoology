@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.0...main)
 
+### Fixed
+
+- make the AOI name and ID a request specific attribute instead of a computation attribute to allow user-defined names
+  for the same AOI ([#183](https://gitlab.heigit.org/climate-action/climatoology/-/issues/183))
+
 ### Added
 
 - store extended result information in the celery table of the backend database

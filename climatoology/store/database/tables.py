@@ -95,8 +95,6 @@ class ComputationTable(Base):
     params: Mapped[Optional[dict]] = mapped_column(JSONB)
     requested_params: Mapped[dict] = mapped_column(JSONB)
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
-    aoi_name: Mapped[str]
-    aoi_id: Mapped[str]
     artifacts: Mapped[List[ArtifactTable]] = relationship()
     plugin_id: Mapped[str] = mapped_column(ForeignKey('info.plugin_id'))
     plugin_version: Mapped[Version] = mapped_column(String)
@@ -111,5 +109,7 @@ class ComputationLookup(Base):
 
     user_correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
     request_ts: Mapped[datetime.datetime]
+    aoi_name: Mapped[str]
+    aoi_id: Mapped[str]
     computation_id: Mapped[UUID] = mapped_column(ForeignKey('computation.correlation_uuid'))
     computation: Mapped[ComputationTable] = relationship()
