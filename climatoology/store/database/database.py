@@ -134,8 +134,6 @@ class BackendDatabase:
                 'valid_until': valid_until,
                 'requested_params': requested_params,
                 'aoi_geom': aoi.geometry.wkt,
-                'aoi_name': aoi.properties.name,
-                'aoi_id': aoi.properties.id,
                 'plugin_id': plugin_id,
                 'plugin_version': plugin_version,
                 'status': ComputationState.PENDING,
@@ -155,7 +153,11 @@ class BackendDatabase:
             (db_correlation_uuid,) = insert_return.first()
 
             lookup_insert_stmt = insert(ComputationLookup).values(
-                user_correlation_uuid=correlation_uuid, request_ts=request_ts, computation_id=db_correlation_uuid
+                user_correlation_uuid=correlation_uuid,
+                request_ts=request_ts,
+                computation_id=db_correlation_uuid,
+                aoi_name=aoi.properties.name,
+                aoi_id=aoi.properties.id,
             )
             session.execute(lookup_insert_stmt)
             session.commit()
@@ -177,7 +179,7 @@ class BackendDatabase:
                 computation_info.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
                     **{
                         'type': 'Feature',
-                        'properties': {'name': computation_info.aoi_name, 'id': computation_info.aoi_id},
+                        'properties': {'name': result.aoi_name, 'id': result.aoi_id},
                         'geometry': geoalchemy2.shape.to_shape(computation_info.aoi_geom),
                     }
                 )
