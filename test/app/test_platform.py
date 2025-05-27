@@ -507,8 +507,3 @@ def test_send_compute_expires_in_queue(
     computation_info = default_backend_db.read_computation(general_uuid)
     assert computation_info.status == ComputationState.REVOKED
     assert computation_info.cache_epoch is None
-
-
-def test_extract_plugin_id():
-    computed_plugin_id = CeleryPlatform._extract_plugin_id('a@b')
-    assert computed_plugin_id == 'a'

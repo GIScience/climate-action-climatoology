@@ -11,6 +11,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - make the AOI name and ID a request specific attribute instead of a computation attribute to allow user-defined names
   for the same AOI ([#183](https://gitlab.heigit.org/climate-action/climatoology/-/issues/183))
+- make sure the icon and info are always overwritten and represent the platform state ([#178](https://gitlab.heigit.org/climate-action/climatoology/-/issues/178)).
 
 ### Added
 

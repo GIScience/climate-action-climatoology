@@ -14,7 +14,7 @@ from semver import Version
 from typing_extensions import deprecated
 
 import climatoology
-from climatoology.app.plugin import generate_plugin_name
+from climatoology.app.plugin import extract_plugin_id, generate_plugin_name
 from climatoology.app.settings import CABaseSettings, SenderSettings
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
@@ -111,7 +111,7 @@ class CeleryPlatform(Platform):
         :return: List of plugin ids
         """
         available_tasks = self.celery_app.control.inspect().registered() or dict()
-        plugins = {CeleryPlatform._extract_plugin_id(k) for k, v in available_tasks.items() if 'compute' in v}
+        plugins = {extract_plugin_id(k) for k, v in available_tasks.items() if 'compute' in v}
 
         log.debug(f'Active plugins: {plugins}.')
 
@@ -215,7 +215,3 @@ class CeleryPlatform(Platform):
                 f'Computation request {correlation_uuid} is deduplicated with computation {deduplicated_correlation_uuid}'
             )
             return AsyncResult(id=str(deduplicated_correlation_uuid), app=self.celery_app)
-
-    @staticmethod
-    def _extract_plugin_id(plugin_id_with_suffix: str) -> str:
-        return plugin_id_with_suffix.split('@')[0]

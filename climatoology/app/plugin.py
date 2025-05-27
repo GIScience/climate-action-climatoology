@@ -1,6 +1,9 @@
+import logging
 from typing import Optional
 
 from celery import Celery
+from semver import Version
+from sqlalchemy.orm import Session
 
 import climatoology
 from climatoology.app.settings import CELERY_HOST_PLACEHOLDER, CABaseSettings, WorkerSettings
@@ -8,7 +11,11 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.info import _Info
 from climatoology.store.database.database import BackendDatabase
+from climatoology.store.database.tables import InfoTable
 from climatoology.store.object_store import MinioStorage, Storage
+from climatoology.utility.exception import VersionMismatchException
+
+log = logging.getLogger(__name__)
 
 
 def start_plugin(operator: BaseOperator) -> Optional[int]:
@@ -36,6 +43,15 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         backend=settings.backend_connection_string,
     )
 
+    backend_database = BackendDatabase(
+        connection_string=settings.db_connection_string,
+        user_agent=f'Plugin {operator.info_enriched.plugin_id}/{operator.info_enriched.version} based on climatoology/{climatoology.__version__}',
+    )
+
+    assert _version_is_compatible(info=operator.info_enriched, db=backend_database, celery=plugin), (
+        'The plugin version comparison failed.'
+    )
+
     storage = MinioStorage(
         host=settings.minio_host,
         port=settings.minio_port,
@@ -45,14 +61,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         secure=settings.minio_secure,
     )
 
-    backend_database = BackendDatabase(
-        connection_string=settings.db_connection_string,
-        user_agent=f'Plugin {operator.info_enriched.plugin_id}/{operator.info_enriched.version} based on climatoology/{climatoology.__version__}',
-    )
-
-    _ = synch_info(
-        info=operator.info_enriched, db=backend_database, storage=storage, overwrite=settings.overwrite_assets
-    )
+    _ = synch_info(info=operator.info_enriched, db=backend_database, storage=storage)
 
     compute_task = CAPlatformComputeTask(operator=operator, storage=storage, backend_db=backend_database)
     plugin.register_task(compute_task)
@@ -64,15 +73,43 @@ def generate_plugin_name(plugin_id: str) -> str:
     return f'{plugin_id}@{CELERY_HOST_PLACEHOLDER}'
 
 
-def synch_info(info: _Info, db: BackendDatabase, storage: Storage, overwrite: bool) -> _Info:
-    assets = storage.synch_assets(
-        plugin_id=info.plugin_id,
-        plugin_version=info.version,
-        assets=info.assets,
-        overwrite=overwrite,
-    )
-    info.assets = assets
+def extract_plugin_id(plugin_id_with_suffix: str) -> str:
+    return plugin_id_with_suffix.split('@')[0]
 
-    _ = db.write_info(info=info, revert=overwrite)
+
+def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> bool:
+    with Session(db.engine) as session:
+        info_query = session.query(InfoTable).filter_by(plugin_id=info.plugin_id)
+        existing_info = info_query.first()
+    if existing_info:
+        existing_info_version = Version.parse(existing_info.version)
+        incoming_info_version = Version.parse(info.version)
+        if existing_info_version > incoming_info_version:
+            raise VersionMismatchException(
+                f'Refusing to register plugin {info.name} in version {info.version}.'
+                f'A newer version ({existing_info.version}) has previously been registered on the platform. If '
+                f'this is intentional, manually downgrade your platform and be aware of or mitigate the '
+                f'possible sideeffects!'
+            )
+        elif existing_info_version < incoming_info_version:
+            workers = celery.control.inspect().ping() or dict()
+            plugins = {extract_plugin_id(k) for k, _ in workers.items()}
+            assert info.plugin_id not in plugins, (
+                f'Refusing to register plugin {info.name} version {incoming_info_version} because a plugin with a lower version ({existing_info_version}) is already running. Make sure to stop it before upgrading.'
+            )
+            log.info(
+                f'Accepting plugin upgrade for {info.name} from {existing_info_version} to {incoming_info_version}'
+            )
+        else:
+            log.debug(
+                f'Registering {info.name} version {incoming_info_version} which is the same as the previously registered version ({existing_info_version})'
+            )
+    return True
+
+
+def synch_info(info: _Info, db: BackendDatabase, storage: Storage) -> _Info:
+    info.assets = storage.write_assets(plugin_id=info.plugin_id, assets=info.assets)
+
+    _ = db.write_info(info=info)
 
     return info
