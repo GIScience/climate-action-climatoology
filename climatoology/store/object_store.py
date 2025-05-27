@@ -114,13 +114,13 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:
-        """The assets are stored in the object store if they don't exist or if overwrite is true.
+    def write_assets(self, plugin_id: str, assets: Assets) -> Assets:
+        """Write the assets to the object store.
+
+        Note that existing assets will be overwritten but deprecated ones will not be deleted.
 
         :param plugin_id: Name of the plugin these assets belong to
-        :param plugin_version: Version of the plugin these assets belong to
         :param assets: Assets to store
-        :param overwrite: If true, existing assets will be overwritten, even if they already exist
         :return: object id in the underlying object store
         """
         pass
@@ -254,24 +254,17 @@ class MinioStorage(Storage):
             raise e
         return url
 
-    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:
-        icon_filename = self._synch_icon(icon_path=assets.icon, plugin_id=plugin_id, overwrite=overwrite)
+    def write_assets(self, plugin_id: str, assets: Assets) -> Assets:
+        icon_filename = self._synch_icon(icon_path=assets.icon, plugin_id=plugin_id)
 
         new_assets = Assets(icon=icon_filename)
 
         return new_assets
 
-    def _synch_icon(self, icon_path: str, plugin_id: str, overwrite: bool) -> str:
+    def _synch_icon(self, icon_path: str, plugin_id: str) -> str:
         object_name = Storage.generate_asset_object_name(
             plugin_id=plugin_id, plugin_version='latest', asset_type=AssetType.ICON
         )
-        if not overwrite:
-            try:
-                self.client.stat_object(bucket_name=self.__bucket, object_name=object_name)
-                return object_name
-            except S3Error:
-                pass
-
         binary_icon = _convert_icon_to_thumbnail(Path(icon_path))
         self.client.put_object(
             bucket_name=self.__bucket,

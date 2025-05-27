@@ -1,10 +1,12 @@
+import re
 from unittest.mock import patch
 
 import pytest
 from celery import Celery
 
-from climatoology.app.plugin import _create_plugin, generate_plugin_name
+from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id, generate_plugin_name
 from climatoology.base.event import ComputationState
+from climatoology.utility.exception import VersionMismatchException
 
 
 def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):
@@ -117,3 +119,46 @@ def test_failing_compute_updates_backend(
 def test_generate_plugin_name():
     computed_name = generate_plugin_name('plugin_id')
     assert computed_name == 'plugin_id@_'
+
+
+def test_version_matches_raises_on_lower(default_backend_db, default_info_final, celery_app):
+    _ = default_backend_db.write_info(info=default_info_final)
+
+    older_plugin_info = default_info_final
+    older_plugin_info.version = '2.1.0'
+    with pytest.raises(VersionMismatchException, match=r'Refusing to register plugin*'):
+        _version_is_compatible(info=older_plugin_info, db=default_backend_db, celery=celery_app)
+
+
+def test_version_matches_equal(default_backend_db, default_info_final, celery_app):
+    _ = default_backend_db.write_info(info=default_info_final)
+    assert _version_is_compatible(info=default_info_final, db=default_backend_db, celery=celery_app)
+
+
+def test_version_matches_no_plugin_registered(default_backend_db, default_info_final, celery_app):
+    assert _version_is_compatible(info=default_info_final, db=default_backend_db, celery=celery_app)
+
+
+def test_version_matches_higher(default_backend_db, default_info_final, celery_app):
+    _ = default_backend_db.write_info(info=default_info_final)
+
+    newer_plugin_info = default_info_final
+    newer_plugin_info.version = '3.1.1'
+    assert _version_is_compatible(info=newer_plugin_info, db=default_backend_db, celery=celery_app)
+
+
+def test_version_matches_higher_not_alone(default_plugin, default_backend_db, default_info_final, celery_app):
+    newer_plugin_info = default_info_final
+    newer_plugin_info.version = '3.1.1'
+    with pytest.raises(
+        AssertionError,
+        match=re.escape(
+            'Refusing to register plugin Test Plugin version 3.1.1 because a plugin with a lower version (3.1.0) is already running. Make sure to stop it before upgrading.',
+        ),
+    ):
+        _version_is_compatible(info=newer_plugin_info, db=default_backend_db, celery=celery_app)
+
+
+def test_extract_plugin_id():
+    computed_plugin_id = extract_plugin_id('a@b')
+    assert computed_plugin_id == 'a'
