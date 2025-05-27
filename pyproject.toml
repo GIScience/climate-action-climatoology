@@ -41,6 +41,7 @@ plotly = "^6.0.0"
 pytest = "^8.3.3"
 pytest-mock = "^3.14.0"
 pytest-postgresql = "^7.0.1"
+pytest-minio-mock = "^0.4.16"
 time-machine = "^2.16.0"
 responses = "^0.25.3"
 
