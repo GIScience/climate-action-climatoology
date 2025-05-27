@@ -1,14 +1,14 @@
-from enum import StrEnum
 import logging
 import uuid
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from enum import StrEnum
 from typing import Optional, Set
 from uuid import UUID
 
+import celery.exceptions
 import geojson_pydantic
 from celery import Celery
-from celery.exceptions import TimeoutError
 from celery.result import AsyncResult
 from semver import Version
 from typing_extensions import deprecated
@@ -151,7 +151,7 @@ class CeleryPlatform(Platform):
         result = self.celery_app.AsyncResult(correlation_uuid)
         try:
             raw_info = result.get(timeout=ttl)
-        except TimeoutError as e:
+        except celery.exceptions.TimeoutError as e:
             raise InfoNotReceivedException(
                 f'The info request ({correlation_uuid}) did not respond within the time limit of {ttl} seconds.'
             ) from e

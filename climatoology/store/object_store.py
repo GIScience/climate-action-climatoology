@@ -1,6 +1,7 @@
+import datetime
 import logging
 import uuid
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
 from pathlib import Path
@@ -10,7 +11,6 @@ from uuid import UUID
 import geojson_pydantic
 from minio import Minio, S3Error
 from pydantic import BaseModel, ConfigDict
-import datetime
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties
@@ -28,7 +28,7 @@ class PluginBaseInfo(BaseModel):
 class ComputationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
-    correlation_uuid: UUID  # TODO: add fields here
+    correlation_uuid: UUID
     timestamp: datetime.datetime
     deduplication_key: UUID
     cache_epoch: Optional[int]
@@ -254,7 +254,7 @@ class MinioStorage(Storage):
             raise e
         return url
 
-    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:  # noqa F481
+    def synch_assets(self, plugin_id: str, plugin_version: str, assets: Assets, overwrite: bool) -> Assets:
         icon_filename = self._synch_icon(icon_path=assets.icon, plugin_id=plugin_id, overwrite=overwrite)
 
         new_assets = Assets(icon=icon_filename)

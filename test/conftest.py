@@ -1,11 +1,11 @@
 import os
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import List, Set
 from unittest.mock import Mock, patch
-import time
 
 import geojson_pydantic
 import pytest
@@ -14,9 +14,9 @@ import shapely
 from celery import Celery
 from celery.utils.threads import LocalStack
 from pydantic import BaseModel, Field, HttpUrl
+from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
 from shapely import set_srid
-from pytest_postgresql.janitor import DatabaseJanitor
 from sqlalchemy import create_engine, text
 
 import climatoology
@@ -30,7 +30,7 @@ from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.event import ComputationState
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import MinioStorage, ComputationInfo, PluginBaseInfo
+from climatoology.store.object_store import ComputationInfo, MinioStorage, PluginBaseInfo
 from climatoology.utility.api import HealthCheck
 
 pytest_plugins = ('celery.contrib.pytest',)

@@ -5,3 +5,5 @@ __pycache__/
 data/
 playground.py
 *.log
+.coverage
+coverage.xml

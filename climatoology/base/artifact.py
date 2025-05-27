@@ -4,7 +4,7 @@ import uuid
 from enum import Enum, StrEnum
 from numbers import Number
 from pathlib import Path
-from typing import Optional, Union, List, Dict, Tuple, NewType, Set
+from typing import Dict, List, NewType, Optional, Set, Tuple, Union
 from uuid import UUID
 
 import numpy as np
@@ -12,23 +12,23 @@ import plotly
 import plotly.io as pio
 import rasterio
 import shapely
-from PIL.Image import Image
 from affine import Affine
-from geopandas import GeoSeries, GeoDataFrame
+from geopandas import GeoDataFrame, GeoSeries
 from numpy.typing import ArrayLike
 from pandas import DataFrame, MultiIndex
+from PIL.Image import Image
 from plotly.graph_objs import Figure
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
-    model_validator,
+    computed_field,
+    confloat,
+    conint,
     conlist,
     field_serializer,
-    conint,
-    confloat,
     field_validator,
-    computed_field,
-    ConfigDict,
+    model_validator,
 )
 from pydantic_extra_types.color import Color
 from rasterio import CRS
@@ -92,6 +92,7 @@ class ContinuousLegendData(BaseModel):
     )
 
     @field_validator('cmap_name')
+    @classmethod
     def must_be_valid_cmap_name(cls, v: str) -> str:
         if v.removesuffix('_r') not in ACCEPTABLE_COLORMAPS:
             raise ValueError(f'{v} is not among the accepted colormaps.')
@@ -194,8 +195,7 @@ class _Artifact(BaseModel):
         default=None,
     )
     store_id: Optional[str] = Field(
-        description='Do not set! This is the pointer to the file in the artifactory store. '
-        'Will be automatically set.',
+        description='Do not set! This is the pointer to the file in the artifactory store. Will be automatically set.',
         examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
         default=None,
     )
@@ -260,17 +260,17 @@ class Chart2dData(BaseModel):
         if self.chart_type == ChartType.LINE:
             assert isinstance(self.color, Color), 'Line charts can only have a single color for the line.'
         else:
-            assert isinstance(self.color, Color) or (
-                len(self.color) == len(self.x)
-            ), 'Data and color lists must be the same length.'
+            assert isinstance(self.color, Color) or (len(self.color) == len(self.x)), (
+                'Data and color lists must be the same length.'
+            )
 
         return self
 
     @model_validator(mode='after')
     def check_type(self) -> 'Chart2dData':
-        assert isinstance(self.x[0], float) or isinstance(
-            self.y[0], float
-        ), 'Only one dimension can be nominal (a str).'
+        assert isinstance(self.x[0], float) or isinstance(self.y[0], float), (
+            'Only one dimension can be nominal (a str).'
+        )
         return self
 
     @model_validator(mode='after')
@@ -539,9 +539,9 @@ def create_geojson_artifact(
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{filename}.geojson'
-    assert (
-        not file_path.exists()
-    ), 'The target artifact data file already exists. Make sure to choose a unique filename.'
+    assert not file_path.exists(), (
+        'The target artifact data file already exists. Make sure to choose a unique filename.'
+    )
     log.debug(f'Writing vector dataset {file_path}.')
 
     assert len(color) == features.size, 'The number of colors does not match the number of features.'

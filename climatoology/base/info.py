@@ -10,7 +10,7 @@ from typing import List, Optional, Set
 import bibtexparser
 import geojson_pydantic
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator, conlist, constr
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, conlist, constr, model_validator
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 

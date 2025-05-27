@@ -6,7 +6,7 @@ from uuid import UUID
 import geoalchemy2
 import geojson_pydantic
 from semver import Version
-from sqlalchemy import create_engine, select, column, update
+from sqlalchemy import column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.ddl import CreateSchema
@@ -15,15 +15,15 @@ from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.event import ComputationState
 from climatoology.base.info import _Info
 from climatoology.store.database.tables import (
-    PluginAuthorTable,
-    InfoTable,
-    Base,
-    author_info_link_table,
-    SCHEMA_NAME,
-    ComputationTable,
-    ArtifactTable,
-    ComputationLookup,
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
+    SCHEMA_NAME,
+    ArtifactTable,
+    Base,
+    ComputationLookup,
+    ComputationTable,
+    InfoTable,
+    PluginAuthorTable,
+    author_info_link_table,
 )
 from climatoology.store.object_store import ComputationInfo, PluginBaseInfo
 from climatoology.utility.exception import InfoNotReceivedException, VersionMismatchException

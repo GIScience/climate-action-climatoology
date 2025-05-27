@@ -2,14 +2,14 @@ import tempfile
 import uuid
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import patch, Mock, ANY
+from unittest.mock import ANY, Mock, patch
 
 from minio import S3Error
 from urllib3 import HTTPResponse
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.info import Assets, _convert_icon_to_thumbnail
-from climatoology.store.object_store import DataGroup, Storage, AssetType
+from climatoology.store.object_store import AssetType, DataGroup, Storage
 
 
 def test_minio_save(mocked_object_store, general_uuid, default_artifact):

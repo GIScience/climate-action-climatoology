@@ -1,9 +1,9 @@
 import logging
 from contextlib import contextmanager
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from io import BytesIO
-from typing import Optional, Tuple, Dict, List, ContextManager
+from typing import ContextManager, Dict, List, Optional, Tuple
 
 import rasterio as rio
 import requests

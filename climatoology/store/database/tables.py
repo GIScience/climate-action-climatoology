@@ -1,19 +1,18 @@
 import datetime
-from typing import Optional, List, Set
+from typing import List, Optional, Set
 from uuid import UUID
 
 import sqlalchemy
 from geoalchemy2 import Geometry, WKTElement
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
-
-from sqlalchemy import Table, Column, ForeignKey, String, JSON, MetaData, UniqueConstraint, Computed
+from sqlalchemy import JSON, Column, Computed, ForeignKey, MetaData, String, Table, UniqueConstraint
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from climatoology.base.artifact import ArtifactModality, Attachments
 from climatoology.base.event import ComputationState
-from climatoology.base.info import Concern, DemoConfig, Assets, PluginState
+from climatoology.base.info import Assets, Concern, DemoConfig, PluginState
 
 SCHEMA_NAME = 'ca_base'
 COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'

@@ -1,12 +1,12 @@
 import pytest
-from shapely import geometry, unary_union, difference, Polygon
+from shapely import Polygon, difference, geometry, unary_union
 
 from climatoology.utility.api import adjust_bounds
 
 
 @pytest.mark.parametrize(['max_unit_size', 'expected_n_bounds'], [[500, 16], [800, 4], [1500, 1]])
 def test_adjust_work_unit(max_unit_size, expected_n_bounds):
-    # h, w = (1336, 1304)
+    # Actual h, w = (1336, 1304)
     origin_coords = (8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485)
     origin_area = geometry.box(*origin_coords)
 

@@ -15,6 +15,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Added
 
 - store extended result information in the celery table of the backend database
+- coverage reporting on tests included in CI ([194](https://gitlab.heigit.org/climate-action/climatoology/-/issues/194))
 
 ## [6.4.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.1) - 2025-05-13
 

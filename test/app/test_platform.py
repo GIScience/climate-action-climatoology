@@ -182,9 +182,7 @@ def test_send_compute_unless_deduplicated(
     computation_info = result.get(timeout=5)
 
     computation_info = ComputationInfo.model_validate(computation_info)
-    assert (
-        computation_info.correlation_uuid == first_correlation_uuid
-    )  # TODO: this may be confusing to receive a different ID from what was provided
+    assert computation_info.correlation_uuid == first_correlation_uuid
 
 
 def test_send_compute_with_cache_override(
@@ -262,7 +260,7 @@ def test_send_compute_input_validation_error_is_cached(
     assert stored_computation_info.cache_epoch == 0
 
 
-def test_send_compute_state_receives_ClimatoologyUserError(
+def test_send_compute_state_receives_ClimatoologyUserError(  # noqa: N802 - allow capitalisation in function name
     default_info,
     celery_app,
     celery_worker,
@@ -307,7 +305,7 @@ def test_send_compute_state_receives_ClimatoologyUserError(
     assert str(result.info) == 'Error message to store for the user'
 
 
-def test_send_compute_ClimatoologyUserError_is_not_cached(
+def test_send_compute_ClimatoologyUserError_is_not_cached(  # noqa: N802
     default_info,
     celery_app,
     celery_worker,

@@ -9,33 +9,33 @@ import plotly
 import plotly.express as px
 import pytest
 import rasterio
-from PIL import Image
 from affine import Affine
 from geopandas import GeoDataFrame
 from numpy.testing import assert_array_equal
 from pandas import DataFrame
+from PIL import Image
 from pydantic import ValidationError
 from pydantic_extra_types.color import Color
 from rasterio import CRS
 from shapely import Point
 
 from climatoology.base.artifact import (
-    create_markdown_artifact,
-    _Artifact,
     ArtifactModality,
-    create_table_artifact,
-    create_image_artifact,
-    create_chart_artifact,
+    Attachments,
     Chart2dData,
     ChartType,
-    create_geojson_artifact,
-    create_geotiff_artifact,
-    RasterInfo,
+    Colormap,
     ContinuousLegendData,
     Legend,
-    Colormap,
+    RasterInfo,
+    _Artifact,
+    create_chart_artifact,
+    create_geojson_artifact,
+    create_geotiff_artifact,
+    create_image_artifact,
+    create_markdown_artifact,
     create_plotly_chart_artifact,
-    Attachments,
+    create_table_artifact,
 )
 
 
