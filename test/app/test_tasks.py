@@ -136,12 +136,10 @@ def test_save_computation_info(
     default_artifact,
     default_computation_info,
 ):
-    task = CAPlatformComputeTask(
-        operator=default_operator, storage=mocked_object_store['minio_storage'], backend_db=default_backend_db
-    )
+    task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store, backend_db=default_backend_db)
 
     save_mock = Mock()
-    mocked_object_store['minio_storage'].save = save_mock
+    mocked_object_store.save = save_mock
 
     with tempfile.TemporaryDirectory() as temp_dir:
         expected_save_artifact = _Artifact(

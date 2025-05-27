@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.0...main)
 
+### Changed
+
+- switched to pytest-minio-mock to improve testability of minio
+
 ### Fixed
 
 - make the AOI name and ID a request specific attribute instead of a computation attribute to allow user-defined names

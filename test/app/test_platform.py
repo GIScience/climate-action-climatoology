@@ -413,7 +413,7 @@ def test_send_compute_uses_settings_deduplication_override(
         patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
         patch(
             'climatoology.app.platform.CeleryPlatform.construct_storage',
-            return_value=mocked_object_store['minio_storage'],
+            return_value=mocked_object_store,
         ),
         patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
     ):

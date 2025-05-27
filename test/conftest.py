@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import List, Set
+from typing import Generator, List, Set
 from unittest.mock import Mock, patch
 
 import geojson_pydantic
@@ -38,18 +38,18 @@ pytest_plugins = ('celery.contrib.pytest',)
 
 @pytest.fixture
 def set_basic_envs(monkeypatch):
-    monkeypatch.setenv('minio_host', 'test_host')
-    monkeypatch.setenv('minio_port', '1234')
-    monkeypatch.setenv('minio_access_key', 'test_key')
-    monkeypatch.setenv('minio_secret_key', 'test_secret')
-    monkeypatch.setenv('minio_bucket', 'test_bucket')
+    monkeypatch.setenv('minio_host', 'minio.test')
+    monkeypatch.setenv('minio_port', '1000')
+    monkeypatch.setenv('minio_access_key', 'minio_test_key')
+    monkeypatch.setenv('minio_secret_key', 'minio_test_secret')
+    monkeypatch.setenv('minio_bucket', 'minio_test_bucket')
 
-    monkeypatch.setenv('rabbitmq_host', 'test_host')
+    monkeypatch.setenv('rabbitmq_host', 'test-host')
     monkeypatch.setenv('rabbitmq_port', '1234')
     monkeypatch.setenv('rabbitmq_user', 'test_user')
     monkeypatch.setenv('rabbitmq_password', 'test_pw')
 
-    monkeypatch.setenv('postgres_host', 'test_host')
+    monkeypatch.setenv('postgres_host', 'test-host')
     monkeypatch.setenv('postgres_port', '1234')
     monkeypatch.setenv('postgres_user', 'test_user')
     monkeypatch.setenv('postgres_password', 'test_password')
@@ -137,12 +137,12 @@ def default_info_final(default_info_enriched) -> _Info:
 def default_artifact(general_uuid) -> _Artifact:
     return _Artifact(
         name='test_name',
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        file_path=Path(__file__).parent / 'test_file.tiff',
+        modality=ArtifactModality.MARKDOWN,
+        file_path=Path(__file__).parent / 'resources/test_artifact_file.md',
         summary='Test summary',
         description='Test description',
         correlation_uuid=general_uuid,
-        store_id=f'{general_uuid}_test_file.tiff',
+        store_id=f'{general_uuid}_test_artifact_file.md',
     )
 
 
@@ -186,7 +186,7 @@ def default_operator(default_info, default_artifact) -> BaseOperator:
 @pytest.fixture
 def default_plugin(
     celery_app, celery_worker, default_operator, default_settings, mocked_object_store, default_backend_db
-) -> Celery:
+) -> Generator[Celery, None, None]:
     with (
         patch('climatoology.app.plugin.Celery', return_value=celery_app),
         patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db),
@@ -238,7 +238,7 @@ def default_aoi_properties() -> AoiProperties:
 
 
 @pytest.fixture
-def default_computation_resources(general_uuid) -> ComputationResources:
+def default_computation_resources(general_uuid) -> Generator[ComputationScope, None, None]:
     with ComputationScope(general_uuid) as resources:
         yield resources
 
@@ -251,17 +251,16 @@ def mocked_utility_response():
 
 
 @pytest.fixture
-def mocked_object_store() -> dict:
-    with patch('climatoology.store.object_store.Minio') as minio_client:
-        minio_storage = MinioStorage(
-            host='minio.test.org',
-            port=9999,
-            access_key='key',
-            secret_key='secret',
-            secure=True,
-            bucket='test_bucket',
-        )
-        yield {'minio_storage': minio_storage, 'minio_client': minio_client}
+def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
+    minio_storage = MinioStorage(
+        host=default_settings.minio_host,
+        port=default_settings.minio_port,
+        access_key=default_settings.minio_access_key,
+        secret_key=default_settings.minio_secret_key,
+        secure=True,
+        bucket=default_settings.minio_bucket,
+    )
+    return minio_storage
 
 
 @pytest.fixture
@@ -288,7 +287,7 @@ def default_computation_task(
     default_operator, mocked_object_store, default_backend_db, general_uuid
 ) -> CAPlatformComputeTask:
     compute_task = CAPlatformComputeTask(
-        operator=default_operator, storage=mocked_object_store['minio_storage'], backend_db=default_backend_db
+        operator=default_operator, storage=mocked_object_store, backend_db=default_backend_db
     )
     compute_task.update_state = Mock()
     request = Mock()
@@ -299,13 +298,12 @@ def default_computation_task(
 
 
 @pytest.fixture
-def default_platform_connection(celery_app, mocked_object_store, set_basic_envs, default_backend_db) -> CeleryPlatform:
+def default_platform_connection(
+    celery_app, mocked_object_store, set_basic_envs, default_backend_db
+) -> Generator[CeleryPlatform, None, None]:
     with (
         patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
-        patch(
-            'climatoology.app.platform.CeleryPlatform.construct_storage',
-            return_value=mocked_object_store['minio_storage'],
-        ),
+        patch('climatoology.app.platform.CeleryPlatform.construct_storage', return_value=mocked_object_store),
         patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
     ):
         yield CeleryPlatform()
