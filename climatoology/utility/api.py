@@ -3,14 +3,14 @@ from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import date, timedelta
-from typing import Iterable, Any, List, Tuple, ContextManager, Optional
+from typing import Any, ContextManager, Iterable, List, Optional, Tuple
 
 import rasterio
 import requests
 from pydantic import BaseModel, Field, model_validator
 from rasterio.merge import merge
 from requests.adapters import HTTPAdapter
-from sentinelhub import BBox, bbox_to_dimensions, BBoxSplitter, CRS
+from sentinelhub import CRS, BBox, BBoxSplitter, bbox_to_dimensions
 from tqdm import tqdm
 from urllib3 import Retry
 

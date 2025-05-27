@@ -2,10 +2,10 @@ import datetime
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError, HttpUrl
+from pydantic import HttpUrl, ValidationError
 from semver import Version
 
-from climatoology.base.info import _Info, PluginAuthor, Concern, generate_plugin_info, DemoConfig, PluginState
+from climatoology.base.info import Concern, DemoConfig, PluginAuthor, PluginState, _Info, generate_plugin_info
 from test.conftest import TestModel
 
 

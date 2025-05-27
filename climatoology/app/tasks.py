@@ -1,5 +1,6 @@
 import logging
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -7,17 +8,15 @@ import geojson_pydantic
 import shapely
 from billiard.einfo import ExceptionInfo
 from celery import Task
-from shapely import set_srid
 from celery.signals import task_revoked
+from shapely import set_srid
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
 from climatoology.base.event import ComputationState
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, Storage, ComputationInfo
-from datetime import datetime, UTC
-
+from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, ComputationInfo, Storage
 from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)

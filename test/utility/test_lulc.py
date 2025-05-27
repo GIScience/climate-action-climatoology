@@ -7,8 +7,8 @@ from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
 
-from climatoology.utility.LULC import LulcWorkUnit, LulcUtility, LabelResponse, LabelDescriptor
 from climatoology.utility.exception import PlatformUtilityException
+from climatoology.utility.LULC import LabelDescriptor, LabelResponse, LulcUtility, LulcWorkUnit
 
 lulc_unit_a = LulcWorkUnit(
     area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),

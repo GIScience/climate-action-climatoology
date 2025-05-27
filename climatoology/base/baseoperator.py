@@ -65,9 +65,9 @@ class BaseOperator(ABC, Generic[T_co]):
 
     def __init__(self) -> None:
         forbidden_fields = ('aoi', 'aoi_properties')
-        assert all(
-            k not in self._model.model_fields for k in forbidden_fields
-        ), f'The plugin input parameters cannot contain fields named any of {forbidden_fields}'
+        assert all(k not in self._model.model_fields for k in forbidden_fields), (
+            f'The plugin input parameters cannot contain fields named any of {forbidden_fields}'
+        )
 
     @final
     @cached_property
@@ -131,9 +131,9 @@ class BaseOperator(ABC, Generic[T_co]):
                 raise AssertionError('The computation returned no results')
 
         for artifact in artifacts:
-            assert (
-                artifact.modality != ArtifactModality.COMPUTATION_INFO
-            ), 'Computation-info files are not allowed as plugin result'
+            assert artifact.modality != ArtifactModality.COMPUTATION_INFO, (
+                'Computation-info files are not allowed as plugin result'
+            )
 
         return artifacts
 

@@ -4,10 +4,10 @@ import os
 
 import geopandas as gpd
 import pandas as pd
-from pandas.testing import assert_index_equal
 import pytest
 import rasterio
 from geopandas import testing
+from pandas.testing import assert_index_equal
 from pyproj import CRS
 from rasterio.coords import BoundingBox
 from requests import Response
@@ -15,9 +15,9 @@ from responses import matchers
 from shapely import Point
 from shapely.geometry.polygon import Polygon
 
-from climatoology.utility.Naturalness import NaturalnessWorkUnit, NaturalnessUtility, NaturalnessIndex
 from climatoology.utility.api import TimeRange
 from climatoology.utility.exception import PlatformUtilityException
+from climatoology.utility.Naturalness import NaturalnessIndex, NaturalnessUtility, NaturalnessWorkUnit
 
 NATURALNESS_UNIT_A = NaturalnessWorkUnit(
     bbox=(7.38, 47.5, 7.385, 47.52),
