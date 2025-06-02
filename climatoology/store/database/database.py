@@ -150,7 +150,9 @@ class BackendDatabase:
 
         return db_correlation_uuid
 
-    def read_computation(self, correlation_uuid: UUID) -> Optional[ComputationInfo]:
+    def read_computation(
+        self, correlation_uuid: UUID, state_actual_computation_time: bool = False
+    ) -> Optional[ComputationInfo]:
         with Session(self.engine) as session:
             computation_query = (
                 select(ComputationLookup)
@@ -162,6 +164,20 @@ class BackendDatabase:
 
             if result:
                 computation_info = result.computation
+                computation_info.message = (
+                    '\n'.join(
+                        filter(
+                            None,
+                            [
+                                computation_info.message,
+                                f'The results were computed on the {computation_info.timestamp}',
+                            ],
+                        )
+                    )
+                    if state_actual_computation_time
+                    else computation_info.message
+                )
+                computation_info.timestamp = result.request_ts
                 computation_info.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
                     **{
                         'type': 'Feature',
