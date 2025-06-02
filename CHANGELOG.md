@@ -10,12 +10,16 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Changed
 
 - switched to pytest-minio-mock to improve testability of minio
+- `read_computation` is now returning the request timestamp instead of the computation
+  timestamp ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176)). The latter is disclosed in the
+  computation message.
 
 ### Fixed
 
 - make the AOI name and ID a request specific attribute instead of a computation attribute to allow user-defined names
   for the same AOI ([#183](https://gitlab.heigit.org/climate-action/climatoology/-/issues/183))
-- make sure the icon and info are always overwritten and represent the platform state ([#178](https://gitlab.heigit.org/climate-action/climatoology/-/issues/178)).
+- make sure the icon and info are always overwritten and represent the platform
+  state ([#178](https://gitlab.heigit.org/climate-action/climatoology/-/issues/178)).
 
 ### Added
 

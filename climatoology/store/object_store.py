@@ -10,7 +10,7 @@ from uuid import UUID
 
 import geojson_pydantic
 from minio import Minio, S3Error
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties
@@ -28,19 +28,82 @@ class PluginBaseInfo(BaseModel):
 class ComputationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
-    correlation_uuid: UUID
-    timestamp: datetime.datetime
-    deduplication_key: UUID
-    cache_epoch: Optional[int]
-    valid_until: datetime.datetime
-    params: Optional[dict]
-    requested_params: dict
-    aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
-    artifacts: List[_Artifact] = []
-    plugin_info: PluginBaseInfo
-    status: ComputationState
-    message: Optional[str] = None
-    artifact_errors: dict[str, str] = {}
+    correlation_uuid: UUID = Field(description='The unique identifier of the computation.', examples=[uuid.uuid4()])
+    timestamp: datetime.datetime = Field(
+        description='The timestamp of the computation.', examples=[datetime.datetime.now()]
+    )
+    deduplication_key: UUID = Field(
+        description='A key identifying unique contributions in terms of content. It is a combination of multiple '
+        'fields of the info that are used to deduplicate computations in combination with the '
+        '`cache_epoch`.',
+        examples=[uuid.uuid4()],
+    )
+    cache_epoch: Optional[int] = Field(
+        description='The cache epoch identifies fixed time spans within which computations are '
+        'valid. It can be used in combination with the `deduplication_key` to deduplicate non-expired computations. ',
+        examples=[1234],
+    )
+    valid_until: datetime.datetime = Field(
+        description='The human readable form of the `cache_epoch`', examples=[datetime.datetime.now()]
+    )
+    params: Optional[dict] = Field(
+        description='The final parameters used for the computation.',
+        examples=[{'param_a': 1, 'optional_param_b': 'b'}],
+    )
+    requested_params: dict = Field(
+        description='The raw parameters that were requested by the client', examples=[{'param_a': 1}]
+    )
+    aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties] = Field(
+        description='The target area of interest of the computation.',
+        examples=[
+            geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+                **{
+                    'type': 'Feature',
+                    'properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
+                    'geometry': {
+                        'type': 'MultiPolygon',
+                        'coordinates': [
+                            [
+                                [
+                                    [0.0, 0.0],
+                                    [0.0, 1.0],
+                                    [1.0, 1.0],
+                                    [0.0, 0.0],
+                                ]
+                            ]
+                        ],
+                    },
+                }
+            )
+        ],
+    )
+    artifacts: List[_Artifact] = Field(
+        description='List of artifacts produced by this computation.',
+        examples=[
+            _Artifact(
+                name='Artifact One',
+                modality=ArtifactModality.MARKDOWN,
+                file_path=Path('/path/to/file/on/disc.md'),
+                summary='An example artifact.',
+            )
+        ],
+        default=[],
+    )
+    plugin_info: PluginBaseInfo = Field(
+        description='Basic information on the plugin that produced the computation.',
+        examples=[
+            PluginBaseInfo(plugin_id='example_plugin', plugin_version='0.0.1'),
+        ],
+    )
+    status: ComputationState = Field(
+        description='The current status of the computation.', examples=[ComputationState.SUCCESS]
+    )
+    message: Optional[str] = Field(description='A message accompanying the computation.', examples=[None], default=None)
+    artifact_errors: dict[str, str] = Field(
+        description='A dictionary of artifact names that were not computed successfully during the computation, with error messages if applicable.',
+        examples=[{'First Indicator': 'Start date must be before end date', 'Last Indicator': ''}],
+        default={},
+    )
 
 
 COMPUTATION_INFO_FILENAME: str = 'metadata.json'
