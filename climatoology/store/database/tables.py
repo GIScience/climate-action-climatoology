@@ -93,6 +93,8 @@ class ComputationTable(Base):
     valid_until: Mapped[datetime.datetime]
     params: Mapped[Optional[dict]] = mapped_column(JSONB)
     requested_params: Mapped[dict] = mapped_column(JSONB)
+    aoi_name: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
+    aoi_id: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship()
     plugin_id: Mapped[str] = mapped_column(ForeignKey('info.plugin_id'))
