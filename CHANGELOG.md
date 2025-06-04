@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.0...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.2...main)
+
+## [6.4.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.2) - 2025-06-04
 
 ### Changed
 
@@ -20,6 +22,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   for the same AOI ([#183](https://gitlab.heigit.org/climate-action/climatoology/-/issues/183))
 - make sure the icon and info are always overwritten and represent the platform
   state ([#178](https://gitlab.heigit.org/climate-action/climatoology/-/issues/178)).
+- use a `NullPool` connection with our database engine to avoid intermittent database connection
+  failures ([#181](https://gitlab.heigit.org/climate-action/climatoology/-/issues/181))
 
 ### Added
 
