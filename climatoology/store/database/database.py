@@ -6,7 +6,7 @@ from uuid import UUID
 import geoalchemy2
 import geojson_pydantic
 from semver import Version
-from sqlalchemy import column, create_engine, select, update
+from sqlalchemy import NullPool, column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.ddl import CreateSchema
@@ -34,7 +34,10 @@ log = logging.getLogger(__name__)
 class BackendDatabase:
     def __init__(self, connection_string: str, user_agent: str):
         self.engine = create_engine(
-            connection_string, plugins=['geoalchemy2'], connect_args={'application_name': user_agent}
+            connection_string,
+            plugins=['geoalchemy2'],
+            connect_args={'application_name': user_agent},
+            poolclass=NullPool,
         )
 
         with self.engine.connect() as connection:
