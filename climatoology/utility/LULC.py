@@ -198,14 +198,20 @@ class LulcUtility(PlatformHttpUtility):
             return rio.open(BytesIO(response.content), mode='r')
 
     @contextmanager
-    def compute_raster(self, units: List[LulcWorkUnit], max_unit_size: int = 2300) -> ContextManager[rio.DatasetReader]:
+    def compute_raster(
+        self, units: List[LulcWorkUnit], max_unit_size: int = 2300, max_unit_area: int = 4e6
+    ) -> ContextManager[rio.DatasetReader]:
         """Generate a remote sensing-based LULC classification.
 
         :param units: Areas of interest
-        :param max_unit_size: Size in pixels used to determine whether the unit has to be split to meet external service processing requirements. The value applies to both height and width.
+        :param max_unit_size: Size in pixels used to determine whether the unit has to be split to meet external service
+        processing requirements. The value applies to both height and width. The default of 2300 is slightly under the
+        SentinelHub limit of 2500.
+        :param max_unit_area: Area in pixels-squared used to determine whether the unit has to be split to meet external
+        service processing requirements. The default of 4,000,000 is within the capabilities of a device with 16GB RAM.
         :return: An opened geo-tiff file within a context manager. Use it as `with compute_raster(units) as lulc:`
         """
-        units = LulcUtility.adjust_work_units(units, max_unit_size)
+        units = LulcUtility.adjust_work_units(units, max_unit_size=max_unit_size, max_unit_area=max_unit_area)
         with compute_raster(
             units, max_workers=self.max_workers, fetch_data=self.__fetch_data, has_color_map=True
         ) as lulc:
@@ -218,9 +224,20 @@ class LulcUtility(PlatformHttpUtility):
         return LabelResponse(**response.json())
 
     @staticmethod
-    def adjust_work_units(units: List[LulcWorkUnit], max_unit_size: int = 2300) -> List[LulcWorkUnit]:
+    def adjust_work_units(
+        units: List[LulcWorkUnit], max_unit_size: int = 2300, max_unit_area: int = None
+    ) -> List[LulcWorkUnit]:
+        max_area = max_unit_area if max_unit_area else max_unit_size * max_unit_size
+        log.debug(
+            f'Binning areas based on {max_unit_size=:g} and {max_area=:g}. '
+            '8GB of RAM should be able to support at least max_unit_area=3e+6. '
+            '16GB of RAM should be able to support at least max_unit_area=4e+6'
+        )
+
         adjusted_units = []
         for unit in units:
-            bounds = adjust_bounds(unit.area_coords, max_unit_size=max_unit_size, resolution=10)
+            bounds = adjust_bounds(
+                unit.area_coords, max_unit_size=max_unit_size, max_unit_area=max_unit_area, resolution=10
+            )
             adjusted_units.extend([unit.model_copy(update={'area_coords': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units
