@@ -136,12 +136,18 @@ def compute_raster(
 def adjust_bounds(
     bbox: Tuple[float, float, float, float],
     max_unit_size: int = 2300,
+    max_unit_area: int = None,
     resolution: int = 10,
 ) -> list[BBox]:
-    """Adjust the given bounds to have a maximum size.
+    """Adjust the given bbox to be a list of bounds within a maximum size.
 
-    Split them where needed and return an extended list.
+    :param bbox: The input bounding box to be adjusted
+    :param max_unit_size: The maximum edge length per bounding box (pixels)
+    :param max_unit_area: The maximum area per bounding box (pixels squared), defaults to max_unit_size^2
+    :param resolution: the resolution of the raster data (metres)
     """
+    if not max_unit_area:
+        max_unit_area = max_unit_size * max_unit_size
 
     def flatten(iterable: Iterable[Any]) -> List[Any]:
         """Convert nested iterables to single level list."""
@@ -153,17 +159,19 @@ def adjust_bounds(
                 yield outer_i
 
     def split(
-        bounds: Tuple[float, float, float, float], max_edge_length: int, pixel_edge_length: int
+        bounds: Tuple[float, float, float, float], max_edge_length: int, max_area: int, pixel_edge_length: int
     ) -> list[BBox | Any]:
         """Split bounds into Bboxes with a given maximum unit size."""
         bounds = BBox(bounds, crs=CRS.WGS84)
         h, w = bbox_to_dimensions(bounds, resolution=pixel_edge_length)
-        if h > max_edge_length or w > max_edge_length:
+        if h > max_edge_length or w > max_edge_length or h * w > max_area:
             return [
-                split(b, max_edge_length=max_edge_length, pixel_edge_length=pixel_edge_length)
+                split(b, max_edge_length=max_edge_length, max_area=max_area, pixel_edge_length=pixel_edge_length)
                 for b in BBoxSplitter([bounds], CRS.WGS84, (2, 2)).bbox_list
             ]
         else:
             return [bounds]
 
-    return list(flatten(split(bounds=bbox, max_edge_length=max_unit_size, pixel_edge_length=resolution)))
+    return list(
+        flatten(split(bounds=bbox, max_edge_length=max_unit_size, max_area=max_unit_area, pixel_edge_length=resolution))
+    )

@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.2...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.3...main)
+
+## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
+
+### Fixed
+
+- add a `max_area_size` threshold to the utility for splitting bounds, to enable more refined control over processing
+  limitations, as required
+  by ([LULC Utility #83](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/83))
 
 ## [6.4.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.2) - 2025-06-04
 
