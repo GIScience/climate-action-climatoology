@@ -147,6 +147,7 @@ def default_artifact(general_uuid) -> _Artifact:
 
 
 class TestModel(BaseModel):
+    __test__ = False
     id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
     name: str = Field(
         title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'

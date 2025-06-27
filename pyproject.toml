@@ -78,6 +78,12 @@ select=[
     "RUF100", "RUF101",
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore:\*scattermapbox\* is deprecated! Use \*scattermap\* instead:DeprecationWarning', # deprecation warning caused by plotly template
+    # can't ignore the celery warning, but it is irrelevant and is no longer shown in celery >=5.5.0: (https://github.com/celery/celery/issues/9225)
+]
+
 [tool.coverage.run]
 omit = ["test/*"]
 
