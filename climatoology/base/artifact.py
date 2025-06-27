@@ -34,7 +34,6 @@ from pydantic_extra_types.color import Color
 from rasterio import CRS
 from rasterio.enums import OverviewResampling
 from rasterio.rio.overview import get_maximum_overview_level
-from typing_extensions import deprecated
 
 from climatoology.base.computation import ComputationResources
 
@@ -413,9 +412,6 @@ def create_image_artifact(
     return result
 
 
-@deprecated(
-    'This function is deprecated and will be removed in the next major release. Use the plotly equivalent instead.'
-)
 def create_chart_artifact(
     data: Chart2dData,
     title: str,

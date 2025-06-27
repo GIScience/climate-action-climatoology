@@ -166,7 +166,12 @@ def adjust_bounds(
         h, w = bbox_to_dimensions(bounds, resolution=pixel_edge_length)
         if h > max_edge_length or w > max_edge_length or h * w > max_area:
             return [
-                split(b, max_edge_length=max_edge_length, max_area=max_area, pixel_edge_length=pixel_edge_length)
+                split(
+                    b.geometry.bounds,
+                    max_edge_length=max_edge_length,
+                    max_area=max_area,
+                    pixel_edge_length=pixel_edge_length,
+                )
                 for b in BBoxSplitter([bounds], CRS.WGS84, (2, 2)).bbox_list
             ]
         else:
