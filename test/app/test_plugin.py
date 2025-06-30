@@ -5,7 +5,6 @@ import pytest
 from celery import Celery
 
 from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id, generate_plugin_name
-from climatoology.base.event import ComputationState
 from climatoology.utility.exception import VersionMismatchException
 
 
@@ -112,7 +111,6 @@ def test_failing_compute_updates_backend(
         ).get(timeout=5)
 
     updated_computation = backend_with_computation.read_computation(correlation_uuid=general_uuid)
-    assert updated_computation.status == ComputationState.FAILURE
     assert updated_computation.message == 'ID: Field required. You provided: {}.'
 
 

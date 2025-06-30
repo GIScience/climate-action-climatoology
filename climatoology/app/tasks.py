@@ -12,7 +12,6 @@ from shapely import set_srid
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
-from climatoology.base.event import ComputationState
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, ComputationInfo, Storage
 from climatoology.utility.exception import InputValidationError
@@ -89,7 +88,6 @@ class CAPlatformComputeTask(Task):
             computation_info.timestamp = datetime.now(UTC).replace(tzinfo=None)
             computation_info.params = validated_params.model_dump()
             computation_info.artifacts = plugin_artifacts
-            computation_info.status = ComputationState.SUCCESS
             computation_info.artifact_errors = artifact_errors
 
             self._save_computation_info(computation_info=computation_info)
@@ -112,9 +110,7 @@ class CAPlatformComputeTask(Task):
 
 
 @task_revoked.connect
-def record_task_revoked(**kwargs):
+def uncache_revoked_task_on_worker(**kwargs):
     correlation_uuid = kwargs['request'].id
     sender = kwargs['sender']
-    sender.backend_db.update_failed_computation(
-        correlation_uuid=correlation_uuid, failure_message=None, cache=False, status=ComputationState.REVOKED
-    )
+    sender.backend_db.update_failed_computation(correlation_uuid=correlation_uuid, failure_message=None, cache=False)

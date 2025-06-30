@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql.ddl import CreateSchema
 
 from climatoology.base.baseoperator import AoiProperties
-from climatoology.base.event import ComputationState
 from climatoology.base.info import _Info
 from climatoology.store.database.tables import (
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
@@ -125,7 +124,6 @@ class BackendDatabase:
                 'aoi_geom': aoi.geometry.wkt,
                 'plugin_id': plugin_id,
                 'plugin_version': plugin_version,
-                'status': ComputationState.PENDING,
                 'artifact_errors': {},
             }
             computation_insert_stmt = (
@@ -217,7 +215,6 @@ class BackendDatabase:
     def update_successful_computation(self, computation_info: ComputationInfo, invalidate_cache: bool = False) -> None:
         updated_values = dict(
             timestamp=computation_info.timestamp,
-            status=computation_info.status,
             artifact_errors=computation_info.artifact_errors,
             message=computation_info.message,
         )
@@ -238,13 +235,7 @@ class BackendDatabase:
             session.execute(computation_update_stmt)
             session.commit()
 
-    def update_failed_computation(
-        self,
-        correlation_uuid: str,
-        failure_message: Optional[str],
-        cache: bool,
-        status: ComputationState = ComputationState.FAILURE,
-    ) -> None:
+    def update_failed_computation(self, correlation_uuid: str, failure_message: Optional[str], cache: bool) -> None:
         timestamp = datetime.now(UTC).replace(tzinfo=None)
         computation_update_stmt = (
             update(ComputationTable)
@@ -253,7 +244,6 @@ class BackendDatabase:
                 timestamp=timestamp,
                 cache_epoch=0 if cache else None,
                 valid_until=datetime.max if cache else timestamp,
-                status=status,
                 message=failure_message,
             )
         )

@@ -100,7 +100,7 @@ class ComputationTable(Base):
     plugin_id: Mapped[str] = mapped_column(ForeignKey('info.plugin_id'))
     plugin_version: Mapped[Version] = mapped_column(String)
     plugin: Mapped[InfoTable] = relationship()
-    status: Mapped[ComputationState]
+    status: Mapped[Optional[ComputationState]]
     message: Mapped[Optional[str]]
     artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)
 

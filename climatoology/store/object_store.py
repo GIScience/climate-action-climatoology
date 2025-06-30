@@ -95,8 +95,8 @@ class ComputationInfo(BaseModel):
             PluginBaseInfo(plugin_id='example_plugin', plugin_version='0.0.1'),
         ],
     )
-    status: ComputationState = Field(
-        description='The current status of the computation.', examples=[ComputationState.SUCCESS]
+    status: Optional[ComputationState] = Field(
+        description='The current status of the computation.', examples=[ComputationState.SUCCESS], default=None
     )
     message: Optional[str] = Field(description='A message accompanying the computation.', examples=[None], default=None)
     artifact_errors: dict[str, str] = Field(
