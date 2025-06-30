@@ -27,7 +27,6 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
-from climatoology.base.event import ComputationState
 from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import ComputationInfo, MinioStorage, PluginBaseInfo
@@ -279,7 +278,6 @@ def default_computation_info(
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=default_info.version),
-        status=ComputationState.SUCCESS,
     )
 
 

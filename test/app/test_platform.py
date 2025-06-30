@@ -13,7 +13,6 @@ from climatoology.app.plugin import _create_plugin
 from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
-from climatoology.base.event import ComputationState
 from climatoology.base.info import _Info
 from climatoology.store.object_store import ComputationInfo
 from climatoology.utility.exception import (
@@ -123,7 +122,7 @@ def test_send_compute_writes_to_backend(
     )
 
     stored_computation = default_platform_connection.backend_db.read_computation(correlation_uuid=general_uuid)
-    assert stored_computation.status == ComputationState.PENDING
+    assert stored_computation.correlation_uuid == general_uuid
 
 
 def test_send_compute_produces_result(
@@ -460,6 +459,7 @@ def test_send_compute_before_expiry_runs(
     default_aoi_feature_geojson_pydantic,
     general_uuid,
     default_platform_connection,
+    default_artifact,
 ):
     result = default_platform_connection.send_compute_request(
         plugin_id='test_plugin',
@@ -474,7 +474,7 @@ def test_send_compute_before_expiry_runs(
 
     # check db
     computation_info = default_backend_db.read_computation(general_uuid)
-    assert computation_info.status == ComputationState.SUCCESS
+    assert len(computation_info.artifacts) == 1
 
 
 def test_send_compute_expires_in_queue(
@@ -505,5 +505,4 @@ def test_send_compute_expires_in_queue(
 
     # check db
     computation_info = default_backend_db.read_computation(general_uuid)
-    assert computation_info.status == ComputationState.REVOKED
     assert computation_info.cache_epoch is None

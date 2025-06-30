@@ -3,7 +3,6 @@ import uuid
 
 import pytest
 
-from climatoology.base.event import ComputationState
 from climatoology.base.info import PluginAuthor
 
 
@@ -200,6 +199,5 @@ def test_update_failed_computation(default_plugin, default_backend_db, default_c
     )
 
     db_computation = default_backend_db.read_computation(correlation_uuid=default_computation_info.correlation_uuid)
-    assert db_computation.status == ComputationState.FAILURE
     assert db_computation.cache_epoch is None
     assert db_computation.message == 'Custom failure message'

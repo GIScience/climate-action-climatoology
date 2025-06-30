@@ -31,6 +31,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
+- deprecate computation state field in `ComputationInfo` and computation db
+  table ([#190](https://gitlab.heigit.org/climate-action/climatoology/-/issues/190))
 - switched to pytest-minio-mock to improve testability of minio
 - `read_computation` is now returning the request timestamp instead of the computation
   timestamp ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176)). The latter is disclosed in the
