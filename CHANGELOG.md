@@ -12,6 +12,13 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - de-deprecated basic chart artifact creation
   (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
 
+### Fix
+
+- the database being in an inconsistent state in the brief moments between a task finishing on the worker and the
+  subsequent `on_success` or `on_failure` callbacks. This
+  caused [#201](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/201) but also random
+  test-failures.
+
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
 ### Fixed

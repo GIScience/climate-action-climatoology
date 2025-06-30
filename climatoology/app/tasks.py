@@ -2,11 +2,9 @@ import logging
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Tuple
 
 import geojson_pydantic
 import shapely
-from billiard.einfo import ExceptionInfo
 from celery import Task
 from celery.signals import task_revoked
 from shapely import set_srid
@@ -39,20 +37,6 @@ class CAPlatformComputeTask(Task):
 
         log.info(f'Compute task for {self.plugin_id} initialised')
 
-    def on_failure(self, exc: Exception, task_id: str, args: Tuple, kwargs: Dict, einfo: ExceptionInfo) -> None:
-        self.backend_db.update_failed_computation(
-            correlation_uuid=task_id, failure_message=str(exc), cache=isinstance(exc, InputValidationError)
-        )
-        super().on_failure(exc, task_id, args, kwargs, einfo)
-
-    def on_success(self, retval: dict, task_id: str, args: Tuple, kwargs: Dict):
-        computation_info = ComputationInfo.model_validate(retval)
-        self._save_computation_info(computation_info=computation_info)
-        self.backend_db.update_successful_computation(
-            computation_info=computation_info, invalidate_cache=bool(computation_info.artifact_errors)
-        )
-        super().on_success(retval, task_id, args, kwargs)
-
     def _save_computation_info(self, computation_info: ComputationInfo) -> str:
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(Path(temp_dir) / COMPUTATION_INFO_FILENAME, 'x') as out_file:
@@ -73,42 +57,58 @@ class CAPlatformComputeTask(Task):
 
     def run(self, aoi: dict, params: dict) -> dict:
         correlation_uuid = self.request.correlation_id
-        self.update_state(task_id=self.request.correlation_id, state='STARTED')
-        log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
+        try:
+            self.update_state(task_id=self.request.correlation_id, state='STARTED')
+            log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
 
-        aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
+            aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
 
-        # through difficult typing above we know it's a MultiPolygon but the type checker cannot know
-        # noinspection PyTypeChecker
-        aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
-        aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
+            # through difficult typing above we know it's a MultiPolygon but the type checker cannot know
+            # noinspection PyTypeChecker
+            aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
+            aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
 
-        validated_params = self.operator.validate_params(params)
-        self.backend_db.add_validated_params(
-            correlation_uuid=correlation_uuid, params=validated_params.model_dump(mode='json')
-        )
-        log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
-
-        with ComputationScope(correlation_uuid) as resources:
-            artifacts = self.operator.compute_unsafe(
-                resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
+            validated_params = self.operator.validate_params(params)
+            self.backend_db.add_validated_params(
+                correlation_uuid=correlation_uuid, params=validated_params.model_dump(mode='json')
             )
-            artifact_errors = resources.artifact_errors
-            plugin_artifacts = [
-                _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
-                for artifact in artifacts
-            ]
-            self.storage.save_all(plugin_artifacts)
+            log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
 
-        computation_info = self.backend_db.read_computation(correlation_uuid=correlation_uuid)
-        computation_info.timestamp = datetime.now(UTC).replace(tzinfo=None)
-        computation_info.params = validated_params.model_dump()
-        computation_info.artifacts = plugin_artifacts
-        computation_info.status = ComputationState.SUCCESS
-        computation_info.artifact_errors = artifact_errors
+            with ComputationScope(correlation_uuid) as resources:
+                artifacts = self.operator.compute_unsafe(
+                    resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
+                )
+                artifact_errors = resources.artifact_errors
+                plugin_artifacts = [
+                    _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
+                    for artifact in artifacts
+                ]
+                self.storage.save_all(plugin_artifacts)
 
-        log.debug(f'{correlation_uuid} successfully computed')
-        return computation_info.model_dump(mode='json')
+            computation_info = self.backend_db.read_computation(correlation_uuid=correlation_uuid)
+            computation_info.timestamp = datetime.now(UTC).replace(tzinfo=None)
+            computation_info.params = validated_params.model_dump()
+            computation_info.artifacts = plugin_artifacts
+            computation_info.status = ComputationState.SUCCESS
+            computation_info.artifact_errors = artifact_errors
+
+            self._save_computation_info(computation_info=computation_info)
+            self.backend_db.update_successful_computation(
+                computation_info=computation_info, invalidate_cache=bool(computation_info.artifact_errors)
+            )
+
+            output = computation_info.model_dump(mode='json')
+
+            log.debug(f'{correlation_uuid} successfully computed')
+        except Exception as e:
+            # Note that the on_success and on_failure callbacks provided by celery.Task class will create an
+            # inconsistent DB-state where celery is already aware of the result while our custom result tables are not.
+            self.backend_db.update_failed_computation(
+                correlation_uuid=correlation_uuid, failure_message=str(e), cache=isinstance(e, InputValidationError)
+            )
+            raise e
+
+        return output
 
 
 @task_revoked.connect
