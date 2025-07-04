@@ -11,6 +11,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - de-deprecated basic chart artifact creation and use plotly for it
   (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
+- queues are created explicitly using the plugin id, enabling multiple workers to be online and to consume from the same
+  queue ([#189](https://gitlab.heigit.org/climate-action/climatoology/-/issues/189))
+- worker names now include the hostname (instead of `@_`), enabling multiple workers to be online yet still
+  differentiated from each other
 
 ### Fix
 
@@ -18,6 +22,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   subsequent `on_success` or `on_failure` callbacks. This
   caused [#201](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/201) but also random
   test-failures.
+
+### Removed
+
+- the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 

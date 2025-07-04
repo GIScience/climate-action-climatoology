@@ -2,11 +2,12 @@ import logging
 from typing import Optional
 
 from celery import Celery
+from kombu.entity import Exchange, Queue
 from semver import Version
 from sqlalchemy.orm import Session
 
 import climatoology
-from climatoology.app.settings import CELERY_HOST_PLACEHOLDER, CABaseSettings, WorkerSettings
+from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.info import _Info
@@ -30,10 +31,11 @@ def start_plugin(operator: BaseOperator) -> Optional[int]:
     plugin = _create_plugin(operator, settings)
 
     worker_config = WorkerSettings()
-    plugin.conf.update(**worker_config.model_dump())
+    worker_config_dict = worker_config.model_dump()
+    worker_hostname = worker_config_dict.pop('worker_hostname')
+    plugin.conf.update(**worker_config_dict)
 
-    plugin_name = generate_plugin_name(plugin_id=plugin.main)
-    return plugin.start(['worker', '-n', plugin_name, '--loglevel', settings.log_level])
+    return plugin.start(['worker', '-n', f'{plugin.main}@{worker_hostname}', '--loglevel', settings.log_level])
 
 
 def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
@@ -42,6 +44,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         broker=settings.broker_connection_string,
         backend=settings.backend_connection_string,
     )
+    plugin = configure_queue(plugin)
 
     backend_database = BackendDatabase(
         connection_string=settings.db_connection_string,
@@ -69,8 +72,12 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
     return plugin
 
 
-def generate_plugin_name(plugin_id: str) -> str:
-    return f'{plugin_id}@{CELERY_HOST_PLACEHOLDER}'
+def configure_queue(plugin: Celery) -> Celery:
+    queue_name = plugin.main
+    exchange = Exchange(name=EXCHANGE_NAME, type='direct')
+    compute_queue = Queue(name=queue_name, exchange=exchange, routing_key=queue_name)
+    plugin.conf.task_queues = (compute_queue,)
+    return plugin
 
 
 def extract_plugin_id(plugin_id_with_suffix: str) -> str:

@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from celery import Celery
 
-from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id, generate_plugin_name
+from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id
 from climatoology.utility.exception import VersionMismatchException
 
 
@@ -114,11 +114,6 @@ def test_failing_compute_updates_backend(
     assert updated_computation.message == 'ID: Field required. You provided: {}.'
 
 
-def test_generate_plugin_name():
-    computed_name = generate_plugin_name('plugin_id')
-    assert computed_name == 'plugin_id@_'
-
-
 def test_version_matches_raises_on_lower(default_backend_db, default_info_final, celery_app):
     _ = default_backend_db.write_info(info=default_info_final)
 
@@ -146,7 +141,7 @@ def test_version_matches_higher(default_backend_db, default_info_final, celery_a
 
 
 def test_version_matches_higher_not_alone(default_plugin, default_backend_db, default_info_final, celery_app):
-    newer_plugin_info = default_info_final
+    newer_plugin_info = default_info_final.model_copy(deep=True)
     newer_plugin_info.version = '3.1.1'
     with pytest.raises(
         AssertionError,

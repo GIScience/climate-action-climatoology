@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-CELERY_HOST_PLACEHOLDER = '_'
+EXCHANGE_NAME = 'climatoology'
 
 
 class CABaseSettings(BaseSettings):
@@ -48,8 +48,8 @@ class CABaseSettings(BaseSettings):
 class WorkerSettings(BaseSettings):
     worker_send_task_events: bool = True
     worker_concurrency: int = 4
-    worker_direct: bool = True
     worker_prefetch_multiplier: int = 1
+    worker_hostname: str = '%h'
     task_time_limit: int = timedelta(hours=0.5).total_seconds()
     task_track_started: bool = True
     result_expires: Optional[int] = None

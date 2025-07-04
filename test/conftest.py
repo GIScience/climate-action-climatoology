@@ -13,6 +13,7 @@ import responses
 import shapely
 from celery import Celery
 from celery.utils.threads import LocalStack
+from kombu import Exchange, Queue
 from pydantic import BaseModel, Field, HttpUrl
 from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
@@ -21,8 +22,8 @@ from sqlalchemy import create_engine, text
 
 import climatoology
 from climatoology.app.platform import CeleryPlatform
-from climatoology.app.plugin import _create_plugin, generate_plugin_name
-from climatoology.app.settings import CABaseSettings
+from climatoology.app.plugin import _create_plugin
+from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
@@ -309,20 +310,17 @@ def default_platform_connection(
 
 
 @pytest.fixture
-def celery_config():
-    return {'worker_direct': True, 'worker_concurrency': 1}
+def celery_worker_parameters():
+    return {'hostname': 'test_plugin@hostname'}
 
 
 @pytest.fixture
-def patch_pytest_celery_worker_hostname():
-    # This is required due to https://github.com/celery/celery/issues/9404
-    with patch('celery.contrib.testing.worker.anon_nodename', return_value=generate_plugin_name('test_plugin')) as p:
-        yield p
+def celery_app(celery_app):
+    # Configure queues in the 'parent' celery_app because we aren't running rabbitmq for real
+    compute_queue = Queue('test_plugin', Exchange(EXCHANGE_NAME), 'test_plugin')
+    celery_app.amqp.queues.select_add(compute_queue)
 
-
-@pytest.fixture
-def celery_worker(patch_pytest_celery_worker_hostname, celery_worker):
-    return celery_worker
+    yield celery_app
 
 
 @pytest.fixture
