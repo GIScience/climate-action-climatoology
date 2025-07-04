@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 from enum import Enum, StrEnum
@@ -9,6 +8,7 @@ from uuid import UUID
 
 import numpy as np
 import plotly
+import plotly.express as px
 import plotly.io as pio
 import rasterio
 import shapely
@@ -39,7 +39,9 @@ from climatoology.base.computation import ComputationResources
 
 log = logging.getLogger(__name__)
 
-pio.templates.default = 'plotly_white'
+plotly_template = pio.templates['plotly_white']
+plotly_template.layout.colorway = px.colors.qualitative.Safe
+pio.templates.default = plotly_template
 
 Colormap = NewType(
     'colormap_type',
@@ -132,7 +134,6 @@ class ArtifactModality(Enum):
     MARKDOWN = 'MARKDOWN'
     TABLE = 'TABLE'
     IMAGE = 'IMAGE'
-    CHART = 'CHART'
     CHART_PLOTLY = 'CHART_PLOTLY'
     MAP_LAYER_GEOJSON = 'MAP_LAYER_GEOJSON'
     MAP_LAYER_GEOTIFF = 'MAP_LAYER_GEOTIFF'
@@ -227,7 +228,7 @@ class Chart2dData(BaseModel):
         'the sum.',
         examples=[['first', 'second', 'third']],
     )
-    x_unit: Optional[str] = Field(title='x unit', description='The unit of measurement of the x-axis.', default=None)
+    x_label: Optional[str] = Field(title='x label', description='The label for the x-axis', default=None)
     y: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(
         title='Y values',
         description='Data values on the Y axis. '
@@ -237,7 +238,7 @@ class Chart2dData(BaseModel):
         '(string).',
         examples=[[3, 2, 1]],
     )
-    y_unit: Optional[str] = Field(title='y unit', description='The unit of measurement of the y-axis.', default=None)
+    y_label: Optional[str] = Field(title='y label', description='The label for the y-axis', default=None)
     chart_type: ChartType = Field(
         title='Chart Type', description='The type of chart to be created.', examples=[ChartType.SCATTER]
     )
@@ -277,6 +278,12 @@ class Chart2dData(BaseModel):
         if self.chart_type == ChartType.PIE:
             assert isinstance(self.y[0], float), 'Pie-chart Y-Axis must be numeric.'
             assert all(val >= 0 for val in self.y), 'Pie-chart Y-Data must be all positive.'
+        return self
+
+    @model_validator(mode='after')
+    def explode_color(self) -> 'Chart2dData':
+        if self.chart_type != ChartType.LINE and isinstance(self.color, Color):
+            self.color = len(self.x) * [self.color]
         return self
 
     @field_serializer('color')
@@ -422,9 +429,9 @@ def create_chart_artifact(
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
-    """Create a chart artifact.
+    """Create a basic chart artifact using the plotly library.
 
-    This will create a JSON file holding all information required to plot a simple 2d chart.
+    This will create a JSON file holding all information required to plot the defined chart.
 
     :param data: Chart data
     :param title: Title for the resulting plot.
@@ -436,23 +443,36 @@ def create_chart_artifact(
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
-    file_path = resources.computation_dir / f'{filename}.json'
-    log.debug(f'Writing chart {file_path}')
+    log.debug(f'Creating basic {data.chart_type} chart artifact')
 
-    with open(file_path, 'x') as out_file:
-        chart_data = data.model_dump(mode='json')
-        json.dump(chart_data, out_file, indent=None)
+    match data.chart_type:
+        case ChartType.SCATTER:
+            fig = px.scatter(x=data.x, y=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+            fig = fig.update_traces(marker_size=10)
 
-    result = _Artifact(
-        name=title,
-        modality=ArtifactModality.CHART,
-        file_path=file_path,
-        summary=caption,
+        case ChartType.LINE:
+            fig = px.line(x=data.x, y=data.y, markers=True, color_discrete_sequence=[data.color.as_hex()])
+
+        case ChartType.BAR:
+            fig = px.bar(x=data.x, y=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+
+        case ChartType.PIE:
+            fig = px.pie(values=data.x, names=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+
+        case _:
+            log.error(f'{data.chart_type} is not a supported chart type.')
+
+    fig.update_layout({'xaxis': {'title': data.x_label}, 'yaxis': {'title': data.y_label}})
+    result = create_plotly_chart_artifact(
+        figure=fig,
+        title=title,
+        caption=caption,
+        resources=resources,
+        primary=primary,
         description=description,
         tags=tags,
-        primary=primary,
+        filename=filename,
     )
-    log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
 
@@ -467,7 +487,7 @@ def create_plotly_chart_artifact(
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
-    """Create a chart artifact using the plotly library.
+    """Create a chart artifact from a custom plotly chart.
 
     This will create a JSON file holding all information required to plot the defined chart.
 
