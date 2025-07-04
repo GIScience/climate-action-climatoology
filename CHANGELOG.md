@@ -9,7 +9,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
-- de-deprecated basic chart artifact creation
+- de-deprecated basic chart artifact creation and use plotly for it
   (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
 
 ### Fix

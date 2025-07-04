@@ -112,6 +112,26 @@ def test_chart_check_data():
     assert data.y == [1, 2]
 
 
+def test_chart_explode_color():
+    chart_data = Chart2dData(
+        x=[1, 2],
+        y=['1', '2'],
+        color=Color('green'),
+        chart_type=ChartType.BAR,
+    )
+    assert chart_data.color == [Color('green'), Color('green')]
+
+
+def test_chart_explode_color_for_line():
+    chart_data = Chart2dData(
+        x=[1, 2],
+        y=['1', '2'],
+        color=Color('green'),
+        chart_type=ChartType.LINE,
+    )
+    assert chart_data.color == Color('green')
+
+
 def test_create_markdown_artifact(default_computation_resources, general_uuid, default_association_tags):
     expected_artifact = _Artifact(
         name='-',
@@ -199,26 +219,28 @@ def test_create_image_artifact(default_computation_resources, general_uuid, defa
     assert generated_content.convert('RGB') == expected_content
 
 
+@pytest.mark.parametrize('chart_type', [ChartType.SCATTER, ChartType.LINE, ChartType.BAR, ChartType.PIE])
 def test_create_chart_artifact(
+    chart_type,
     default_computation_resources,
     general_uuid,
     default_association_tags,
 ):
     expected_artifact = _Artifact(
         name='Test Chart',
-        modality=ArtifactModality.CHART,
+        modality=ArtifactModality.CHART_PLOTLY,
         file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
         summary='Chart caption',
         tags=default_association_tags,
     )
     method_input = Chart2dData(
         x=[1, 2, 3],
-        x_unit='m',
         y=[3, 2, 1],
-        y_unit='s',
-        chart_type=ChartType.SCATTER,
+        x_label='x title',
+        y_label='y title',
+        color=Color('green'),
+        chart_type=chart_type,
     )
-    expected_content = """{"x": [1.0, 2.0, 3.0], "x_unit": "m", "y": [3.0, 2.0, 1.0], "y_unit": "s", "chart_type": "SCATTER", "color": "#590d08"}"""
 
     generated_artifact = create_chart_artifact(
         data=method_input,
@@ -228,11 +250,8 @@ def test_create_chart_artifact(
         filename=str(general_uuid),
         tags=default_association_tags,
     )
-    with open(generated_artifact.file_path, 'r') as test_file:
-        generated_content = test_file.read()
 
     assert generated_artifact == expected_artifact
-    assert generated_content == expected_content
 
 
 def test_create_plotly_chart_artifact(
