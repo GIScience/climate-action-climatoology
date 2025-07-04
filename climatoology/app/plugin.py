@@ -44,7 +44,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
         broker=settings.broker_connection_string,
         backend=settings.backend_connection_string,
     )
-    plugin = configure_queue(plugin)
+    plugin = configure_queue(settings, plugin)
 
     backend_database = BackendDatabase(
         connection_string=settings.db_connection_string,
@@ -72,11 +72,21 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
     return plugin
 
 
-def configure_queue(plugin: Celery) -> Celery:
+def configure_queue(settings: CABaseSettings, plugin: Celery) -> Celery:
     queue_name = plugin.main
+
     exchange = Exchange(name=EXCHANGE_NAME, type='direct')
-    compute_queue = Queue(name=queue_name, exchange=exchange, routing_key=queue_name)
+    compute_queue = Queue(
+        name=queue_name,
+        exchange=exchange,
+        routing_key=queue_name,
+        queue_arguments={
+            'x-dead-letter-exchange': settings.deadletter_exchange_name,
+            'x-dead-letter-routing-key': settings.deadletter_channel_name,
+        },
+    )
     plugin.conf.task_queues = (compute_queue,)
+
     return plugin
 
 

@@ -27,6 +27,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
 
+### Added
+
+- a deadletter queue to store expired messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
+
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
 ### Fixed

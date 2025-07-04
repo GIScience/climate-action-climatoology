@@ -302,7 +302,7 @@ def default_platform_connection(
     celery_app, mocked_object_store, set_basic_envs, default_backend_db
 ) -> Generator[CeleryPlatform, None, None]:
     with (
-        patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
+        patch('climatoology.app.platform.Celery', return_value=celery_app),
         patch('climatoology.app.platform.CeleryPlatform.construct_storage', return_value=mocked_object_store),
         patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
     ):
@@ -316,7 +316,7 @@ def celery_worker_parameters():
 
 @pytest.fixture
 def celery_app(celery_app):
-    # Configure queues in the 'parent' celery_app because we aren't running rabbitmq for real
+    # Add queue to the base celery_app, so the platform also knows about it (because we aren't running rabbitmq for real)
     compute_queue = Queue('test_plugin', Exchange(EXCHANGE_NAME), 'test_plugin')
     celery_app.amqp.queues.select_add(compute_queue)
 

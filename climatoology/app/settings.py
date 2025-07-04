@@ -22,6 +22,9 @@ class CABaseSettings(BaseSettings):
     rabbitmq_password: str
     rabbitmq_vhost: str = ''
 
+    deadletter_channel_name: str = 'deadletter'
+    deadletter_exchange_name: str = 'dlx'
+
     postgres_host: str
     postgres_port: int
     postgres_user: str
