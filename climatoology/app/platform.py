@@ -1,26 +1,23 @@
 import logging
-import uuid
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import StrEnum
 from typing import Optional, Set
 from uuid import UUID
 
-import celery.exceptions
 import geojson_pydantic
 from celery import Celery
 from celery.result import AsyncResult
 from semver import Version
-from typing_extensions import deprecated
 
 import climatoology
-from climatoology.app.plugin import extract_plugin_id, generate_plugin_name
-from climatoology.app.settings import CABaseSettings, SenderSettings
+from climatoology.app.plugin import extract_plugin_id
+from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, SenderSettings
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import MinioStorage, Storage
-from climatoology.utility.exception import InfoNotReceivedException, VersionMismatchException
+from climatoology.utility.exception import VersionMismatchException
 
 log = logging.getLogger(__name__)
 
@@ -119,16 +116,7 @@ class CeleryPlatform(Platform):
 
     def request_info(self, plugin_id: str, ttl: int = 3) -> _Info:
         log.debug(f"Requesting 'info' from {plugin_id}.")
-        correlation_uuid = str(uuid.uuid4())
-
-        plugin_name = generate_plugin_name(plugin_id)
-        try:
-            info_return = self.backend_db.read_info(plugin_id=plugin_id)
-        except InfoNotReceivedException:
-            info_return = self.get_info_via_task(correlation_uuid, plugin_name, ttl)
-            log.warning(
-                f'Plugin {plugin_id} is running on an old version of climatoology that will no longer be supported. Please update!'
-            )
+        info_return = self.backend_db.read_info(plugin_id=plugin_id)
 
         if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
             climatoology.__version__
@@ -141,21 +129,6 @@ class CeleryPlatform(Platform):
                 f'Plugin library version: {info_return.library_version}'
             )
 
-        return info_return
-
-    @deprecated('This method is kept for backwards compatibility until the next major release.')
-    def get_info_via_task(self, correlation_uuid, plugin_name, ttl):
-        self.celery_app.send_task(
-            'info', task_id=correlation_uuid, routing_key=plugin_name, exchange='C.dq2', expires=ttl
-        )
-        result = self.celery_app.AsyncResult(correlation_uuid)
-        try:
-            raw_info = result.get(timeout=ttl)
-        except celery.exceptions.TimeoutError as e:
-            raise InfoNotReceivedException(
-                f'The info request ({correlation_uuid}) did not respond within the time limit of {ttl} seconds.'
-            ) from e
-        info_return = _Info(**raw_info)
         return info_return
 
     def send_compute_request(
@@ -197,7 +170,6 @@ class CeleryPlatform(Platform):
         )
 
         if deduplicated_correlation_uuid == correlation_uuid:
-            plugin_name = generate_plugin_name(plugin_id)
             return self.celery_app.send_task(
                 name='compute',
                 kwargs={
@@ -205,8 +177,8 @@ class CeleryPlatform(Platform):
                     'params': params,
                 },
                 task_id=str(correlation_uuid),
-                routing_key=plugin_name,
-                exchange='C.dq2',
+                routing_key=plugin_id,
+                exchange=EXCHANGE_NAME,
                 time_limit=task_time_limit,
                 expires=q_time,
             )

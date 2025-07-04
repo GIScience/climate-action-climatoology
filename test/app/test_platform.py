@@ -10,6 +10,7 @@ from semver import Version
 
 from climatoology.app.platform import CacheOverrides, CeleryPlatform
 from climatoology.app.plugin import _create_plugin
+from climatoology.app.settings import EXCHANGE_NAME
 from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
@@ -97,8 +98,8 @@ def test_send_compute(
             'params': {'id': 1, 'name': 'John Doe'},
         },
         task_id=str(general_uuid),
-        routing_key='test_plugin@_',
-        exchange='C.dq2',
+        routing_key='test_plugin',
+        exchange=EXCHANGE_NAME,
         time_limit=None,
         expires=None,
     )
@@ -129,10 +130,8 @@ def test_send_compute_produces_result(
     default_platform_connection,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
-    celery_worker,
     general_uuid,
     default_computation_info,
-    celery_app,
     stop_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
@@ -403,7 +402,6 @@ def test_send_compute_uses_settings_deduplication_override(
     default_backend_db,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
-    celery_worker,
     general_uuid,
     stop_time,
 ):
