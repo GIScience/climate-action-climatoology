@@ -25,7 +25,7 @@ from climatoology.store.database.tables import (
     author_info_link_table,
 )
 from climatoology.store.object_store import ComputationInfo, PluginBaseInfo
-from climatoology.utility.exception import InfoNotReceivedException
+from climatoology.utility.exception import InfoNotReceivedError
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ class BackendDatabase:
                 return retrieved_info
             else:
                 log.error(f'Info for {plugin_id} not available in database')
-                raise InfoNotReceivedException()
+                raise InfoNotReceivedError()
 
     def register_computation(
         self,

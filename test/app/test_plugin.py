@@ -5,7 +5,7 @@ import pytest
 from celery import Celery
 
 from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id
-from climatoology.utility.exception import VersionMismatchException
+from climatoology.utility.exception import VersionMismatchError
 
 
 def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):
@@ -119,7 +119,7 @@ def test_version_matches_raises_on_lower(default_backend_db, default_info_final,
 
     older_plugin_info = default_info_final
     older_plugin_info.version = '2.1.0'
-    with pytest.raises(VersionMismatchException, match=r'Refusing to register plugin*'):
+    with pytest.raises(VersionMismatchError, match=r'Refusing to register plugin*'):
         _version_is_compatible(info=older_plugin_info, db=default_backend_db, celery=celery_app)
 
 

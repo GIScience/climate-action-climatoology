@@ -192,8 +192,8 @@ class _Info(BaseModel, extra='forbid'):
     @model_validator(mode='after')
     def create_id(self) -> '_Info':
         plugin_id = self.name.lower()
-        plugin_id = re.sub('[^a-zA-Z-\s]', '', plugin_id)
-        plugin_id = re.sub('\s', '_', plugin_id)
+        plugin_id = re.sub(r'[^a-zA-Z-\s]', '', plugin_id)
+        plugin_id = re.sub(r'\s', '_', plugin_id)
         self.plugin_id = plugin_id
         return self
 

@@ -10,7 +10,7 @@ import requests
 from pydantic import BaseModel, Field, confloat, model_validator
 
 from climatoology.utility.api import PlatformHttpUtility, adjust_bounds, compute_raster
-from climatoology.utility.exception import PlatformUtilityException
+from climatoology.utility.exception import PlatformUtilityError
 
 log = logging.getLogger(__name__)
 
@@ -191,9 +191,9 @@ class LulcUtility(PlatformHttpUtility):
             response = self.session.post(url=url, json=unit.model_dump(mode='json'))
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
-            raise PlatformUtilityException('Connection to utility cannot be established') from e
+            raise PlatformUtilityError('Connection to utility cannot be established') from e
         except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityException('Query failed due to an error') from e
+            raise PlatformUtilityError('Query failed due to an error') from e
         else:
             return rio.open(BytesIO(response.content), mode='r')
 

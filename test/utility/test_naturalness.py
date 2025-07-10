@@ -16,8 +16,8 @@ from shapely import Point
 from shapely.geometry.polygon import Polygon
 
 from climatoology.utility.api import TimeRange
-from climatoology.utility.exception import PlatformUtilityException
-from climatoology.utility.Naturalness import NaturalnessIndex, NaturalnessUtility, NaturalnessWorkUnit
+from climatoology.utility.exception import PlatformUtilityError
+from climatoology.utility.naturalness import NaturalnessIndex, NaturalnessUtility, NaturalnessWorkUnit
 
 NATURALNESS_UNIT_A = NaturalnessWorkUnit(
     bbox=(7.38, 47.5, 7.385, 47.52),
@@ -59,7 +59,7 @@ def test_naturalness_connection_issues(mocked_utility_response):
     mocked_utility_response.return_value = response
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
-    with pytest.raises(PlatformUtilityException):
+    with pytest.raises(PlatformUtilityError):
         with operator.compute_raster(index='NDVI', units=[NATURALNESS_UNIT_A]):
             pass
 

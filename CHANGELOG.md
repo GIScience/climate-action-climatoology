@@ -9,13 +9,18 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
+- the project now requires python >=3.13.5 <3.14.0
+- renamed
+    - `platform` module to `sender`
+    - `LULC` utility module to `lulc`
+    - `Naturalness` utility module to `naturalness`
+    - `...Exception`s to `...Error`s
 - de-deprecated basic chart artifact creation and use plotly for it
   (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
 - queues are created explicitly using the plugin id, enabling multiple workers to be online and to consume from the same
   queue ([#189](https://gitlab.heigit.org/climate-action/climatoology/-/issues/189))
 - worker names now include the hostname (instead of `@_`), enabling multiple workers to be online yet still
   differentiated from each other
-- the project now requires python >=3.13.5 <3.14.0
 
 ### Fix
 
@@ -31,7 +36,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
-- a deadletter queue to store expired messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
+- a deadletter queue to store expired
+  messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
