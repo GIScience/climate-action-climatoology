@@ -15,6 +15,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   queue ([#189](https://gitlab.heigit.org/climate-action/climatoology/-/issues/189))
 - worker names now include the hostname (instead of `@_`), enabling multiple workers to be online yet still
   differentiated from each other
+- the project now requires python >=3.13.5 <3.14.0
 
 ### Fix
 
@@ -22,6 +23,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   subsequent `on_success` or `on_failure` callbacks. This
   caused [#201](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/201) but also random
   test-failures.
+- update all dependencies
 
 ### Removed
 

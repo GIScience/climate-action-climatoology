@@ -15,11 +15,11 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "~3.11.5"
+python = "~3.13.5"
 pydantic = "^2.8.2"
 pydantic-extra-types = "^2.1.0"
 pydantic-settings = "^2.6.0"
-geojson-pydantic = "^1.1.2"
+geojson-pydantic = "^2.0.0"
 bibtexparser = "^1.4.0"
 semver = "^3.0.1"
 minio = "^7.1.16"
