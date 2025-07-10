@@ -4,19 +4,19 @@ from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 
 
-class PlatformUtilityException(Exception):
+class PlatformUtilityError(Exception):
     """A requested utility exited exceptionally."""
 
     pass
 
 
-class InfoNotReceivedException(Exception):
+class InfoNotReceivedError(Exception):
     """A plugin did not respond in time."""
 
     pass
 
 
-class VersionMismatchException(Exception):
+class VersionMismatchError(Exception):
     """The plugins' library version does not match the required minimum version."""
 
     pass

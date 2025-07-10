@@ -21,8 +21,8 @@ from shapely import set_srid
 from sqlalchemy import create_engine, text
 
 import climatoology
-from climatoology.app.platform import CeleryPlatform
 from climatoology.app.plugin import _create_plugin
+from climatoology.app.sender import CelerySender
 from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
@@ -298,15 +298,15 @@ def default_computation_task(
 
 
 @pytest.fixture
-def default_platform_connection(
+def default_sender(
     celery_app, mocked_object_store, set_basic_envs, default_backend_db
-) -> Generator[CeleryPlatform, None, None]:
+) -> Generator[CelerySender, None, None]:
     with (
-        patch('climatoology.app.platform.Celery', return_value=celery_app),
-        patch('climatoology.app.platform.CeleryPlatform.construct_storage', return_value=mocked_object_store),
-        patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
+        patch('climatoology.app.sender.Celery', return_value=celery_app),
+        patch('climatoology.app.sender.CelerySender.construct_storage', return_value=mocked_object_store),
+        patch('climatoology.app.sender.BackendDatabase', return_value=default_backend_db),
     ):
-        yield CeleryPlatform()
+        yield CelerySender()
 
 
 @pytest.fixture

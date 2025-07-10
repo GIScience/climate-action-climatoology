@@ -8,8 +8,8 @@ from celery.exceptions import TaskRevokedError
 from celery.result import AsyncResult
 from semver import Version
 
-from climatoology.app.platform import CacheOverrides, CeleryPlatform
 from climatoology.app.plugin import _create_plugin
+from climatoology.app.sender import CacheOverrides, CelerySender
 from climatoology.app.settings import EXCHANGE_NAME
 from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
@@ -19,46 +19,46 @@ from climatoology.store.object_store import ComputationInfo
 from climatoology.utility.exception import (
     ClimatoologyUserError,
     InputValidationError,
-    VersionMismatchException,
+    VersionMismatchError,
 )
 from test.conftest import TestModel
 
 
-def test_platform_has_storage(default_platform_connection):
-    assert default_platform_connection.storage
+def test_sender_has_storage(default_sender):
+    assert default_sender.storage
 
 
-def test_list_default_active_plugins(default_platform_connection, celery_worker):
-    computed_plugins = default_platform_connection.list_active_plugins()
+def test_list_default_active_plugins(default_sender, celery_worker):
+    computed_plugins = default_sender.list_active_plugins()
     assert computed_plugins == set()
 
 
-def test_list_no_active_plugins(default_platform_connection):
-    computed_plugins = default_platform_connection.list_active_plugins()
+def test_list_no_active_plugins(default_sender):
+    computed_plugins = default_sender.list_active_plugins()
     assert computed_plugins == set()
 
 
-def test_list_active_plugins(default_platform_connection, celery_worker, default_plugin):
-    computed_plugins = default_platform_connection.list_active_plugins()
+def test_list_active_plugins(default_sender, celery_worker, default_plugin):
+    computed_plugins = default_sender.list_active_plugins()
 
     expected_plugins = {celery_worker.hostname.split('@')[0]}
 
     assert computed_plugins == expected_plugins
 
 
-def test_request_info(default_platform_connection, default_info_final, default_plugin, celery_worker):
-    computed_info = default_platform_connection.request_info(plugin_id='test_plugin')
+def test_request_info(default_sender, default_info_final, default_plugin, celery_worker):
+    computed_info = default_sender.request_info(plugin_id='test_plugin')
     assert computed_info == default_info_final
 
 
 @patch('climatoology.__version__', Version(1, 0, 0))
-def test_request_info_plugin_version_assert(default_platform_connection, default_info, default_plugin, celery_worker):
-    with pytest.raises(VersionMismatchException, match='Refusing to register plugin.*'):
-        default_platform_connection.request_info(plugin_id='test_plugin')
+def test_request_info_plugin_version_assert(default_sender, default_info, default_plugin, celery_worker):
+    with pytest.raises(VersionMismatchError, match='Refusing to register plugin.*'):
+        default_sender.request_info(plugin_id='test_plugin')
 
 
 def test_send_compute(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     general_uuid,
@@ -66,9 +66,9 @@ def test_send_compute(
     celery_app,
 ):
     mocked_app = Mock(side_effect=celery_app)
-    default_platform_connection.celery_app = mocked_app
+    default_sender.celery_app = mocked_app
 
-    _ = default_platform_connection.send_compute_request(
+    _ = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
@@ -106,28 +106,28 @@ def test_send_compute(
 
 
 def test_send_compute_writes_to_backend(
-    default_platform_connection,
+    default_sender,
     default_aoi_feature_geojson_pydantic,
     general_uuid,
     default_computation_info,
     default_plugin,
 ):
-    pre_compute = default_platform_connection.backend_db.read_computation(correlation_uuid=general_uuid)
+    pre_compute = default_sender.backend_db.read_computation(correlation_uuid=general_uuid)
     assert pre_compute is None
 
-    _ = default_platform_connection.send_compute_request(
+    _ = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={},
         correlation_uuid=general_uuid,
     )
 
-    stored_computation = default_platform_connection.backend_db.read_computation(correlation_uuid=general_uuid)
+    stored_computation = default_sender.backend_db.read_computation(correlation_uuid=general_uuid)
     assert stored_computation.correlation_uuid == general_uuid
 
 
 def test_send_compute_produces_result(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     general_uuid,
@@ -137,7 +137,7 @@ def test_send_compute_produces_result(
     expected_computation_info = default_computation_info.model_copy(deep=True)
     expected_computation_info.artifacts[0].store_id = ANY
 
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1},
@@ -152,7 +152,7 @@ def test_send_compute_produces_result(
 
 
 def test_send_compute_unless_deduplicated(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     celery_worker,
@@ -163,13 +163,13 @@ def test_send_compute_unless_deduplicated(
     first_correlation_uuid = uuid.uuid4()
     second_correlation_uuid = uuid.uuid4()
 
-    _ = default_platform_connection.send_compute_request(
+    _ = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1},
         correlation_uuid=first_correlation_uuid,
     )
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1},
@@ -184,7 +184,7 @@ def test_send_compute_unless_deduplicated(
 
 
 def test_send_compute_with_cache_override(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     celery_worker,
@@ -192,7 +192,7 @@ def test_send_compute_with_cache_override(
     celery_app,
     stop_time,
 ):
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1},
@@ -207,7 +207,7 @@ def test_send_compute_with_cache_override(
 
 
 def test_send_compute_state_receives_input_validation_error(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     celery_worker,
@@ -215,7 +215,7 @@ def test_send_compute_state_receives_input_validation_error(
     default_artifact,
     celery_app,
 ):
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 'test_invalid_id', 'name': 'John Doe'},
@@ -235,7 +235,7 @@ def test_send_compute_state_receives_input_validation_error(
 
 
 def test_send_compute_input_validation_error_is_cached(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     celery_worker,
@@ -244,7 +244,7 @@ def test_send_compute_input_validation_error_is_cached(
     celery_app,
     default_backend_db,
 ):
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 'test_invalid_id', 'name': 'John Doe'},
@@ -264,7 +264,7 @@ def test_send_compute_state_receives_ClimatoologyUserError(  # noqa: N802 - allo
     celery_worker,
     default_settings,
     default_aoi_feature_geojson_pydantic,
-    default_platform_connection,
+    default_sender,
     default_backend_db,
 ):
     class TestOperator(BaseOperator[TestModel]):
@@ -288,7 +288,7 @@ def test_send_compute_state_receives_ClimatoologyUserError(  # noqa: N802 - allo
         _ = _create_plugin(operator=operator, settings=default_settings)
         celery_worker.reload()
 
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
@@ -309,7 +309,7 @@ def test_send_compute_ClimatoologyUserError_is_not_cached(  # noqa: N802
     celery_worker,
     default_settings,
     default_aoi_feature_geojson_pydantic,
-    default_platform_connection,
+    default_sender,
     default_backend_db,
 ):
     class TestOperator(BaseOperator[TestModel]):
@@ -334,7 +334,7 @@ def test_send_compute_ClimatoologyUserError_is_not_cached(  # noqa: N802
         celery_worker.reload()
 
     correlation_uuid = uuid.uuid4()
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
@@ -355,7 +355,7 @@ def test_send_compute_artifact_errors_invalidate_cache(
     celery_worker,
     default_settings,
     default_aoi_feature_geojson_pydantic,
-    default_platform_connection,
+    default_sender,
     default_backend_db,
 ):
     class TestOperator(BaseOperator[TestModel]):
@@ -383,7 +383,7 @@ def test_send_compute_artifact_errors_invalidate_cache(
         celery_worker.reload()
 
     correlation_uuid = uuid.uuid4()
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
@@ -407,16 +407,16 @@ def test_send_compute_uses_settings_deduplication_override(
 ):
     monkeypatch.setenv('deduplicate_computations', 'false')
     with (
-        patch('climatoology.app.platform.CeleryPlatform.construct_celery_app', return_value=celery_app),
+        patch('climatoology.app.sender.CelerySender.construct_celery_app', return_value=celery_app),
         patch(
-            'climatoology.app.platform.CeleryPlatform.construct_storage',
+            'climatoology.app.sender.CelerySender.construct_storage',
             return_value=mocked_object_store,
         ),
-        patch('climatoology.app.platform.BackendDatabase', return_value=default_backend_db),
+        patch('climatoology.app.sender.BackendDatabase', return_value=default_backend_db),
     ):
-        platform_connection = CeleryPlatform()
+        sender = CelerySender()
 
-    result = platform_connection.send_compute_request(
+    result = sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1},
@@ -430,7 +430,7 @@ def test_send_compute_uses_settings_deduplication_override(
 
 
 def test_send_compute_reaches_worker(
-    default_platform_connection,
+    default_sender,
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     celery_worker,
@@ -440,7 +440,7 @@ def test_send_compute_reaches_worker(
 ):
     previous_computations = celery_worker.stats()['total'].get('compute')
 
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'name': 'John Doe'},
@@ -456,10 +456,10 @@ def test_send_compute_before_expiry_runs(
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     general_uuid,
-    default_platform_connection,
+    default_sender,
     default_artifact,
 ):
-    result = default_platform_connection.send_compute_request(
+    result = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'execution_time': 2},
@@ -480,16 +480,16 @@ def test_send_compute_expires_in_queue(
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     general_uuid,
-    default_platform_connection,
+    default_sender,
 ):
     blocker_uuid = uuid.uuid4()
-    blocker_task = default_platform_connection.send_compute_request(
+    blocker_task = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 1, 'execution_time': 1},
         correlation_uuid=blocker_uuid,
     )
-    waiter_task = default_platform_connection.send_compute_request(
+    waiter_task = default_sender.send_compute_request(
         plugin_id='test_plugin',
         aoi=default_aoi_feature_geojson_pydantic,
         params={'id': 2, 'execution_time': 0},

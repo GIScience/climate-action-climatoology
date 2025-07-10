@@ -17,7 +17,7 @@ from shapely.geometry import shape
 from tqdm import tqdm
 
 from climatoology.utility.api import PlatformHttpUtility, TimeRange, adjust_bounds, compute_raster
-from climatoology.utility.exception import PlatformUtilityException
+from climatoology.utility.exception import PlatformUtilityError
 
 log = logging.getLogger(__name__)
 
@@ -154,9 +154,9 @@ class NaturalnessUtility(PlatformHttpUtility):
             response = self.session.post(url=url, json=unit.model_dump(mode='json'))
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
-            raise PlatformUtilityException('Connection to utility cannot be established') from e
+            raise PlatformUtilityError('Connection to utility cannot be established') from e
         except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityException('Query failed due to an error') from e
+            raise PlatformUtilityError('Query failed due to an error') from e
         else:
             return rasterio.open(BytesIO(response.content), mode='r')
 
@@ -191,9 +191,9 @@ class NaturalnessUtility(PlatformHttpUtility):
             return vectors_with_stats
 
         except requests.exceptions.ConnectionError as e:
-            raise PlatformUtilityException('Connection to utility cannot be established') from e
+            raise PlatformUtilityError('Connection to utility cannot be established') from e
         except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityException('Query failed due to an error') from e
+            raise PlatformUtilityError('Query failed due to an error') from e
 
     @staticmethod
     def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 1000) -> List[NaturalnessWorkUnit]:

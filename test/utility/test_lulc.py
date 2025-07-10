@@ -7,8 +7,8 @@ from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
 
-from climatoology.utility.exception import PlatformUtilityException
-from climatoology.utility.LULC import LabelDescriptor, LabelResponse, LulcUtility, LulcWorkUnit
+from climatoology.utility.exception import PlatformUtilityError
+from climatoology.utility.lulc import LabelDescriptor, LabelResponse, LulcUtility, LulcWorkUnit
 
 lulc_unit_a = LulcWorkUnit(
     area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
@@ -74,7 +74,7 @@ def test_lulc_when_encountering_connection_issues(mocked_utility_response):
     mocked_utility_response.return_value = response
 
     operator = LulcUtility(host='localhost', port=80, path='/')
-    with pytest.raises(PlatformUtilityException):
+    with pytest.raises(PlatformUtilityError):
         with operator.compute_raster([lulc_unit_a]):
             pass
 

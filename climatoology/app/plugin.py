@@ -14,7 +14,7 @@ from climatoology.base.info import _Info
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.tables import InfoTable
 from climatoology.store.object_store import MinioStorage, Storage
-from climatoology.utility.exception import VersionMismatchException
+from climatoology.utility.exception import VersionMismatchError
 
 log = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> 
         existing_info_version = Version.parse(existing_info.version)
         incoming_info_version = Version.parse(info.version)
         if existing_info_version > incoming_info_version:
-            raise VersionMismatchException(
+            raise VersionMismatchError(
                 f'Refusing to register plugin {info.name} in version {info.version}.'
                 f'A newer version ({existing_info.version}) has previously been registered on the platform. If '
                 f'this is intentional, manually downgrade your platform and be aware of or mitigate the '

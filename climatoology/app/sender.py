@@ -17,7 +17,7 @@ from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import MinioStorage, Storage
-from climatoology.utility.exception import VersionMismatchException
+from climatoology.utility.exception import VersionMismatchError
 
 log = logging.getLogger(__name__)
 
@@ -27,8 +27,8 @@ class CacheOverrides(StrEnum):
     NEVER = 'no-cache'
 
 
-class Platform(ABC):
-    """A platform class that holds connections and provides access to an underlying computation platform framework."""
+class Sender(ABC):
+    """A sender class that holds connections and provides access to an underlying computation platform framework."""
 
     @abstractmethod
     def list_active_plugins(self) -> Set[str]:
@@ -61,7 +61,7 @@ class Platform(ABC):
         pass
 
 
-class CeleryPlatform(Platform):
+class CelerySender(Sender):
     def __init__(self):
         sender_config = SenderSettings()
 
@@ -69,11 +69,11 @@ class CeleryPlatform(Platform):
         # noinspection PyArgumentList
         settings = CABaseSettings()
 
-        self.celery_app = CeleryPlatform.construct_celery_app(settings, sender_config)
+        self.celery_app = CelerySender.construct_celery_app(settings, sender_config)
 
         self.assert_plugin_version = sender_config.assert_plugin_version
 
-        self.storage = CeleryPlatform.construct_storage(settings)
+        self.storage = CelerySender.construct_storage(settings)
 
         self.backend_db = BackendDatabase(
             connection_string=settings.db_connection_string, user_agent=f'CeleryPlatform/{climatoology.__version__}'
@@ -121,7 +121,7 @@ class CeleryPlatform(Platform):
         if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
             climatoology.__version__
         ):
-            raise VersionMismatchException(
+            raise VersionMismatchError(
                 f'Refusing to register plugin '
                 f'{info_return.name} in version {info_return.version} due to a climatoology library '
                 f'version mismatch. '
