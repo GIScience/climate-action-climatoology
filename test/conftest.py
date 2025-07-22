@@ -11,10 +11,12 @@ import geojson_pydantic
 import pytest
 import responses
 import shapely
+import sqlalchemy
 from celery import Celery
 from celery.utils.threads import LocalStack
 from kombu import Exchange, Queue
 from pydantic import BaseModel, Field, HttpUrl
+from pytest_alembic import Config
 from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
 from shapely import set_srid
@@ -38,22 +40,22 @@ pytest_plugins = ('celery.contrib.pytest',)
 
 @pytest.fixture
 def set_basic_envs(monkeypatch):
-    monkeypatch.setenv('minio_host', 'minio.test')
-    monkeypatch.setenv('minio_port', '1000')
+    monkeypatch.setenv('minio_host', 'test.host')
+    monkeypatch.setenv('minio_port', '1234')
     monkeypatch.setenv('minio_access_key', 'minio_test_key')
     monkeypatch.setenv('minio_secret_key', 'minio_test_secret')
     monkeypatch.setenv('minio_bucket', 'minio_test_bucket')
 
-    monkeypatch.setenv('rabbitmq_host', 'test-host')
+    monkeypatch.setenv('rabbitmq_host', 'test.host')
     monkeypatch.setenv('rabbitmq_port', '1234')
     monkeypatch.setenv('rabbitmq_user', 'test_user')
     monkeypatch.setenv('rabbitmq_password', 'test_pw')
 
-    monkeypatch.setenv('postgres_host', 'test-host')
+    monkeypatch.setenv('postgres_host', 'test.host')
     monkeypatch.setenv('postgres_port', '1234')
+    monkeypatch.setenv('postgres_database', 'test_database')
     monkeypatch.setenv('postgres_user', 'test_user')
     monkeypatch.setenv('postgres_password', 'test_password')
-    monkeypatch.setenv('postgres_database', 'test_database')
 
 
 @pytest.fixture
@@ -333,35 +335,66 @@ def default_association_tags() -> Set[StrEnum]:
 
 
 @pytest.fixture
-def default_backend_db(request) -> BackendDatabase:
+def db_connection_params(request) -> dict:
     if os.getenv('CI', 'False').lower() == 'true':
-        pg_host = os.getenv('POSTGRES_HOST')
-        pg_port = os.getenv('POSTGRES_PORT')
-        pg_user = os.getenv('POSTGRES_USER')
-        pg_password = os.getenv('POSTGRES_PASSWORD')
-        pg_db = os.getenv('POSTGRES_DB')
-        pg_version = int(os.getenv('POSTGRES_VERSION'))
+        return {
+            'host': os.getenv('POSTGRES_HOST'),
+            'port': os.getenv('POSTGRES_PORT'),
+            'database': os.getenv('POSTGRES_DB'),
+            'user': os.getenv('POSTGRES_USER'),
+            'password': os.getenv('POSTGRES_PASSWORD'),
+        }
+    else:
+        postgresql = request.getfixturevalue('postgresql')
+        return {
+            'host': postgresql.info.host,
+            'port': postgresql.info.port,
+            'database': postgresql.info.dbname,
+            'user': postgresql.info.user,
+            'password': postgresql.info.password,
+        }
 
+
+@pytest.fixture
+def db_connection_string(db_connection_params) -> str:
+    host = db_connection_params['host']
+    port = db_connection_params['port']
+    dbname = db_connection_params['database']
+    user = db_connection_params['user']
+    password = db_connection_params['password']
+
+    if os.getenv('CI', 'False').lower() == 'true':
         db_janitor = DatabaseJanitor(
-            host=pg_host,
-            port=pg_port,
-            user=pg_user,
-            password=pg_password,
-            dbname=pg_db,
-            version=Version(pg_version),
+            host=host,
+            port=port,
+            dbname=dbname,
+            user=user,
+            password=password,
+            version=int(os.getenv('POSTGRES_VERSION')),
         )
         db_janitor.drop()
         db_janitor.init()
 
-        connection_string = f'postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}'
-    else:
-        postgresql = request.getfixturevalue('postgresql')
-        connection_string = f'postgresql+psycopg2://{postgresql.info.user}:{postgresql.info.password}@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+    return f'postgresql://{user}:{password}@{host}:{port}/{dbname}'
 
-    with create_engine(connection_string).connect() as con:
+
+@pytest.fixture
+def db_with_postgis(db_connection_string) -> str:
+    with create_engine(db_connection_string).connect() as con:
         con.execute(text('CREATE EXTENSION IF NOT EXISTS postgis;'))
         con.commit()
-    return BackendDatabase(connection_string=connection_string, user_agent='Test Climatoology Backend')
+    return db_connection_string
+
+
+@pytest.fixture
+def db_with_tables(db_with_postgis, alembic_runner) -> str:
+    alembic_runner.migrate_up_to('head')
+    return db_with_postgis
+
+
+@pytest.fixture
+def default_backend_db(db_with_tables) -> BackendDatabase:
+    return BackendDatabase(connection_string=db_with_tables, user_agent='Test Climatoology Backend')
 
 
 @pytest.fixture
@@ -378,3 +411,13 @@ def backend_with_computation(
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     return default_backend_db
+
+
+@pytest.fixture
+def alembic_config() -> Config:
+    return Config(config_options={'script_location': 'climatoology/store/database/migration'})
+
+
+@pytest.fixture
+def alembic_engine(db_with_postgis, set_basic_envs):
+    return sqlalchemy.create_engine(db_with_postgis)

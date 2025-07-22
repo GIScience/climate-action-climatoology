@@ -43,12 +43,12 @@ def test_minio_save_all(mocked_object_store, general_uuid, default_artifact, moc
 def test_minio_get_artifact_url(mocked_object_store, general_uuid):
     store_id = f'{general_uuid}_test_file.tiff'
     result = mocked_object_store.get_artifact_url(general_uuid, store_id)
-    assert result == f'https://minio.test:1000/minio_test_bucket/{general_uuid}/{general_uuid}_test_file.tiff'
+    assert result == f'https://test.host:1234/minio_test_bucket/{general_uuid}/{general_uuid}_test_file.tiff'
 
 
 def test_get_icon_url(mocked_object_store):
     result = mocked_object_store.get_icon_url(plugin_id='test_plugin')
-    assert result == 'https://minio.test:1000/minio_test_bucket/assets/test_plugin/latest/ICON.jpeg'
+    assert result == 'https://test.host:1234/minio_test_bucket/assets/test_plugin/latest/ICON.jpeg'
 
 
 def test_big_icon_gets_thumbnailed(mocked_object_store, mocker):

@@ -1,9 +1,11 @@
 import datetime
 import uuid
 
+import alembic
 import pytest
 
 from climatoology.base.info import PluginAuthor
+from climatoology.store.database.database import BackendDatabase
 
 
 def test_info_to_db_and_back(default_backend_db, default_info_final):
@@ -201,3 +203,9 @@ def test_update_failed_computation(default_plugin, default_backend_db, default_c
     db_computation = default_backend_db.read_computation(correlation_uuid=default_computation_info.correlation_uuid)
     assert db_computation.cache_epoch is None
     assert db_computation.message == 'Custom failure message'
+
+
+def test_outdated_db_refuses_startup(db_with_postgis, alembic_runner):
+    alembic_runner.migrate_up_to('45b227b8bee7')
+    with pytest.raises(alembic.util.exc.CommandError, match=r'Target database is not up to date.'):
+        BackendDatabase(connection_string=db_with_postgis, user_agent='Test Climatoology Backend')
