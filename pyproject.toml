@@ -35,12 +35,16 @@ celery = { extras = ["sqlalchemy"], version = "^5.4.0" }
 psycopg2-binary = "^2.9.10"
 sqlalchemy = "^2.0.40"
 geoalchemy2 = "^0.17.1"
+alembic = "^1.16.1"
+alembic-utils = "^0.8.8"
+alembic-postgresql-enum = "^1.7.0"
 plotly = "^6.0.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
 pytest-mock = "^3.14.0"
 pytest-postgresql = "^7.0.1"
+pytest-alembic = "^0.12.1"
 pytest-minio-mock = "^0.4.16"
 time-machine = "^2.16.0"
 responses = "^0.25.3"
@@ -48,6 +52,12 @@ responses = "^0.25.3"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
 pytest-cov = "^6.1.1"
+
+[tool.alembic]
+script_location = "%(here)s/climatoology/store/database/migration"
+prepend_sys_path = [
+    "."
+]
 
 [tool.ruff]
 line-length = 120
@@ -57,7 +67,7 @@ quote-style = "single"
 
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/rules
-select=[
+select = [
     # defaults
     "F",
     "E4", "E7", "E9",

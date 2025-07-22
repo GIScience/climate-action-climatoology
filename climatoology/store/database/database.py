@@ -1,23 +1,25 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from io import StringIO
+from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
+import alembic
 import geoalchemy2
 import geojson_pydantic
+from alembic.config import Config
 from semver import Version
 from sqlalchemy import NullPool, column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.sql.ddl import CreateSchema
 
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
-from climatoology.store.database.tables import (
+from climatoology.store.database import migration
+from climatoology.store.database.models import (
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
-    SCHEMA_NAME,
     ArtifactTable,
-    Base,
     ComputationLookup,
     ComputationTable,
     InfoTable,
@@ -38,12 +40,21 @@ class BackendDatabase:
             connect_args={'application_name': user_agent},
             poolclass=NullPool,
         )
-
-        with self.engine.connect() as connection:
-            connection.execute(CreateSchema(SCHEMA_NAME, if_not_exists=True))
-            connection.commit()
-
-        Base.metadata.create_all(self.engine)
+        with StringIO() as stdout_replacement:
+            alembic_cfg = Config(stdout=stdout_replacement)
+            alembic_cfg.set_main_option('script_location', str(Path(migration.__file__).parent))
+            alembic_cfg.attributes['connection'] = self.engine
+            try:
+                alembic.command.check(config=alembic_cfg)
+            except alembic.util.exc.CommandError as e:
+                log.error(
+                    'The target database is not compatible with the expectations by climatoology. Make sure to '
+                    'update your database e.g. by running the alembic migration or contacting your admin.',
+                    exc_info=e,
+                )
+                raise e
+            finally:
+                log.info(stdout_replacement.readlines())
 
     def write_info(self, info: _Info) -> str:
         log.debug(f'Connecting to the database and writing info for {info.plugin_id}')

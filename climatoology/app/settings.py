@@ -27,9 +27,9 @@ class CABaseSettings(BaseSettings):
 
     postgres_host: str
     postgres_port: int
+    postgres_database: str
     postgres_user: str
     postgres_password: str
-    postgres_database: str
 
     deduplicate_computations: bool = True
 
