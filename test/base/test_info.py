@@ -1,4 +1,4 @@
-import datetime
+from datetime import timedelta
 from pathlib import Path
 
 import pydantic
@@ -316,6 +316,6 @@ def test_shelf_life():
         teaser='This plugin does nothing and that is good.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        computation_shelf_life=datetime.timedelta(hours=1),
+        computation_shelf_life=timedelta(hours=1),
     )
-    assert computed_info.computation_shelf_life == datetime.timedelta(hours=1)
+    assert computed_info.computation_shelf_life == timedelta(hours=1)

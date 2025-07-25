@@ -1,6 +1,6 @@
-import datetime
 import logging
 import os
+from datetime import date
 
 import geopandas as gpd
 import pandas as pd
@@ -21,7 +21,7 @@ from climatoology.utility.naturalness import NaturalnessIndex, NaturalnessUtilit
 
 NATURALNESS_UNIT_A = NaturalnessWorkUnit(
     bbox=(7.38, 47.5, 7.385, 47.52),
-    time_range=TimeRange(end_date=datetime.date(2023, 6, 1)),
+    time_range=TimeRange(end_date=date(2023, 6, 1)),
 )
 
 
@@ -141,7 +141,7 @@ def test_compute_vector_single_unit(mocked_utility_response, default_zonal_vecto
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
 
-    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+    time_range = TimeRange(end_date=date(2023, 6, 1))
 
     response_gdf = operator.compute_vector(
         index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
@@ -199,7 +199,7 @@ def test_compute_vector_retain_index_dtype(index_dtype, mocked_utility_response)
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
 
-    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+    time_range = TimeRange(end_date=date(2023, 6, 1))
 
     response_gdf = operator.compute_vector(
         index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
@@ -263,7 +263,7 @@ def test_compute_vector_multi_unit(mocked_utility_response):
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
 
-    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+    time_range = TimeRange(end_date=date(2023, 6, 1))
 
     response_gdf = operator.compute_vector(
         index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=vectors, time_range=time_range
@@ -328,7 +328,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     agg_stats = ['mean']
 
-    time_range = TimeRange(end_date=datetime.date(2023, 6, 1))
+    time_range = TimeRange(end_date=date(2023, 6, 1))
 
     # dimensions of example vectors here: h, w = (223, 221)
     response_gdf = operator.compute_vector(

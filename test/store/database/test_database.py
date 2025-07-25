@@ -1,5 +1,5 @@
-import datetime
 import uuid
+from datetime import datetime, timedelta
 
 import alembic
 import pytest
@@ -54,12 +54,12 @@ def test_remove_authors(default_backend_db, default_info_final):
     [
         (None, [{'same': True}, {'same': True}], True),
         (None, [{'different': True}, {'different': False}], False),
-        (datetime.timedelta(0), [{'same': True}, {'same': True}], False),
-        (datetime.timedelta(0), [{'different': True}, {'different': False}], False),
-        (datetime.timedelta(days=7), [{'same': True}, {'same': True}], True),
-        (datetime.timedelta(days=7), [{'different': True}, {'different': False}], False),
-        (datetime.timedelta(seconds=1), [{'same': True}, {'same': True}], False),
-        (datetime.timedelta(seconds=1), [{'different': True}, {'different': False}], False),
+        (timedelta(0), [{'same': True}, {'same': True}], False),
+        (timedelta(0), [{'different': True}, {'different': False}], False),
+        (timedelta(days=7), [{'same': True}, {'same': True}], True),
+        (timedelta(days=7), [{'different': True}, {'different': False}], False),
+        (timedelta(seconds=1), [{'same': True}, {'same': True}], False),
+        (timedelta(seconds=1), [{'different': True}, {'different': False}], False),
     ],
 )
 def test_register_computations(
@@ -84,7 +84,7 @@ def test_register_computations(
         plugin_version=default_info.version,
         computation_shelf_life=shelf_life,
     )
-    time_machine.shift(datetime.timedelta(days=1))
+    time_machine.shift(timedelta(days=1))
     db_correlation_uuid_duplicate = default_backend_db.register_computation(
         correlation_uuid=second_correlation_uuid,
         requested_params=params[1],
@@ -99,12 +99,12 @@ def test_register_computations(
 
 def test_read_computation_with_request_ts(backend_with_computation, default_computation_info):
     computation_info = default_computation_info.model_copy()
-    computation_info.timestamp = datetime.datetime(2025, 1, 1, 12)
+    computation_info.timestamp = datetime(2025, 1, 1, 12)
     backend_with_computation.update_successful_computation(computation_info=computation_info)
     db_computation_info = backend_with_computation.read_computation(
         correlation_uuid=computation_info.correlation_uuid, state_actual_computation_time=True
     )
-    assert db_computation_info.timestamp == datetime.datetime(2018, 1, 1, 12)
+    assert db_computation_info.timestamp == datetime(2018, 1, 1, 12)
     assert db_computation_info.message == 'The results were computed on the 2025-01-01 12:00:00'
 
 
