@@ -1,7 +1,7 @@
-import datetime
 import json
 import logging
 import re
+from datetime import timedelta
 from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
@@ -179,12 +179,12 @@ class _Info(BaseModel, extra='forbid'):
     demo_config: Optional[DemoConfig] = Field(
         description='Configuration to run a demonstration of a plugin.', default=None
     )
-    computation_shelf_life: Optional[datetime.timedelta] = Field(
+    computation_shelf_life: Optional[timedelta] = Field(
         description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
         'of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of 0 means '
         'no caching while None means indefinite caching.',
-        examples=[datetime.timedelta(weeks=4)],
-        default=datetime.timedelta(0),
+        examples=[timedelta(weeks=4)],
+        default=timedelta(0),
     )
     assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.jpeg')])
     plugin_id: Optional[str] = Field(
@@ -259,7 +259,7 @@ def generate_plugin_info(
     purpose: Path,
     methodology: Path,
     state: PluginState = PluginState.ACTIVE,
-    computation_shelf_life: datetime.timedelta = datetime.timedelta(0),
+    computation_shelf_life: timedelta = timedelta(0),
     teaser: str = None,
     demo_input_parameters: T_co = None,
     demo_aoi: Path = None,

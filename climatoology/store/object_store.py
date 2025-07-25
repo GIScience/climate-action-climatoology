@@ -1,8 +1,7 @@
-import datetime
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional
@@ -29,9 +28,7 @@ class ComputationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
     correlation_uuid: UUID = Field(description='The unique identifier of the computation.', examples=[uuid.uuid4()])
-    timestamp: datetime.datetime = Field(
-        description='The timestamp of the computation.', examples=[datetime.datetime.now()]
-    )
+    timestamp: datetime = Field(description='The timestamp of the computation.', examples=[datetime.now()])
     deduplication_key: UUID = Field(
         description='A key identifying unique contributions in terms of content. It is a combination of multiple '
         'fields of the info that are used to deduplicate computations in combination with the '
@@ -43,9 +40,7 @@ class ComputationInfo(BaseModel):
         'valid. It can be used in combination with the `deduplication_key` to deduplicate non-expired computations. ',
         examples=[1234],
     )
-    valid_until: datetime.datetime = Field(
-        description='The human readable form of the `cache_epoch`', examples=[datetime.datetime.now()]
-    )
+    valid_until: datetime = Field(description='The human readable form of the `cache_epoch`', examples=[datetime.now()])
     params: Optional[dict] = Field(
         description='The final parameters used for the computation.',
         examples=[{'param_a': 1, 'optional_param_b': 'b'}],

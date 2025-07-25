@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Set
 from uuid import UUID
 
@@ -52,7 +52,7 @@ class InfoTable(Base):
     methodology: Mapped[str]
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
     demo_config: Mapped[Optional[DemoConfig]] = mapped_column(JSON)
-    computation_shelf_life: Mapped[Optional[datetime.timedelta]]
+    computation_shelf_life: Mapped[Optional[timedelta]]
     assets: Mapped[Assets] = mapped_column(JSON)
     operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
     library_version: Mapped[Version] = mapped_column(String)
@@ -85,12 +85,12 @@ class ComputationTable(Base):
     )
 
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
-    timestamp: Mapped[datetime.datetime]
+    timestamp: Mapped[datetime]
     deduplication_key: Mapped[UUID] = mapped_column(
         Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id||plugin_version)::uuid')
     )
     cache_epoch: Mapped[Optional[int]]
-    valid_until: Mapped[datetime.datetime]
+    valid_until: Mapped[datetime]
     params: Mapped[Optional[dict]] = mapped_column(JSONB)
     requested_params: Mapped[dict] = mapped_column(JSONB)
     aoi_name: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
@@ -109,7 +109,7 @@ class ComputationLookup(Base):
     __tablename__ = 'computation_lookup'
 
     user_correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
-    request_ts: Mapped[datetime.datetime]
+    request_ts: Mapped[datetime]
     aoi_name: Mapped[str]
     aoi_id: Mapped[str]
     computation_id: Mapped[UUID] = mapped_column(ForeignKey('computation.correlation_uuid'))

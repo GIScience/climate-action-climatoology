@@ -1,5 +1,5 @@
-import datetime
 import os
+from datetime import date
 
 import pytest
 import rasterio
@@ -12,13 +12,13 @@ from climatoology.utility.lulc import LabelDescriptor, LabelResponse, LulcUtilit
 
 lulc_unit_a = LulcWorkUnit(
     area_coords=(8.0859375, 47.5172006978394, 8.26171875, 47.63578359086485),
-    start_date=datetime.date(2023, 5, 1),
-    end_date=datetime.date(2023, 6, 1),
+    start_date=date(2023, 5, 1),
+    end_date=date(2023, 6, 1),
 )
 lulc_unit_b = LulcWorkUnit(
     area_coords=(8.0859375, 47.63578359086485, 8.26171875, 47.754097979680026),
-    start_date=datetime.date(2023, 5, 1),
-    end_date=datetime.date(2023, 6, 1),
+    start_date=date(2023, 5, 1),
+    end_date=date(2023, 6, 1),
 )
 
 
