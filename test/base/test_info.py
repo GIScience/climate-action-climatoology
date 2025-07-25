@@ -1,6 +1,7 @@
 import datetime
 from pathlib import Path
 
+import pydantic
 import pytest
 from pydantic import HttpUrl, ValidationError
 from semver import Version
@@ -11,7 +12,7 @@ from test.conftest import TestModel
 
 def test_operator_info(default_info):
     assert default_info.version == '3.1.0'
-    assert default_info.sources[0]['ENTRYTYPE'] == 'article'
+    assert default_info.sources[0].ENTRYTYPE == 'article'
     assert Path(default_info.assets.icon).is_file()
 
 
@@ -75,6 +76,27 @@ def test_sources_are_optional():
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         demo_input_parameters=TestModel(id=1),
     )
+
+
+def test_invalid_sources():
+    with pytest.raises(pydantic.ValidationError, match=r'.*ArticleSource\.pages.*'):
+        generate_plugin_info(
+            name='Test Plugin',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            authors=[
+                PluginAuthor(
+                    name='John Doe',
+                    affiliation='HeiGIT gGmbH',
+                    website=HttpUrl('https://heigit.org/heigit-team/'),
+                )
+            ],
+            version=Version.parse('3.1.0'),
+            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+            methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+            demo_input_parameters=TestModel(id=1),
+            sources=Path(__file__).parent.parent / 'resources/invalid_test.bib',
+        )
 
 
 def test_provide_demo_params_and_aoi(default_aoi_feature_geojson_pydantic):

@@ -5,7 +5,7 @@ import re
 from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Literal, Optional, Set
 
 import bibtexparser
 import geojson_pydantic
@@ -58,6 +58,35 @@ class PluginAuthor(BaseModel):
         examples=['https://heigit.org/heigit-team/'],
         default=None,
     )
+
+
+class BaseSource(BaseModel):
+    ID: str
+    title: str
+    author: str
+    year: str
+    note: Optional[str] = None
+
+
+class ArticleSource(BaseSource):
+    ENTRYTYPE: Literal['article']
+    journal: str
+    volume: str
+    number: Optional[str] = None
+    pages: str
+    url: Optional[str] = None
+
+
+class IncollectionSource(BaseSource):
+    ENTRYTYPE: Literal['inbook', 'inproceedings']
+    booktitle: str
+    pages: str
+    url: Optional[str] = None
+
+
+class MiscSource(BaseSource):
+    ENTRYTYPE: Literal['misc']
+    url: str
 
 
 class Assets(BaseModel):
@@ -129,7 +158,7 @@ class _Info(BaseModel, extra='forbid'):
         description='How does this plugin achieve its goal?',
         examples=['This plugin uses a combination of data source A and method B to accomplish the purpose.'],
     )
-    sources: Optional[List[dict]] = Field(
+    sources: Optional[List[ArticleSource | IncollectionSource | MiscSource]] = Field(
         description='A list of sources that were used in the process or are related. ',
         examples=[
             [
@@ -284,6 +313,8 @@ def generate_plugin_info(
         log.warning('The teaser attribute of the info method will become mandatory in future release!')
 
     assets = Assets(icon=str(icon))
+    sources = _convert_bib(sources)
+
     return _Info(
         name=name,
         authors=authors,
@@ -293,7 +324,7 @@ def generate_plugin_info(
         teaser=teaser,
         purpose=purpose.read_text(),
         methodology=methodology.read_text(),
-        sources=_convert_bib(sources),
+        sources=sources,
         assets=assets,
         demo_config=demo_config,
         computation_shelf_life=computation_shelf_life,

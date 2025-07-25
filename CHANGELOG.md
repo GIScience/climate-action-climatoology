@@ -39,7 +39,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - a deadletter queue to store expired
   messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
 - a check to the database class to assert the database is compatible with the climatoology version
-  used [#170](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/170)
+  used ([#170](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/170))
+- sources given in the plugin info are now checked for completeness and compatibility with the
+  front-end ([#118](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/118))
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
