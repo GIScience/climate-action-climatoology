@@ -31,6 +31,15 @@ def test_minio_save_special_character_filename(mocked_object_store, general_uuid
     assert store_id.endswith('_test_artifact_file_$pcil.md')
 
 
+def test_minio_save_content_type(mocked_object_store, default_artifact, mocker):
+    save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
+    mocked_object_store.save(default_artifact)
+
+    save_info_spy.assert_called_once_with(
+        bucket_name=ANY, content_type='text/markdown', file_path=ANY, metadata=ANY, object_name=ANY
+    )
+
+
 def test_minio_save_all(mocked_object_store, general_uuid, default_artifact, mocker):
     second_artifact = default_artifact.model_copy()
     saved_artifacts = [default_artifact, second_artifact]
