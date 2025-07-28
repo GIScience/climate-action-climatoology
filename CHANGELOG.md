@@ -29,6 +29,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   caused [#201](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/201) but also random
   test-failures.
 - update all dependencies
+- elements are uploaded to the object store with a more precise content
+  type ([#165](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/165))
 
 ### Removed
 

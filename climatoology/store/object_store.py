@@ -1,4 +1,5 @@
 import logging
+import mimetypes
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
@@ -225,6 +226,8 @@ class MinioStorage(Storage):
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id)
 
+        content_type = mimetypes.guess_type(artifact.file_path)[0]
+
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} at {store_id}')
 
         self.client.fput_object(
@@ -232,6 +235,7 @@ class MinioStorage(Storage):
             object_name=object_name,
             file_path=str(artifact.file_path),
             metadata={'Type': object_type},
+            content_type=content_type,
         )
 
         return store_id
