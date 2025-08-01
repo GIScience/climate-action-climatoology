@@ -50,14 +50,14 @@ tz = ["tzdata"]
 
 [[package]]
 name = "alembic-postgresql-enum"
-version = "1.7.0"
+version = "1.8.0"
 description = "Alembic autogenerate support for creation, alteration and deletion of enums"
 optional = false
 python-versions = "<4.0,>=3.7"
 groups = ["main"]
 files = [
-    {file = "alembic_postgresql_enum-1.7.0-py3-none-any.whl", hash = "sha256:2a64260f3f1ed96f1bf984f55cb838e5d915693b8478b7b6ffea13cc09184ae0"},
-    {file = "alembic_postgresql_enum-1.7.0.tar.gz", hash = "sha256:1a12a2b25f3f49440f419821888530496511573875438b6e9a08cbcb8a6f006f"},
+    {file = "alembic_postgresql_enum-1.8.0-py3-none-any.whl", hash = "sha256:0e62833f8d1aca2c58fa09cae1d4a52472fb32d2dde32b68c84515fffcf401d5"},
+    {file = "alembic_postgresql_enum-1.8.0.tar.gz", hash = "sha256:132cd5fdc4a2a0b6498f3d89ea1c7b2a5ddc3281ddd84edae7259ec4c0a215a0"},
 ]
 
 [package.dependencies]
@@ -752,14 +752,14 @@ typing_extensions = ">=4"
 
 [[package]]
 name = "geoalchemy2"
-version = "0.17.1"
+version = "0.18.0"
 description = "Using SQLAlchemy with Spatial Databases"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "GeoAlchemy2-0.17.1-py3-none-any.whl", hash = "sha256:29f41b67d3a52df47821b695d31dec8600747c6ef4de62ee69811bde481dd2ae"},
-    {file = "geoalchemy2-0.17.1.tar.gz", hash = "sha256:ff5bbe0db5a4ff979f321c8aa1a7556f444ea30cda5146189b1a177ae5bec69d"},
+    {file = "geoalchemy2-0.18.0-py3-none-any.whl", hash = "sha256:ff0fe7339ba535c50845a2c7e8817a20c164364128991d795733b3c5904b1ee1"},
+    {file = "geoalchemy2-0.18.0.tar.gz", hash = "sha256:9a04690cc33fbc580d15c7c028d9b1b1ea08271489730096c7092e1d486c2b7a"},
 ]
 
 [package.dependencies]
@@ -2930,4 +2930,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.13.5"
-content-hash = "c59f8142c84f79e86270fbf6486e35814f4f98259b6cb6691fa582eabe3d86b2"
+content-hash = "9b3823ccaa440a0ffb7f411492585068701a1fb1e4843d901461649d88f9bf2f"

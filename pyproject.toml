@@ -34,7 +34,7 @@ geopandas = "^1.0.1"
 celery = { extras = ["sqlalchemy"], version = "^5.4.0" }
 psycopg2-binary = "^2.9.10"
 sqlalchemy = "^2.0.40"
-geoalchemy2 = "^0.17.1"
+geoalchemy2 = "^0.18.0"
 alembic = "^1.16.1"
 alembic-utils = "^0.8.8"
 alembic-postgresql-enum = "^1.7.0"
