@@ -44,6 +44,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   used ([#170](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/170))
 - sources given in the plugin info are now checked for completeness and compatibility with the
   front-end ([#118](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/118))
+- CI triggers for canary builds in downstream projects
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 

@@ -58,9 +58,9 @@ test_coverage_threshold:
   script:
     - coverage="$(sed -n 's/.*<coverage[^>]*line-rate="\([0-9.]*\)".*/\1/p' coverage.xml)"
     - if (( $(echo "$coverage < 0.8" | bc -l) )); then
-        echo "Code coverage is only $(echo "$coverage*100" | bc)%. We recommend a minimum of 80%." && exit 1;
+      echo "Code coverage is only $(echo "$coverage*100" | bc)%. We recommend a minimum of 80%." && exit 1;
       else
-        exit 0;
+      exit 0;
       fi
   allow_failure:
     exit_codes:
@@ -88,3 +88,27 @@ optional_linting:
   allow_failure:
     exit_codes:
       - 1
+
+gateway_canary_rebuild:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+  trigger:
+    project: climate-action/api-gateway
+    branch: development
+
+blueprint_canary_rebuild:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+  trigger:
+    project: climate-action/plugins/plugin-blueprint
+    branch: development
+
+showcase_canary_rebuild:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+  trigger:
+    project: climate-action/plugins/plugin-showcase
+    branch: development
