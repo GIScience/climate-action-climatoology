@@ -157,6 +157,9 @@ class _Artifact(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    rank: Optional[int] = Field(
+        description='Rank of the artifact within the computation.', examples=[0, 1, 2, 3], default=None, ge=0
+    )
     name: str = Field(
         description='A short name for the artifact that could be used as an alias.',
         min_length=1,

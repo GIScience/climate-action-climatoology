@@ -31,6 +31,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - update all dependencies
 - elements are uploaded to the object store with a more precise content
   type ([#165](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/165))
+- plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
+- artifacts now have a rank attribute to assert their order is preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
 
 ### Removed
 
