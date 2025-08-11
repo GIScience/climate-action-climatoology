@@ -7,7 +7,7 @@ unit_tests:
   stage: test
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   image:
     name: python:3.13.5
   services:
@@ -52,15 +52,16 @@ test_coverage_threshold:
     - unit_tests
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   image:
     name: alpine:latest
   script:
     - coverage="$(sed -n 's/.*<coverage[^>]*line-rate="\([0-9.]*\)".*/\1/p' coverage.xml)"
-    - if (( $(echo "$coverage < 0.8" | bc -l) )); then
-      echo "Code coverage is only $(echo "$coverage*100" | bc)%. We recommend a minimum of 80%." && exit 1;
+    - |
+      if (( $(echo "$coverage < 0.8" | bc -l) )); then
+        echo "Code coverage is only $(echo "$coverage*100" | bc)%. We recommend a minimum of 80%." && exit 1;
       else
-      exit 0;
+        exit 0;
       fi
   allow_failure:
     exit_codes:
@@ -92,7 +93,7 @@ optional_linting:
 gateway_canary_rebuild:
   stage: deploy
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   trigger:
     project: climate-action/api-gateway
     branch: development
@@ -100,7 +101,7 @@ gateway_canary_rebuild:
 blueprint_canary_rebuild:
   stage: deploy
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   trigger:
     project: climate-action/plugins/plugin-blueprint
     branch: development
@@ -108,7 +109,7 @@ blueprint_canary_rebuild:
 showcase_canary_rebuild:
   stage: deploy
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == 'push'
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   trigger:
     project: climate-action/plugins/plugin-showcase
     branch: development
