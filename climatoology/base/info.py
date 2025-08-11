@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import tomllib
 from datetime import timedelta
 from enum import StrEnum
 from io import BytesIO
@@ -129,7 +130,13 @@ class _Info(BaseModel, extra='forbid'):
     model_config = ConfigDict(from_attributes=True)
 
     name: str = Field(description='The full name of the plugin.', examples=['The Plugin'])
-    authors: conlist(item_type=PluginAuthor, min_length=1) = Field(description='A list of plugin contributors.')
+    authors: conlist(item_type=PluginAuthor, min_length=1) = Field(
+        description='A list of plugin contributors.', examples=[[PluginAuthor(name='John Doe')]]
+    )
+    repository: HttpUrl = Field(
+        description='The link to the source code of the plugin.',
+        examples=[HttpUrl('https://gitlab.heigit.org/climate-action/net_zero')],
+    )
     version: str = Field(
         description='The plugin version.',
         examples=[str(Version(0, 0, 1)), 'alpha-centauri'],
@@ -315,9 +322,18 @@ def generate_plugin_info(
     assets = Assets(icon=str(icon))
     sources = _convert_bib(sources)
 
+    with open('pyproject.toml', 'rb') as pyproject_toml:
+        pyproject = tomllib.load(pyproject_toml)
+        repository = pyproject.get('project', {}).get('repository')
+        if repository is None:
+            raise ValueError(
+                'Your pyproject.toml does not contain a repository url or is not adhering to the latest pyproject.toml format: https://python-poetry.org/docs/pyproject/'
+            )
+
     return _Info(
         name=name,
         authors=authors,
+        repository=repository,
         version=str(version),
         concerns=concerns,
         state=state,
