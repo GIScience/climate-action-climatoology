@@ -44,6 +44,7 @@ class InfoTable(Base):
 
     plugin_id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str]
+    repository: Mapped[str]
     authors: Mapped[List[PluginAuthorTable]] = relationship(
         secondary=author_info_link_table, order_by=asc(author_info_link_table.c.author_seat)
     )

@@ -319,3 +319,24 @@ def test_shelf_life():
         computation_shelf_life=timedelta(hours=1),
     )
     assert computed_info.computation_shelf_life == timedelta(hours=1)
+
+
+def test_repository_url():
+    computed_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='This plugin does nothing and that is good.',
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        computation_shelf_life=timedelta(hours=1),
+    )
+    assert str(computed_info.repository) == 'https://gitlab.heigit.org/climate-action/climatoology'
