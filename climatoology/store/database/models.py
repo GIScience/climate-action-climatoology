@@ -6,7 +6,7 @@ import sqlalchemy
 from geoalchemy2 import Geometry, WKTElement
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
-from sqlalchemy import JSON, Column, Computed, ForeignKey, MetaData, String, Table, UniqueConstraint
+from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, MetaData, String, Table, UniqueConstraint, asc
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -27,6 +27,7 @@ author_info_link_table = Table(
     Base.metadata,
     Column('info_id', ForeignKey('info.plugin_id')),
     Column('author_id', ForeignKey('pluginauthor.name')),
+    Column('author_seat', Integer),
 )
 
 
@@ -43,7 +44,9 @@ class InfoTable(Base):
 
     plugin_id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str]
-    authors: Mapped[List[PluginAuthorTable]] = relationship(secondary=author_info_link_table)
+    authors: Mapped[List[PluginAuthorTable]] = relationship(
+        secondary=author_info_link_table, order_by=asc(author_info_link_table.c.author_seat)
+    )
     version: Mapped[Version] = mapped_column(String)
     concerns: Mapped[Set[Concern]] = mapped_column(ARRAY(sqlalchemy.Enum(Concern)))
     state: Mapped[PluginState] = mapped_column(sqlalchemy.Enum(PluginState))
@@ -62,6 +65,7 @@ class ArtifactTable(Base):
     __tablename__ = 'artifact'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    rank: Mapped[Optional[int]]
     correlation_uuid: Mapped[UUID] = mapped_column(ForeignKey('computation.correlation_uuid'))
     name: Mapped[str]
     modality: Mapped[ArtifactModality]
@@ -96,7 +100,7 @@ class ComputationTable(Base):
     aoi_name: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
     aoi_id: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
-    artifacts: Mapped[List[ArtifactTable]] = relationship()
+    artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_id: Mapped[str] = mapped_column(ForeignKey('info.plugin_id'))
     plugin_version: Mapped[Version] = mapped_column(String)
     plugin: Mapped[InfoTable] = relationship()

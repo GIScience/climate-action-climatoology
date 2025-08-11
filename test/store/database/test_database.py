@@ -16,6 +16,40 @@ def test_info_to_db_and_back(default_backend_db, default_info_final):
     assert read_info == default_info_final
 
 
+def test_author_order_is_preserved(default_backend_db, default_info_final):
+    info = default_info_final.model_copy(deep=True)
+    info.authors = [
+        PluginAuthor(
+            name='Adam',
+        ),
+        PluginAuthor(
+            name='Bdam',
+        ),
+        PluginAuthor(
+            name='Cdam',
+        ),
+    ]
+    _ = default_backend_db.write_info(info=info)
+
+    info.authors = [
+        PluginAuthor(
+            name='Adam',
+        ),
+        PluginAuthor(
+            name='Ddam',
+        ),
+        PluginAuthor(
+            name='Bdam',
+        ),
+    ]
+    _ = default_backend_db.write_info(info=info)
+
+    read_info = default_backend_db.read_info(plugin_id=info.plugin_id)
+    author_names = ['Adam', 'Ddam', 'Bdam']
+    for i in range(0, len(author_names)):
+        assert author_names[i] == read_info.authors[i].name
+
+
 def test_overwrite_info(default_backend_db, default_info_final):
     _ = default_backend_db.write_info(info=default_info_final)
 
@@ -181,7 +215,26 @@ def test_update_successful_computation_with_validated_params(
     default_backend_db.update_successful_computation(computation_info=default_computation_info)
 
     db_computation = default_backend_db.read_computation(correlation_uuid=default_computation_info.correlation_uuid)
+    assert db_computation.artifacts[0].rank == 0
+    db_computation.artifacts[0].rank = None
     assert db_computation == default_computation_info
+
+
+def test_computation_artifact_order_is_preserved(backend_with_computation, default_computation_info, default_artifact):
+    info = default_computation_info.model_copy(deep=True)
+    second_artifact = default_artifact.model_copy(deep=True)
+    second_artifact.name = 'second'
+
+    info.artifacts.append(second_artifact)
+    backend_with_computation.update_successful_computation(computation_info=info)
+
+    db_computation = backend_with_computation.read_computation(
+        correlation_uuid=default_computation_info.correlation_uuid
+    )
+    artifact_names = ['test_name', 'second']
+    for i in range(0, len(artifact_names)):
+        assert artifact_names[i] == db_computation.artifacts[i].name
+        assert db_computation.artifacts[i].rank == i
 
 
 def test_update_failed_computation(default_plugin, default_backend_db, default_computation_info, default_info):

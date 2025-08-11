@@ -7,3 +7,5 @@ playground.py
 *.log
 .coverage
 coverage.xml
+
+.env.migration

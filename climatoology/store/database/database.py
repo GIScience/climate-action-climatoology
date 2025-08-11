@@ -85,7 +85,10 @@ class BackendDatabase:
 
     def _update_info_author_relation_table(self, info: _Info, session: Session) -> None:
         session.query(author_info_link_table).filter_by(info_id=info.plugin_id).delete()
-        info_author_link = [{'info_id': info.plugin_id, 'author_id': author.name} for author in info.authors]
+        info_author_link = [
+            {'info_id': info.plugin_id, 'author_id': author.name, 'author_seat': seat}
+            for seat, author in enumerate(info.authors)
+        ]
         link_insert_stmt = insert(author_info_link_table).values(info_author_link).on_conflict_do_nothing()
         session.execute(link_insert_stmt)
 
@@ -234,6 +237,7 @@ class BackendDatabase:
             updated_values['valid_until'] = computation_info.timestamp
 
         artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
+        artifacts = [{**artifact, 'rank': rank} for rank, artifact in enumerate(artifacts)]
         artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
 
         computation_update_stmt = (

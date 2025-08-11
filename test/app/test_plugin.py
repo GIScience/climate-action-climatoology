@@ -1,5 +1,5 @@
 import re
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from celery import Celery
@@ -80,6 +80,7 @@ def test_successful_compute_saves_metadata_to_backend(
     stop_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
+    expected_computation_info.artifacts[0].rank = ANY
 
     with patch('uuid.uuid4', return_value=general_uuid):
         kwargs = {
