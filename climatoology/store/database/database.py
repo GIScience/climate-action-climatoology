@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-import alembic
 import geoalchemy2
 import geojson_pydantic
+from alembic.command import check
 from alembic.config import Config
+from alembic.util.exc import CommandError
 from semver import Version
 from sqlalchemy import NullPool, column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -33,20 +34,24 @@ log = logging.getLogger(__name__)
 
 
 class BackendDatabase:
-    def __init__(self, connection_string: str, user_agent: str):
+    def __init__(self, connection_string: str, user_agent: str, assert_db_status: bool = False):
         self.engine = create_engine(
             connection_string,
             plugins=['geoalchemy2'],
             connect_args={'application_name': user_agent},
             poolclass=NullPool,
         )
+        if assert_db_status:
+            self.assert_db_status()
+
+    def assert_db_status(self):
         with StringIO() as stdout_replacement:
             alembic_cfg = Config(stdout=stdout_replacement)
             alembic_cfg.set_main_option('script_location', str(Path(migration.__file__).parent))
             alembic_cfg.attributes['connection'] = self.engine
             try:
-                alembic.command.check(config=alembic_cfg)
-            except alembic.util.exc.CommandError as e:
+                check(config=alembic_cfg)
+            except CommandError as e:
                 log.error(
                     'The target database is not compatible with the expectations by climatoology. Make sure to '
                     'update your database e.g. by running the alembic migration or contacting your admin.',

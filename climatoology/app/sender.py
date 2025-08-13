@@ -76,7 +76,9 @@ class CelerySender(Sender):
         self.storage = CelerySender.construct_storage(settings)
 
         self.backend_db = BackendDatabase(
-            connection_string=settings.db_connection_string, user_agent=f'CeleryPlatform/{climatoology.__version__}'
+            connection_string=settings.db_connection_string,
+            user_agent=f'CeleryPlatform/{climatoology.__version__}',
+            assert_db_status=True,
         )
         self.deduplicate_computations = settings.deduplicate_computations
 
