@@ -92,7 +92,7 @@ class ComputationTable(Base):
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime]
     deduplication_key: Mapped[UUID] = mapped_column(
-        Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id||plugin_version)::uuid')
+        Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid')
     )
     cache_epoch: Mapped[Optional[int]]
     valid_until: Mapped[datetime]
