@@ -26,7 +26,7 @@ def upgrade() -> None:
             'deduplication_key',
             sa.Uuid(),
             sa.Computed(
-                'md5(requested_params::text||st_astext(aoi_geom)||plugin_id||plugin_version)::uuid',
+                'md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid',
             ),
             nullable=False,
         ),
