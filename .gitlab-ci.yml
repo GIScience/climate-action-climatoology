@@ -98,14 +98,6 @@ gateway_canary_rebuild:
     project: climate-action/api-gateway
     branch: development
 
-blueprint_canary_rebuild:
-  stage: deploy
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
-  trigger:
-    project: climate-action/plugins/plugin-blueprint
-    branch: development
-
 showcase_canary_rebuild:
   stage: deploy
   rules:
