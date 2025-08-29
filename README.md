@@ -25,7 +25,14 @@ In addition, you may use any external service or request further utilities by op
 This utility can generate LULC classifications for arbitrary areas.
 It is exposed via the [`LulcUtility`](climatoology/utility/api.py).
 For a full documentation of the functionality
-see [the respective repository](https://gitlab.heigit.org/climate-action/lulc-utility).
+see [the respective repository](https://gitlab.heigit.org/climate-action/utilities/lulc-utility).
+
+### Naturalness indices
+
+This utility can generate spectral indices (e.g. the NDVI) derived from remote sensing data for arbitrary areas.
+It is exposed via the [`NaturalnessUtility`](climatoology/utility/api.py).
+For a full documentation of the functionality
+see [the respective repository](https://gitlab.heigit.org/climate-action/utilities/naturalness-utility).
 
 ## User Realm
 
