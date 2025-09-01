@@ -9,7 +9,7 @@ unit_tests:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   image:
-    name: python:3.13.5
+    name: python:3.13.7
   services:
     - name: postgis/postgis:17-3.5
       alias: postgres
@@ -72,7 +72,7 @@ optional_linting:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   image:
-    name: python:3.13.5
+    name: python:3.13.7
   variables:
     PRE_COMMIT_HOME: "$CI_PROJECT_DIR/.cache/pre-commit"
   cache:
