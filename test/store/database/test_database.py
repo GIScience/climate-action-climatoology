@@ -104,8 +104,7 @@ def test_register_computations(
     shelf_life,
     params,
     expected_deduplication,
-    stop_time,
-    time_machine,
+    frozen_time,
 ):
     first_correlation_uuid = default_computation_info.correlation_uuid
     second_correlation_uuid = uuid.uuid4()
@@ -118,7 +117,7 @@ def test_register_computations(
         plugin_version=default_info.version,
         computation_shelf_life=shelf_life,
     )
-    time_machine.shift(timedelta(days=1))
+    frozen_time.tick(delta=timedelta(days=1))
     db_correlation_uuid_duplicate = default_backend_db.register_computation(
         correlation_uuid=second_correlation_uuid,
         requested_params=params[1],
@@ -143,7 +142,7 @@ def test_read_computation_with_request_ts(backend_with_computation, default_comp
 
 
 def test_read_duplicate_computation(
-    default_plugin, default_backend_db, default_aoi_feature_geojson_pydantic, default_info, stop_time
+    default_plugin, default_backend_db, default_aoi_feature_geojson_pydantic, default_info, frozen_time
 ):
     first_computation_id = uuid.uuid4()
     second_computation_id = uuid.uuid4()
@@ -198,7 +197,7 @@ def test_resolve_deduplicated_computation_id(
 
 
 def test_update_successful_computation_with_validated_params(
-    default_plugin, default_backend_db, default_computation_info, default_info, stop_time
+    default_plugin, default_backend_db, default_computation_info, default_info, frozen_time
 ):
     _ = default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,

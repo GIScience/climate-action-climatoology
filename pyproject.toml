@@ -46,7 +46,7 @@ pytest-mock = "^3.14.0"
 pytest-postgresql = "^7.0.1"
 pytest-alembic = "^0.12.1"
 pytest-minio-mock = "^0.4.16"
-time-machine = "^2.16.0"
+freezegun = "^1.5.5"
 responses = "^0.25.3"
 
 [tool.poetry.group.dev.dependencies]

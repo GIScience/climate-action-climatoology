@@ -10,7 +10,6 @@ import geojson_pydantic
 from alembic.command import check
 from alembic.config import Config
 from alembic.util.exc import CommandError
-from semver import Version
 from sqlalchemy import NullPool, column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
@@ -118,7 +117,7 @@ class BackendDatabase:
         requested_params: dict,
         aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
         plugin_id: str,
-        plugin_version: Version,
+        plugin_version: str,
         computation_shelf_life: Optional[timedelta],
     ) -> UUID:
         with Session(self.engine) as session:
