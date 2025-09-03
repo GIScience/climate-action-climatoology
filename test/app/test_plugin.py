@@ -27,7 +27,7 @@ def test_worker_send_compute_task(
     general_uuid,
     default_aoi_feature_pure_dict,
     backend_with_computation,
-    stop_time,
+    frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
 
@@ -52,7 +52,7 @@ def test_successful_compute_saves_metadata_to_storage(
     backend_with_computation,
     default_computation_info,
     mocker,
-    stop_time,
+    frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
     save_info_spy = mocker.spy(default_plugin.tasks['compute'], '_save_computation_info')
@@ -77,7 +77,7 @@ def test_successful_compute_saves_metadata_to_backend(
     default_aoi_feature_pure_dict,
     backend_with_computation,
     default_computation_info,
-    stop_time,
+    frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
     expected_computation_info.artifacts[0].rank = ANY

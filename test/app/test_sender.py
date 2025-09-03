@@ -132,7 +132,7 @@ def test_send_compute_produces_result(
     default_aoi_feature_geojson_pydantic,
     general_uuid,
     default_computation_info,
-    stop_time,
+    frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
     expected_computation_info.artifacts[0].store_id = ANY
@@ -158,7 +158,7 @@ def test_send_compute_unless_deduplicated(
     celery_worker,
     default_computation_info,
     celery_app,
-    stop_time,
+    frozen_time,
 ):
     first_correlation_uuid = uuid.uuid4()
     second_correlation_uuid = uuid.uuid4()
@@ -190,7 +190,7 @@ def test_send_compute_with_cache_override(
     celery_worker,
     general_uuid,
     celery_app,
-    stop_time,
+    frozen_time,
 ):
     result = default_sender.send_compute_request(
         plugin_id='test_plugin',
@@ -403,7 +403,7 @@ def test_send_compute_uses_settings_deduplication_override(
     default_plugin,
     default_aoi_feature_geojson_pydantic,
     general_uuid,
-    stop_time,
+    frozen_time,
 ):
     monkeypatch.setenv('deduplicate_computations', 'false')
     with (

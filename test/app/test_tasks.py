@@ -25,7 +25,7 @@ def test_computation_task_run(
     general_uuid,
     default_aoi_feature_pure_dict,
     backend_with_computation,
-    stop_time,
+    frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
 
@@ -76,7 +76,7 @@ def test_computation_task_run_forward_input(
     default_aoi_properties,
     default_aoi_geom_shapely,
     backend_with_computation,
-    stop_time,
+    frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
 

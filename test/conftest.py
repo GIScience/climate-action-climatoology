@@ -14,6 +14,7 @@ import shapely
 import sqlalchemy
 from celery import Celery
 from celery.utils.threads import LocalStack
+from freezegun import freeze_time
 from kombu import Exchange, Queue
 from pydantic import BaseModel, Field, HttpUrl
 from pytest_alembic import Config
@@ -71,8 +72,9 @@ def general_uuid() -> uuid.UUID:
 
 
 @pytest.fixture
-def stop_time(time_machine):
-    time_machine.move_to(datetime(2018, 1, 1, 12, tzinfo=UTC), tick=False)
+def frozen_time():
+    with freeze_time(datetime(2018, 1, 1, 12, tzinfo=UTC), ignore=['celery']) as frozen_time:
+        yield frozen_time
 
 
 @pytest.fixture
@@ -399,7 +401,7 @@ def default_backend_db(db_with_tables) -> BackendDatabase:
 
 @pytest.fixture
 def backend_with_computation(
-    default_backend_db, default_computation_info, default_info_final, set_basic_envs, stop_time
+    default_backend_db, default_computation_info, default_info_final, set_basic_envs, frozen_time
 ) -> BackendDatabase:
     default_backend_db.write_info(info=default_info_final)
     default_backend_db.register_computation(
