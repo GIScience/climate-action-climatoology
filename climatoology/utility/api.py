@@ -3,7 +3,7 @@ from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import date, timedelta
-from typing import Any, ContextManager, Iterable, List, Optional, Tuple
+from typing import Any, ContextManager, Generator, Iterable, List, Optional, Tuple
 
 import rasterio
 import requests
@@ -149,7 +149,7 @@ def adjust_bounds(
     if not max_unit_area:
         max_unit_area = max_unit_size * max_unit_size
 
-    def flatten(iterable: Iterable[Any]) -> List[Any]:
+    def flatten(iterable: Iterable[Any]) -> Generator[Any, Any, None]:
         """Convert nested iterables to single level list."""
         for outer_i in iterable:
             if isinstance(outer_i, list):

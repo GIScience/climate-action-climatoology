@@ -63,7 +63,7 @@ def test_computation_task_run_must_return_results(
         operator.compute_unsafe(
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params=dict(),
+            params=TestModel(),
             resources=default_computation_resources,
         )
 

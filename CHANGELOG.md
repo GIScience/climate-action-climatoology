@@ -40,7 +40,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
-- a deadletter queue to store expired
+- a dead letter queue to store expired
   messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
 - a check to the database class to assert the database is compatible with the climatoology version
   used. This check is executed by the sender only ([#170](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/170))
@@ -285,7 +285,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fixed
 
-- rasterio/gdal issue where the written geotiffs were no longer readable by the
+- rasterio/gdal issue where the written geo-tiffs were no longer readable by the
   front-end ([#103](https://gitlab.heigit.org/climate-action/climatoology/-/issues/103))
 
 ### Added

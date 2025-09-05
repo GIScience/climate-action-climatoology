@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import tomllib
+import warnings
 from datetime import timedelta
 from enum import StrEnum
 from io import BytesIO
@@ -306,9 +307,10 @@ def generate_plugin_info(
     :return: An _Info object that can be used to announce the plugin on the platform.
     """
     if demo_input_parameters is None:
-        log.warning(
+        warnings.warn(
             'This plugin will not have the option to compute a Demo. The demo_input_parameters will become '
-            'mandatory in a future release!'
+            'mandatory in a future release!',
+            category=DeprecationWarning,
         )
         demo_config = None
     else:
@@ -317,7 +319,10 @@ def generate_plugin_info(
         demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())
 
     if teaser is None:
-        log.warning('The teaser attribute of the info method will become mandatory in future release!')
+        warnings.warn(
+            'The teaser attribute of the info method will become mandatory in future release!',
+            category=DeprecationWarning,
+        )
 
     assets = Assets(icon=str(icon))
     sources = _convert_bib(sources)

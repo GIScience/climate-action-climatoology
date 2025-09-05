@@ -210,11 +210,13 @@ def default_aoi_geom_shapely() -> shapely.MultiPolygon:
 
 
 @pytest.fixture
-def default_aoi_feature_geojson_pydantic() -> geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]:
+def default_aoi_feature_geojson_pydantic(
+    default_aoi_properties,
+) -> geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]:
     return geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
         **{
             'type': 'Feature',
-            'properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
+            'properties': default_aoi_properties.model_dump(mode='json'),
             'geometry': {
                 'type': 'MultiPolygon',
                 'coordinates': [
@@ -243,7 +245,7 @@ def default_aoi_properties() -> AoiProperties:
 
 
 @pytest.fixture
-def default_computation_resources(general_uuid) -> Generator[ComputationScope, None, None]:
+def default_computation_resources(general_uuid) -> Generator[ComputationResources, None, None]:
     with ComputationScope(general_uuid) as resources:
         yield resources
 

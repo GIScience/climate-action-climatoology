@@ -38,9 +38,6 @@ def test_operator_scope():
 
 
 def test_operator_info_enrichment_does_not_change_given_input(default_info):
-    class TestModel(BaseModel):
-        pass
-
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
             return default_info.model_copy()
@@ -64,10 +61,10 @@ def test_operator_info_enrichment_does_not_change_given_input(default_info):
 
 @patch('climatoology.__version__', Version(1, 0, 0))
 def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
-    class TestModel(BaseModel):
+    class MinimalTestModel(BaseModel):
         test: str
 
-    class TestOperator(BaseOperator[TestModel]):
+    class TestOperator(BaseOperator[MinimalTestModel]):
         def info(self) -> _Info:
             return default_info.model_copy()
 
@@ -88,7 +85,7 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
     assert computed_info.operator_schema == {
         'properties': {'test': {'title': 'Test', 'type': 'string'}},
         'required': ['test'],
-        'title': 'TestModel',
+        'title': 'MinimalTestModel',
         'type': 'object',
     }
 
@@ -255,15 +252,15 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
             return artifacts
 
     operator = TestOperator()
-    resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir='')
-    artifacts = operator.compute_unsafe(
-        resources=resources,
+    input_resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir=Path())
+    computed_artifacts = operator.compute_unsafe(
+        resources=input_resources,
         aoi=default_aoi_geom_shapely,
         aoi_properties=default_aoi_properties,
-        params={'id': 1},
+        params=TestModel(id=1),
     )
-    assert artifacts == [default_artifact]
-    assert resources.artifact_errors == {}
+    assert computed_artifacts == [default_artifact]
+    assert input_resources.artifact_errors == {}
 
 
 def test_operator_create_artifact_safely_with_only_bad_artifact(
@@ -298,7 +295,7 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
             return artifacts
 
     operator = TestOperator()
-    resources = ComputationResources(correlation_uuid=str(uuid.uuid4()), computation_dir='')
+    input_resources = ComputationResources(correlation_uuid=uuid.uuid4(), computation_dir=Path())
 
     with pytest.raises(
         ClimatoologyUserError,
@@ -306,10 +303,10 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
         '{"First Indicator": "", "Second Indicator": "Error message to store for the user"}',
     ):
         operator.compute_unsafe(
-            resources=resources,
+            resources=input_resources,
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params={'id': 1},
+            params=TestModel(id=1),
         )
 
 
@@ -355,17 +352,17 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
     ]
 
     operator = TestOperator()
-    resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir='')
+    input_resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir=Path())
     with caplog.at_level(logging.ERROR):
-        artifacts = operator.compute_unsafe(
-            resources=resources,
+        computed_artifacts = operator.compute_unsafe(
+            resources=input_resources,
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params={'id': 1},
+            params=TestModel(id=1),
         )
 
-    assert artifacts == [default_artifact]
-    assert resources.artifact_errors == {
+    assert computed_artifacts == [default_artifact]
+    assert input_resources.artifact_errors == {
         'First Indicator': '',
         'Second Indicator': 'Error message to store for the user',
     }
