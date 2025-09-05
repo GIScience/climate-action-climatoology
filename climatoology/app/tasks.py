@@ -2,6 +2,7 @@ import logging
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 import geojson_pydantic
 import shapely
@@ -55,7 +56,7 @@ class CAPlatformComputeTask(Task):
             return self.storage.save(result)
 
     def run(self, aoi: dict, params: dict) -> dict:
-        correlation_uuid = self.request.correlation_id
+        correlation_uuid: UUID = self.request.correlation_id  # Typing seems wrong
         try:
             self.update_state(task_id=self.request.correlation_id, state='STARTED')
             log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')

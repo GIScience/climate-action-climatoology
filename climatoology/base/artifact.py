@@ -43,7 +43,7 @@ plotly_template = pio.templates['plotly_white']
 plotly_template.layout.colorway = px.colors.qualitative.Safe
 pio.templates.default = plotly_template
 
-Colormap = NewType(
+colormap_type = NewType(
     'colormap_type',
     Dict[
         Number,
@@ -463,7 +463,7 @@ def create_chart_artifact(
             fig = px.pie(values=data.x, names=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
 
         case _:
-            log.error(f'{data.chart_type} is not a supported chart type.')
+            raise ValueError(f'{data.chart_type} is not a supported chart type.')
 
     fig.update_layout({'xaxis': {'title': data.x_label}, 'yaxis': {'title': data.y_label}})
     result = create_plotly_chart_artifact(
@@ -577,7 +577,7 @@ def create_geojson_artifact(
     gdf.geometry = shapely.set_precision(gdf.geometry, grid_size=0.0000001)
 
     gdf.to_file(
-        file_path.absolute().as_posix(),
+        file_path,
         index=True,
         driver='GeoJSON',
         engine='pyogrio',
@@ -622,7 +622,7 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
         'using https://github.com/rasterio/affine',
         examples=[Affine.identity()],
     )
-    colormap: Optional[Colormap] = Field(
+    colormap: Optional[colormap_type] = Field(
         title='Colormap',
         description='An optional colormap for easy '
         'display. It will be applied to the '
@@ -732,7 +732,7 @@ def create_geotiff_artifact(
     return result
 
 
-def _legend_from_colormap(colormap: Colormap) -> Legend:
+def _legend_from_colormap(colormap: colormap_type) -> Legend:
     legend_data = {}
     for color_id, color_values in colormap.items():
         if len(color_values) == 3:

@@ -254,7 +254,7 @@ class BackendDatabase:
             session.execute(computation_update_stmt)
             session.commit()
 
-    def update_failed_computation(self, correlation_uuid: str, failure_message: Optional[str], cache: bool) -> None:
+    def update_failed_computation(self, correlation_uuid: UUID, failure_message: Optional[str], cache: bool) -> None:
         timestamp = datetime.now(UTC).replace(tzinfo=None)
         computation_update_stmt = (
             update(ComputationTable)

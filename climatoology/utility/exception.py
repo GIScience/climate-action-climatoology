@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
+
+log = logging.getLogger(__name__)
 
 
 class PlatformUtilityError(Exception):
@@ -34,7 +37,7 @@ class InputValidationError(Exception):
     pass
 
 
-def creaty_pretty_validation_message(
+def create_pretty_validation_message(
     validation_error: ValidationError, model_fields: dict[str, FieldInfo] = None
 ) -> str:
     """Create a pretty validation message from a pydantic validation error.
@@ -53,8 +56,9 @@ def creaty_pretty_validation_message(
         for f in error_fields:
             try:
                 field_names.append(model_fields[f].title)
-            except Exception:
-                field_names.append(title=f)
+            except Exception as e:
+                log.debug(f'Field name extraction failed for field {f}, using fallback', exc_info=e)
+                field_names.append(f)
 
         return ','.join(field_names) + ': '
 
@@ -67,7 +71,8 @@ def creaty_pretty_validation_message(
             try:
                 input_vals[model_fields[k].title] = input_vals[k]
                 input_vals.pop(k)
-            except Exception:
+            except Exception as e:
+                log.debug(f'Input name for {k} could not be extracted, ignoring', exc_info=e)
                 continue
         return input_vals
 

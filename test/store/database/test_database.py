@@ -247,7 +247,7 @@ def test_update_failed_computation(default_plugin, default_backend_db, default_c
     )
 
     default_backend_db.update_failed_computation(
-        correlation_uuid=str(default_computation_info.correlation_uuid),
+        correlation_uuid=default_computation_info.correlation_uuid,
         failure_message='Custom failure message',
         cache=False,
     )
