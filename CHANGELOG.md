@@ -21,6 +21,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   queue ([#189](https://gitlab.heigit.org/climate-action/climatoology/-/issues/189))
 - worker names now include the hostname (instead of `@_`), enabling multiple workers to be online yet still
   differentiated from each other
+- `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact result ([#205](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/205))
 
 ### Fix
 

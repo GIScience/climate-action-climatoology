@@ -13,7 +13,7 @@ import plotly.io as pio
 import rasterio
 import shapely
 from affine import Affine
-from geopandas import GeoDataFrame, GeoSeries
+from geopandas import GeoDataFrame
 from numpy.typing import ArrayLike
 from pandas import DataFrame, MultiIndex
 from PIL.Image import Image
@@ -525,12 +525,12 @@ def create_plotly_chart_artifact(
 
 
 def create_geojson_artifact(
-    features: GeoSeries,
+    data: GeoDataFrame,
     layer_name: str,
     caption: str,
-    color: List[Color],
-    label: List[str],
     resources: ComputationResources,
+    color: str = 'color',
+    label: str = 'label',
     primary: bool = True,
     legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
@@ -539,16 +539,16 @@ def create_geojson_artifact(
 ) -> _Artifact:
     """Create a vector data artifact.
 
-    This will create a GeoJSON file holding all information required to plot a simple map layer.
+    This will create a GeoJSON file containing all information in `data`.
 
-    :param features: The Geodata. Must have a CRS set.
-    :param color: Color of the features. Will be applied to surfaces, lines and points. Must be the same length as the
-    features.
-    :param label: Label of the features. Must be the same length as the features.
+    :param data: The Geodata. Must have an active geometry column and a CRS.
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
     :param tags: Association tags this artifact belongs to.
+    :param color: Column name for the color values, defaults to `'color'`. Column must contain
+    instances of `pydantic_extra_types.color.Color` only.
+    :param label: Column name for the labels of the features, defaults to `'label'`.
     :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData
     type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
     distinct legend will be created from the unique combinations of labels and colors.
@@ -563,20 +563,26 @@ def create_geojson_artifact(
     )
     log.debug(f'Writing vector dataset {file_path}.')
 
-    assert len(color) == features.size, 'The number of colors does not match the number of features.'
-    color = [color.as_hex() for color in color]
+    assert data.active_geometry_name is not None, 'No active geometry column in data'
+    assert data.crs is not None, 'No CRS set for data.'
 
-    assert len(label) == features.size, 'The number of labels does not match the number of features.'
+    assert data['color'].apply(isinstance, args=[Color]).all(), (
+        f'Not all values in column {color} are of type pydantic_extra_types.color.Color'
+    )
+    data[color] = data[color].apply(lambda color_value: color_value.as_hex())
 
-    if isinstance(features.index, MultiIndex):
+    assert not data[label].isna().any(), f'There are missing label values in column {label}'
+
+    data = data.rename(columns={color: 'color', label: 'label'})
+
+    if isinstance(data.index, MultiIndex):
         # Format the index the same way a tuple index would be rendered in `to_file()`
-        features.index = "('" + features.index.map("', '".join) + "')"
+        data.index = "('" + data.index.map("', '".join) + "')"
 
-    gdf = GeoDataFrame({'color': color, 'label': label}, index=features.index, geometry=features)
-    gdf = gdf.to_crs(4326)
-    gdf.geometry = shapely.set_precision(gdf.geometry, grid_size=0.0000001)
+    data = data.to_crs(4326)
+    data.geometry = shapely.set_precision(data.geometry, grid_size=0.0000001)
 
-    gdf.to_file(
+    data.to_file(
         file_path,
         index=True,
         driver='GeoJSON',
@@ -585,7 +591,7 @@ def create_geojson_artifact(
     )
 
     if not legend_data:
-        legend_df = gdf.groupby(['color', 'label']).size().index.to_frame(index=False)
+        legend_df = data.groupby(['color', 'label']).size().index.to_frame(index=False)
         legend_df = legend_df.set_index('label')
         legend_data = legend_df.to_dict()['color']
 
