@@ -39,6 +39,36 @@ see [the respective repository](https://gitlab.heigit.org/climate-action/utiliti
 This package also provides the endpoints that connect the user realm via
 the [API Gateway](https://gitlab.heigit.org/climate-action/api-gateway) to the user realm.
 
+## Database Migration
+
+Climatoology uses a PostgreSQL database to store information and results from computations.
+It uses [alembic](https://alembic.sqlalchemy.org) to track and upgrade the database schema when required.
+
+### Schema Definitions
+
+The definitions of tables and relations are in [climatoology/store/database/](climatoology/store/database/), and the
+definitions for migrating between database versions are
+in [climatoology/store/database/migration](climatoology/store/database/migration).
+The migration scripts need to be kept in sync with the definition of tables & relations.
+
+Therefore, when changing the table [models](climatoology/store/database/models.py) a migration file has to be generated.
+The migration files need to be independent of the library version, so they should **not** include imports from
+climatoology.
+
+### Generating Migration Files
+
+To generate a pre-filled migration file, first create a `.env.migration` file to define your database connection.
+You can e.g. use the devel-database from
+the [infrastructure](https://gitlab.heigit.org/climate-action/dev-ops/infrastructure) repository.
+The database should have been initialised with `alembic` and up to date with the current model version (before the
+latest change).
+To make sure the database is up to date, run `poetry run alembic upgrade head`.
+
+Then run `poetry run alembic revision --autogenerate -m "<headline of your change>"`.
+You should then review the generated file in detail before committing it.
+
+You can also view the migration history with `alembic history`.
+
 ## Install
 
 This package is currently only available via the repository.
