@@ -29,7 +29,7 @@ def test_info_deserialisable(default_info_final):
 def test_plugin_id():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -49,7 +49,7 @@ def test_plugin_id_special_characters():
     computed_info = generate_plugin_info(
         name='Test Plugin With $pecial Charact3ers²: CO₂',
         authors=[PluginAuthor(name='John Doe')],
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
@@ -62,7 +62,7 @@ def test_plugin_id_special_characters():
 def test_sources_are_optional():
     assert generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -82,7 +82,7 @@ def test_invalid_sources():
     with pytest.raises(pydantic.ValidationError, match=r'.*ArticleSource\.pages.*'):
         generate_plugin_info(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -102,7 +102,7 @@ def test_invalid_sources():
 def test_provide_demo_params_and_aoi(default_aoi_feature_geojson_pydantic):
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -125,7 +125,7 @@ def test_provide_demo_params_and_aoi(default_aoi_feature_geojson_pydantic):
 def test_provide_demo_params_and_no_aoi():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -145,7 +145,7 @@ def test_provide_demo_params_and_no_aoi():
 def test_provide_no_demo_params_or_aoi():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -164,7 +164,7 @@ def test_provide_no_demo_params_or_aoi():
 def test_teaser():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -185,7 +185,7 @@ def test_short_teaser():
     with pytest.raises(expected_exception=ValidationError, match=r'String should have at least 20 characters'):
         generate_plugin_info(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -205,7 +205,7 @@ def test_long_teaser():
     with pytest.raises(expected_exception=ValidationError, match=r'String should have at most 150 characters'):
         generate_plugin_info(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -225,7 +225,7 @@ def test_small_start_teaser():
     with pytest.raises(expected_exception=ValidationError, match=r'String should match pattern'):
         _ = generate_plugin_info(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -245,7 +245,7 @@ def test_no_fullstop_teaser():
     with pytest.raises(expected_exception=ValidationError, match=r'String should match pattern'):
         _ = generate_plugin_info(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -264,7 +264,7 @@ def test_no_fullstop_teaser():
 def test_default_plugin_state():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -283,7 +283,7 @@ def test_default_plugin_state():
 def test_plugin_state():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -303,7 +303,7 @@ def test_plugin_state():
 def test_shelf_life():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -324,7 +324,7 @@ def test_shelf_life():
 def test_repository_url():
     computed_info = generate_plugin_info(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',

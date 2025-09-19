@@ -23,6 +23,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   differentiated from each other
 - `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact
   result ([#205](https://gitlab.heigit.org/climate-action/climatoology/-/issues/205))
+- allowed PNG icons and made PNG the default for icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
 
 ### Fix
 

@@ -88,7 +88,7 @@ def default_info() -> _Info:
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        icon=Path(__file__).parent / 'resources/test_icon.jpeg',
+        icon=Path(__file__).parent / 'resources/test_icon.png',
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         purpose=Path(__file__).parent / 'resources/test_purpose.md',
@@ -133,7 +133,7 @@ def default_info_enriched(default_info) -> _Info:
 @pytest.fixture
 def default_info_final(default_info_enriched) -> _Info:
     default_info_final = default_info_enriched.model_copy(deep=True)
-    default_info_final.assets.icon = 'assets/test_plugin/latest/ICON.jpeg'
+    default_info_final.assets.icon = 'assets/test_plugin/latest/ICON.png'
     return default_info_final
 
 
