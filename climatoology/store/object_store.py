@@ -115,7 +115,7 @@ class AssetType(Enum):
     ICON = 'ICON'
 
 
-ASSET_FILE_NAMES = {AssetType.ICON: 'ICON.jpeg'}
+ASSET_FILE_NAMES = {AssetType.ICON: 'ICON.png'}
 
 
 class Storage(ABC):

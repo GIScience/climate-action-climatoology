@@ -94,7 +94,7 @@ class MiscSource(BaseSource):
 class Assets(BaseModel):
     """Static data linked to the plugin that should be stored in the object store."""
 
-    icon: str = Field(description='The icon asset', examples=['icon.jpeg'])
+    icon: str = Field(description='The icon asset', examples=['icon.png'])
 
 
 class DemoConfig(BaseModel):
@@ -194,7 +194,7 @@ class _Info(BaseModel, extra='forbid'):
         examples=[timedelta(weeks=4)],
         default=timedelta(0),
     )
-    assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.jpeg')])
+    assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.png')])
     plugin_id: Optional[str] = Field(
         description='A cleaned plugin name.',
         examples=['the_plugin_001'],
@@ -245,7 +245,7 @@ def _convert_icon_to_thumbnail(icon: Path) -> BytesIO:
     image = Image.open(icon)
     image.thumbnail((500, 500))
     buffered = BytesIO()
-    image.save(buffered, format='JPEG')
+    image.save(buffered, format='PNG')
     buffered.seek(0)
     return buffered
 

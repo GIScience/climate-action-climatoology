@@ -2,6 +2,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import ANY, patch
 
+import pytest
+
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.info import Assets, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
@@ -57,45 +59,53 @@ def test_minio_get_artifact_url(mocked_object_store, general_uuid):
 
 def test_get_icon_url(mocked_object_store):
     result = mocked_object_store.get_icon_url(plugin_id='test_plugin')
-    assert result == 'https://test.host:1234/minio_test_bucket/assets/test_plugin/latest/ICON.jpeg'
+    assert result == 'https://test.host:1234/minio_test_bucket/assets/test_plugin/latest/ICON.png'
 
 
-def test_big_icon_gets_thumbnailed(mocked_object_store, mocker):
-    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/big_testing_image.jpeg'))
+@pytest.mark.parametrize(
+    'icon_filename,expected_length',
+    [
+        ('big_testing_image.jpeg', 806),
+        ('big_testing_image.png', 125),
+    ],
+)
+def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, expected_length):
+    icon_path = Path(__file__).parent.parent / 'resources' / icon_filename
+    assets = Assets(icon=str(icon_path))
     with patch(
         'climatoology.store.object_store._convert_icon_to_thumbnail', side_effect=_convert_icon_to_thumbnail
     ) as mocked_thumbnail_call:
         icon_put_spy = mocker.spy(mocked_object_store.client, 'put_object')
         mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
-        mocked_thumbnail_call.assert_called_once_with(Path(__file__).parent.parent / 'resources/big_testing_image.jpeg')
+        mocked_thumbnail_call.assert_called_once_with(icon_path)
         icon_put_spy.assert_called_once_with(
             bucket_name='minio_test_bucket',
-            object_name='assets/test_plugin/latest/ICON.jpeg',
+            object_name='assets/test_plugin/latest/ICON.png',
             data=ANY,
             metadata={'Type': DataGroup.ASSET.value},
-            length=4723,
+            length=expected_length,
         )
 
 
 def test_minio_synchronise_asset(mocked_object_store):
-    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.jpeg'))
+    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.png'))
     mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
     assert mocked_object_store.client.stat_object(
-        bucket_name='minio_test_bucket', object_name='assets/test_plugin/latest/ICON.jpeg'
+        bucket_name='minio_test_bucket', object_name='assets/test_plugin/latest/ICON.png'
     )
 
 
 def test_minio_synchronise_asset_rewrites_asset_object(mocked_object_store):
-    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.jpeg'))
+    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.png'))
     new_assets = mocked_object_store.write_assets(
         plugin_id='test_plugin',
         assets=assets,
     )
-    assert new_assets.icon == 'assets/test_plugin/latest/ICON.jpeg'
+    assert new_assets.icon == 'assets/test_plugin/latest/ICON.png'
 
 
 def test_generate_asset_object_name():
     computed_asset_object_name = Storage.generate_asset_object_name(
         plugin_id='test_plugin', plugin_version='latest', asset_type=AssetType.ICON
     )
-    assert computed_asset_object_name == 'assets/test_plugin/latest/ICON.jpeg'
+    assert computed_asset_object_name == 'assets/test_plugin/latest/ICON.png'
