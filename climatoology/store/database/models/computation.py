@@ -1,0 +1,60 @@
+from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+
+from geoalchemy2 import Geometry, WKTElement
+from semver import Version
+from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from climatoology.base.event import ComputationState
+from climatoology.store.database.models.artifact import ArtifactTable
+from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
+from climatoology.store.database.models.info import InfoTable
+
+COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'
+
+
+class ComputationTable(ClimatoologyTableBase):
+    __tablename__ = 'computation'
+    __table_args__ = (
+        UniqueConstraint(
+            'deduplication_key',  # using an md5 hash creates the possibility for cash collisions but raw columns will exceed the cache entry size
+            'cache_epoch',
+            name=COMPUTATION_DEDUPLICATION_CONSTRAINT,
+        ),
+        {'schema': CLIMATOOLOGY_SCHEMA_NAME},
+    )
+
+    correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    timestamp: Mapped[datetime]
+    deduplication_key: Mapped[UUID] = mapped_column(
+        Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid')
+    )
+    cache_epoch: Mapped[Optional[int]]
+    valid_until: Mapped[datetime]
+    params: Mapped[Optional[dict]] = mapped_column(JSONB)
+    requested_params: Mapped[dict] = mapped_column(JSONB)
+    aoi_name: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
+    aoi_id: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
+    aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
+    artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
+    plugin_id: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.plugin_id'))
+    plugin_version: Mapped[Version] = mapped_column(String)
+    plugin: Mapped[InfoTable] = relationship()
+    status: Mapped[Optional[ComputationState]]
+    message: Mapped[Optional[str]]
+    artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)
+
+
+class ComputationLookup(ClimatoologyTableBase):
+    __tablename__ = 'computation_lookup'
+    __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
+
+    user_correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
+    request_ts: Mapped[datetime]
+    aoi_name: Mapped[str]
+    aoi_id: Mapped[str]
+    computation_id: Mapped[UUID] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.computation.correlation_uuid'))
+    computation: Mapped[ComputationTable] = relationship()

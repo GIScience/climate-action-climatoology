@@ -21,19 +21,21 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   queue ([#189](https://gitlab.heigit.org/climate-action/climatoology/-/issues/189))
 - worker names now include the hostname (instead of `@_`), enabling multiple workers to be online yet still
   differentiated from each other
-- `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact result ([#205](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/205))
+- `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact
+  result ([#205](https://gitlab.heigit.org/climate-action/climatoology/-/issues/205))
 
 ### Fix
 
 - the database being in an inconsistent state in the brief moments between a task finishing on the worker and the
   subsequent `on_success` or `on_failure` callbacks. This
-  caused [#201](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/201) but also random
+  caused [#201](https://gitlab.heigit.org/climate-action/climatoology/-/issues/201) but also random
   test-failures.
 - update all dependencies
 - elements are uploaded to the object store with a more precise content
   type ([#165](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/165))
 - plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
-- artifacts now have a rank attribute to assert their order is preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
+- artifacts now have a rank attribute to assert their order is
+  preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
 
 ### Removed
 
@@ -44,9 +46,12 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - a dead letter queue to store expired
   messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
 - a check to the database class to assert the database is compatible with the climatoology version
-  used. This check is executed by the sender only ([#170](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/170))
+  used. This check is executed by the sender
+  only ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
+- the functionality to automatically up- and downgrade the
+  database including celery tables ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
 - sources given in the plugin info are now checked for completeness and compatibility with the
-  front-end ([#118](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/118))
+  front-end ([#118](https://gitlab.heigit.org/climate-action/climatoology/-/issues/118))
 - `Info` now has the repository attribute that is automatically read from he pyproject.toml
 - CI triggers for canary builds in downstream projects
 
