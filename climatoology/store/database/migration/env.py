@@ -6,7 +6,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.sql.schema import SchemaItem
 
-from climatoology.store.database import models
+from climatoology.store.database.models import base
+
+# The following table imports assert that the tables will be monitored by alembic
+from climatoology.store.database.models.artifact import ArtifactTable  # noqa: F401
+from climatoology.store.database.models.celery import CeleryTaskSetMeta  # noqa: F401
+from climatoology.store.database.models.computation import (  # noqa: F401
+    ComputationLookup,
+    ComputationTable,
+)
+from climatoology.store.database.models.info import InfoTable, PluginAuthorTable, author_info_link_table  # noqa: F401
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +34,7 @@ class MigrationSettings(BaseSettings):
         return f'postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}'
 
 
-target_metadata = models.Base.metadata
+target_metadata = base.ClimatoologyTableBase.metadata
 
 
 def run_migrations_offline() -> None:
@@ -88,11 +97,7 @@ def run_migrations_online() -> None:
 def include_object(
     object_under_review: SchemaItem, name: Optional[str], type_: str, reflected: bool, compare_to: Optional[SchemaItem]
 ) -> bool:
-    if (
-        type_ == 'table'
-        and name in ['spatial_ref_sys', 'celery_taskmeta', 'celery_tasksetmeta']
-        and object_under_review.schema is None
-    ):
+    if type_ == 'table' and name in ['spatial_ref_sys'] and object_under_review.schema is None:
         return False
     else:
         return True

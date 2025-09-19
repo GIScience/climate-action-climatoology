@@ -17,12 +17,14 @@ from sqlalchemy.orm import Session, joinedload
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import _Info
 from climatoology.store.database import migration
-from climatoology.store.database.models import (
+from climatoology.store.database.models.artifact import ArtifactTable
+from climatoology.store.database.models.computation import (
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
-    ArtifactTable,
     ComputationLookup,
     ComputationTable,
     InfoTable,
+)
+from climatoology.store.database.models.info import (
     PluginAuthorTable,
     author_info_link_table,
 )

@@ -12,7 +12,7 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.info import _Info
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.database.models import InfoTable
+from climatoology.store.database.models.info import InfoTable
 from climatoology.store.object_store import MinioStorage, Storage
 from climatoology.utility.exception import VersionMismatchError
 
