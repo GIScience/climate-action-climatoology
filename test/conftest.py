@@ -91,6 +91,7 @@ def default_info() -> _Info:
         icon=Path(__file__).parent / 'resources/test_icon.png',
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent / 'resources/test_methodology.md',
         sources=Path(__file__).parent / 'resources/test.bib',

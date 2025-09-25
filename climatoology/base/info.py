@@ -2,7 +2,6 @@ import json
 import logging
 import re
 import tomllib
-import warnings
 from datetime import timedelta
 from enum import StrEnum
 from io import BytesIO
@@ -152,11 +151,10 @@ class _Info(BaseModel, extra='forbid'):
         'group multiple plugins.',
         examples=[{Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION}],
     )
-    teaser: Optional[constr(strip_whitespace=True, min_length=20, max_length=150, pattern='^[A-Z].*\\.$')] = Field(
+    teaser: constr(strip_whitespace=True, min_length=20, max_length=150, pattern='^[A-Z].*\\.$') = Field(
         description='A single sentence teaser for the plugins functionality. The sentence must be between 20 and 150 '
         'characters long, start with an upper case letter and end with a full stop.',
         examples=['Calculate your path to become CO2 neutral by 2030.'],
-        default=None,
     )
     purpose: str = Field(
         description='What will this plugin accomplish?',
@@ -264,12 +262,12 @@ def generate_plugin_info(
     icon: Path,
     version: Version,
     concerns: Set[Concern],
+    teaser: str,
     purpose: Path,
     methodology: Path,
+    demo_input_parameters: T_co,
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
-    teaser: str = None,
-    demo_input_parameters: T_co = None,
     demo_aoi: Path = None,
     sources: Path = None,
 ) -> _Info:
@@ -306,23 +304,7 @@ def generate_plugin_info(
       file. You can extract such a file from most common bibliography management systems.
     :return: An _Info object that can be used to announce the plugin on the platform.
     """
-    if demo_input_parameters is None:
-        warnings.warn(
-            'This plugin will not have the option to compute a Demo. The demo_input_parameters will become '
-            'mandatory in a future release!',
-            category=DeprecationWarning,
-        )
-        demo_config = None
-    else:
-        demo_aoi_path = demo_aoi or DEMO_AOI_PATH
-        demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(demo_aoi_path.read_text()))
-        demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())
-
-    if teaser is None:
-        warnings.warn(
-            'The teaser attribute of the info method will become mandatory in future release!',
-            category=DeprecationWarning,
-        )
+    demo_config = compose_demo_config(demo_aoi=demo_aoi, demo_input_parameters=demo_input_parameters)
 
     assets = Assets(icon=str(icon))
     sources = _convert_bib(sources)
@@ -350,3 +332,10 @@ def generate_plugin_info(
         demo_config=demo_config,
         computation_shelf_life=computation_shelf_life,
     )
+
+
+def compose_demo_config(demo_aoi: Optional[Path], demo_input_parameters: T_co) -> DemoConfig:
+    demo_aoi_path = demo_aoi or DEMO_AOI_PATH
+    demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(demo_aoi_path.read_text()))
+    demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())
+    return demo_config

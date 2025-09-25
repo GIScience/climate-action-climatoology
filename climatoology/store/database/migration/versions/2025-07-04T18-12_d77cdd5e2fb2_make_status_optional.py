@@ -8,6 +8,7 @@ Create Date: 2025-07-04 18:12:14.571923
 
 from typing import Sequence, Union
 
+import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -24,4 +25,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.execute(sa.text("update ca_base.computation set status='SUCCESS' where status is null"))
     op.alter_column('computation', 'status', nullable=False, schema='ca_base')

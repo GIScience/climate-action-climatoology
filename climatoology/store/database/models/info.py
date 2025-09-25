@@ -34,21 +34,21 @@ class InfoTable(ClimatoologyTableBase):
     __tablename__ = 'info'
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
-    plugin_id: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str]
-    repository: Mapped[str]
     authors: Mapped[List[PluginAuthorTable]] = relationship(
         secondary=author_info_link_table, order_by=asc(author_info_link_table.c.author_seat)
     )
+    repository: Mapped[str]
     version: Mapped[Version] = mapped_column(String)
-    concerns: Mapped[Set[Concern]] = mapped_column(ARRAY(sqlalchemy.Enum(Concern)))
     state: Mapped[PluginState] = mapped_column(sqlalchemy.Enum(PluginState))
-    teaser: Mapped[Optional[str]]
+    concerns: Mapped[Set[Concern]] = mapped_column(ARRAY(sqlalchemy.Enum(Concern)))
+    teaser: Mapped[str]
     purpose: Mapped[str]
     methodology: Mapped[str]
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
-    demo_config: Mapped[Optional[DemoConfig]] = mapped_column(JSON)
+    demo_config: Mapped[DemoConfig] = mapped_column(JSON)
     computation_shelf_life: Mapped[Optional[timedelta]]
     assets: Mapped[Assets] = mapped_column(JSON)
+    plugin_id: Mapped[str] = mapped_column(primary_key=True)
     operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
     library_version: Mapped[Version] = mapped_column(String)

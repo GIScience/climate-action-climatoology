@@ -8,7 +8,6 @@ from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.base.event import ComputationState
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 from climatoology.store.database.models.info import InfoTable
@@ -36,14 +35,11 @@ class ComputationTable(ClimatoologyTableBase):
     valid_until: Mapped[datetime]
     params: Mapped[Optional[dict]] = mapped_column(JSONB)
     requested_params: Mapped[dict] = mapped_column(JSONB)
-    aoi_name: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
-    aoi_id: Mapped[str] = mapped_column(default='dummy')  # remove in v7, only kept for backward compatibility
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_id: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.plugin_id'))
     plugin_version: Mapped[Version] = mapped_column(String)
     plugin: Mapped[InfoTable] = relationship()
-    status: Mapped[Optional[ComputationState]]
     message: Mapped[Optional[str]]
     artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)
 
