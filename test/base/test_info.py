@@ -11,7 +11,9 @@ from test.conftest import TestModel
 
 
 def test_operator_info(default_info):
+    assert default_info.plugin_id == 'test_plugin'
     assert default_info.version == '3.1.0'
+    assert default_info.teaser == 'Test teaser that is meant to do nothing.'
     assert default_info.sources[0].ENTRYTYPE == 'article'
     assert Path(default_info.assets.icon).is_file()
 
@@ -26,25 +28,6 @@ def test_info_deserialisable(default_info_final):
     assert info == default_info_final
 
 
-def test_plugin_id():
-    computed_info = generate_plugin_info(
-        name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
-        authors=[
-            PluginAuthor(
-                name='John Doe',
-                affiliation='HeiGIT gGmbH',
-                website=HttpUrl('https://heigit.org/heigit-team/'),
-            )
-        ],
-        version=Version.parse('3.1.0'),
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
-        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-    )
-    assert computed_info.plugin_id == 'test_plugin'
-
-
 def test_plugin_id_special_characters():
     computed_info = generate_plugin_info(
         name='Test Plugin With $pecial Charact3ers²: CO₂',
@@ -52,9 +35,11 @@ def test_plugin_id_special_characters():
         icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         sources=Path(__file__).parent.parent / 'resources/test.bib',
+        demo_input_parameters=TestModel(id=1),
     )
     assert computed_info.plugin_id == 'test_plugin_with_pecial_characters_co'
 
@@ -72,6 +57,7 @@ def test_sources_are_optional():
         ],
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         demo_input_parameters=TestModel(id=1),
@@ -92,6 +78,7 @@ def test_invalid_sources():
             ],
             version=Version.parse('3.1.0'),
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            teaser='Test teaser that is meant to do nothing.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
             demo_input_parameters=TestModel(id=1),
@@ -112,6 +99,7 @@ def test_provide_demo_params_and_aoi(default_aoi_feature_geojson_pydantic):
         ],
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         demo_input_parameters=TestModel(id=1),
@@ -135,50 +123,12 @@ def test_provide_demo_params_and_no_aoi():
         ],
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         demo_input_parameters=TestModel(id=1),
     )
     assert isinstance(computed_info.demo_config, DemoConfig)
-
-
-def test_provide_no_demo_params_or_aoi():
-    computed_info = generate_plugin_info(
-        name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
-        authors=[
-            PluginAuthor(
-                name='John Doe',
-                affiliation='HeiGIT gGmbH',
-                website=HttpUrl('https://heigit.org/heigit-team/'),
-            )
-        ],
-        version=Version.parse('3.1.0'),
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
-        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-    )
-    assert computed_info.demo_config is None
-
-
-def test_teaser():
-    computed_info = generate_plugin_info(
-        name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
-        authors=[
-            PluginAuthor(
-                name='John Doe',
-                affiliation='HeiGIT gGmbH',
-                website=HttpUrl('https://heigit.org/heigit-team/'),
-            )
-        ],
-        version=Version.parse('3.1.0'),
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser='This plugin does nothing.',
-        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
-        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-    )
-    assert computed_info.teaser == 'This plugin does nothing.'
 
 
 def test_short_teaser():
@@ -198,6 +148,7 @@ def test_short_teaser():
             teaser='This.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+            demo_input_parameters=TestModel(id=1),
         )
 
 
@@ -218,6 +169,7 @@ def test_long_teaser():
             teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+            demo_input_parameters=TestModel(id=1),
         )
 
 
@@ -238,6 +190,7 @@ def test_small_start_teaser():
             teaser='this plugin does nothing.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+            demo_input_parameters=TestModel(id=1),
         )
 
 
@@ -258,6 +211,7 @@ def test_no_fullstop_teaser():
             teaser='This plugin does nothing',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+            demo_input_parameters=TestModel(id=1),
         )
 
 
@@ -274,8 +228,10 @@ def test_default_plugin_state():
         ],
         version=Version.parse('3.1.0'),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        demo_input_parameters=TestModel(id=1),
     )
     assert computed_info.state == PluginState.ACTIVE
 
@@ -294,8 +250,10 @@ def test_plugin_state():
         version=Version.parse('3.1.0'),
         state=PluginState.ARCHIVE,
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        demo_input_parameters=TestModel(id=1),
     )
     assert computed_info.state == PluginState.ARCHIVE
 
@@ -317,6 +275,7 @@ def test_shelf_life():
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         computation_shelf_life=timedelta(hours=1),
+        demo_input_parameters=TestModel(id=1),
     )
     assert computed_info.computation_shelf_life == timedelta(hours=1)
 
@@ -338,5 +297,6 @@ def test_repository_url():
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         computation_shelf_life=timedelta(hours=1),
+        demo_input_parameters=TestModel(id=1),
     )
     assert str(computed_info.repository) == 'https://gitlab.heigit.org/climate-action/climatoology'

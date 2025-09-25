@@ -23,7 +23,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   differentiated from each other
 - `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact
   result ([#205](https://gitlab.heigit.org/climate-action/climatoology/-/issues/205))
-- allowed PNG icons and made PNG the default for icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
+- allowed PNG icons and made PNG the default for
+  icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
+- `teaser` and `demo_config` are now required for the plugin info
 
 ### Fix
 
@@ -41,6 +43,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Removed
 
 - the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
+- deprecated columns `aoi_name`, `aoi_id` and `status` from computation
+  table ([#197](https://gitlab.heigit.org/climate-action/climatoology/-/issues/197))
 
 ### Added
 
