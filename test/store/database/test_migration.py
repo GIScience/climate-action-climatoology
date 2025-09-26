@@ -25,8 +25,8 @@ def test_online_migration_from_cli(monkeypatch, db_connection_params, db_with_po
     monkeypatch.setenv('postgres_user', db_connection_params['user'])
     monkeypatch.setenv('postgres_password', db_connection_params['password'])
 
-    completed_process = subprocess.run(['alembic', 'upgrade', '3d4313578291'])
-    assert completed_process.returncode == 0
+    completed_process = subprocess.run(['alembic', 'upgrade', '3d4313578291'], capture_output=True)
+    assert completed_process.returncode == 0, completed_process.stderr.decode()
     engine = create_engine(db_with_postgis)
     with engine.connect() as connection:
         assert engine.dialect.has_table(connection, 'info')

@@ -380,7 +380,7 @@ def db_connection_string(db_connection_params) -> str:
         db_janitor.drop()
         db_janitor.init()
 
-    return f'postgresql://{user}:{password}@{host}:{port}/{dbname}'
+    return f'postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}'
 
 
 @pytest.fixture
