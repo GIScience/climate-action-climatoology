@@ -11,7 +11,7 @@ from test.conftest import TestModel
 
 
 def test_operator_info(default_info):
-    assert default_info.plugin_id == 'test_plugin'
+    assert default_info.id == 'test_plugin'
     assert default_info.version == Version(3, 1, 0)
     assert default_info.teaser == 'Test teaser that is meant to do nothing.'
     assert default_info.sources[0].ENTRYTYPE == 'article'
@@ -41,7 +41,7 @@ def test_plugin_id_special_characters():
         sources=Path(__file__).parent.parent / 'resources/test.bib',
         demo_input_parameters=TestModel(id=1),
     )
-    assert computed_info.plugin_id == 'test_plugin_with_pecial_characters_co'
+    assert computed_info.id == 'test_plugin_with_pecial_characters_co'
 
 
 def test_sources_are_optional():

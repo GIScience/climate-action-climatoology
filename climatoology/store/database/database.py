@@ -16,7 +16,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
 from climatoology.base.baseoperator import AoiProperties
-from climatoology.base.info import _Info
+from climatoology.base.info import PluginBaseInfo, _Info
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.computation import (
@@ -29,7 +29,7 @@ from climatoology.store.database.models.info import (
     PluginAuthorTable,
     author_info_link_table,
 )
-from climatoology.store.object_store import ComputationInfo, PluginBaseInfo
+from climatoology.store.object_store import ComputationInfo
 from climatoology.utility.exception import InfoNotReceivedError
 
 log = logging.getLogger(__name__)
@@ -64,12 +64,12 @@ class BackendDatabase:
                 log.info(stdout_replacement.readlines())
 
     def write_info(self, info: _Info) -> str:
-        log.debug(f'Connecting to the database and writing info for {info.plugin_id}')
+        log.debug(f'Connecting to the database and writing info for {info.id}')
         with Session(self.engine) as session:
             self._synch_info_to_db(info, session)
             session.commit()
-            log.info(f'Info written to database for {info.plugin_id}')
-            return info.plugin_id
+            log.info(f'Info written to database for {info.id}')
+            return info.id
 
     def _synch_info_to_db(self, info: _Info, session: Session) -> None:
         self._upload_authors(info, session)
@@ -79,9 +79,7 @@ class BackendDatabase:
     def _upload_info(self, info: _Info, session: Session) -> None:
         info_dict = info.model_dump(mode='json', exclude={'authors'})
         info_insert_stmt = (
-            insert(InfoTable)
-            .values(**info_dict)
-            .on_conflict_do_update(index_elements=[InfoTable.plugin_id], set_=info_dict)
+            insert(InfoTable).values(**info_dict).on_conflict_do_update(index_elements=[InfoTable.id], set_=info_dict)
         )
         session.execute(info_insert_stmt)
 
@@ -91,9 +89,9 @@ class BackendDatabase:
         session.execute(author_insert_stmt)
 
     def _update_info_author_relation_table(self, info: _Info, session: Session) -> None:
-        session.query(author_info_link_table).filter_by(info_id=info.plugin_id).delete()
+        session.query(author_info_link_table).filter_by(info_id=info.id).delete()
         info_author_link = [
-            {'info_id': info.plugin_id, 'author_id': author.name, 'author_seat': seat}
+            {'info_id': info.id, 'author_id': author.name, 'author_seat': seat}
             for seat, author in enumerate(info.authors)
         ]
         link_insert_stmt = insert(author_info_link_table).values(info_author_link).on_conflict_do_nothing()
@@ -102,7 +100,7 @@ class BackendDatabase:
     def read_info(self, plugin_id: str) -> _Info:
         log.debug(f'Connecting to the database and reading info for {plugin_id}')
         with Session(self.engine) as session:
-            info_query = select(InfoTable).where(InfoTable.plugin_id == plugin_id)
+            info_query = select(InfoTable).where(InfoTable.id == plugin_id)
             result_scalars = session.scalars(info_query)
             result = result_scalars.first()
 
@@ -208,7 +206,7 @@ class BackendDatabase:
                     }
                 )
                 computation_info.plugin_info = PluginBaseInfo(
-                    plugin_id=computation_info.plugin_id, plugin_version=str(computation_info.plugin.version)
+                    id=computation_info.plugin_id, version=computation_info.plugin.version
                 )
                 computation_info = ComputationInfo.model_validate(computation_info)
                 log.debug(f'Computation {correlation_uuid} read from database')

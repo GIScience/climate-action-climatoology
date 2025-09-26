@@ -29,6 +29,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - moved from [psycopg2 to psycopg3](https://www.psycopg.org) as db
   engine ([#222](https://gitlab.heigit.org/climate-action/climatoology/-/issues/222))
 - `Info` models (pydantic and DB) where augmented with adapters to accept `semver.Version` natively
+- rename plugin info object `plugin_id` to `id` (the object should have the _Plugin_ name-part)
 
 ### Fix
 

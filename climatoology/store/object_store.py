@@ -11,18 +11,14 @@ from uuid import UUID
 import geojson_pydantic
 from minio import Minio, S3Error
 from pydantic import BaseModel, ConfigDict, Field
+from semver import Version
 
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.event import ComputationState
-from climatoology.base.info import Assets, _convert_icon_to_thumbnail
+from climatoology.base.info import Assets, PluginBaseInfo, _convert_icon_to_thumbnail
 
 log = logging.getLogger(__name__)
-
-
-class PluginBaseInfo(BaseModel):
-    plugin_id: str
-    plugin_version: str
 
 
 class ComputationInfo(BaseModel):
@@ -88,7 +84,7 @@ class ComputationInfo(BaseModel):
     plugin_info: PluginBaseInfo = Field(
         description='Basic information on the plugin that produced the computation.',
         examples=[
-            PluginBaseInfo(plugin_id='example_plugin', plugin_version='0.0.1'),
+            PluginBaseInfo(id='example_plugin', version=Version(0, 0, 1)),
         ],
     )
     status: Optional[ComputationState] = Field(

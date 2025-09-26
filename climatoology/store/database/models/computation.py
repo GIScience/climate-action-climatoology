@@ -38,7 +38,7 @@ class ComputationTable(ClimatoologyTableBase):
     requested_params: Mapped[dict] = mapped_column(JSONB)
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
-    plugin_id: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.plugin_id'))
+    plugin_id: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.id'))
     plugin_version: Mapped[Version] = mapped_column(DbSemver)
     plugin: Mapped[InfoTable] = relationship()
     message: Mapped[Optional[str]]

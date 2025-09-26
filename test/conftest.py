@@ -31,9 +31,9 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
-from climatoology.base.info import Concern, PluginAuthor, _Info, generate_plugin_info
+from climatoology.base.info import Concern, PluginAuthor, PluginBaseInfo, _Info, generate_plugin_info
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import ComputationInfo, MinioStorage, PluginBaseInfo
+from climatoology.store.object_store import ComputationInfo, MinioStorage
 from climatoology.utility.api import HealthCheck
 
 pytest_plugins = ('celery.contrib.pytest',)
@@ -285,7 +285,7 @@ def default_computation_info(
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
-        plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=str(default_info.version)),
+        plugin_info=PluginBaseInfo(id=default_info.id, version=default_info.version),
     )
 
 
@@ -411,8 +411,8 @@ def backend_with_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
-        plugin_id=default_computation_info.plugin_info.plugin_id,
-        plugin_version=Version.parse(default_computation_info.plugin_info.plugin_version),
+        plugin_id=default_computation_info.plugin_info.id,
+        plugin_version=default_computation_info.plugin_info.version,
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     return default_backend_db

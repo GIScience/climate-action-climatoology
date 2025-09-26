@@ -33,7 +33,7 @@ class CAPlatformComputeTask(Task):
         self.name = 'compute'
         self.backend_db = backend_db
 
-        self.plugin_id = operator.info_enriched.plugin_id
+        self.plugin_id = operator.info_enriched.id
 
         log.info(f'Compute task for {self.plugin_id} initialised')
 
