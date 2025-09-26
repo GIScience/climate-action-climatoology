@@ -46,12 +46,12 @@ It uses [alembic](https://alembic.sqlalchemy.org) to track and upgrade the datab
 
 ### Schema Definitions
 
-The definitions of tables and relations are in [climatoology/store/database/](climatoology/store/database/), and the
+The definitions of tables and relations are in [climatoology/store/database/](climatoology/store/database), and the
 definitions for migrating between database versions are
 in [climatoology/store/database/migration](climatoology/store/database/migration).
 The migration scripts need to be kept in sync with the definition of tables & relations.
 
-Therefore, when changing the table [models](climatoology/store/database/models.py) a migration file has to be generated.
+Therefore, when changing the table [models](climatoology/store/database/models) a migration file has to be generated.
 The migration files need to be independent of the library version, so they should **not** include imports from
 climatoology.
 

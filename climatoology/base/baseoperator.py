@@ -78,7 +78,7 @@ class BaseOperator(ABC, Generic[T_co]):
         """
         info = self.info()
         info.operator_schema = self._model.model_json_schema()
-        info.library_version = str(climatoology.__version__)
+        info.library_version = climatoology.__version__
         log.debug(f'{info.name} info constructed')
         return info
 
@@ -106,7 +106,11 @@ class BaseOperator(ABC, Generic[T_co]):
 
     @final
     def compute_unsafe(
-        self, resources: ComputationResources, aoi: shapely.MultiPolygon, aoi_properties: AoiProperties, params: T_co
+        self,
+        resources: ComputationResources,
+        aoi: shapely.MultiPolygon,
+        aoi_properties: AoiProperties,
+        params: BaseModel,
     ) -> List[_Artifact]:
         """
         Runs the compute procedure, checks and filters the returned artifacts.
@@ -139,7 +143,11 @@ class BaseOperator(ABC, Generic[T_co]):
 
     @abstractmethod
     def compute(
-        self, resources: ComputationResources, aoi: shapely.MultiPolygon, aoi_properties: AoiProperties, params: T_co
+        self,
+        resources: ComputationResources,
+        aoi: shapely.MultiPolygon,
+        aoi_properties: AoiProperties,
+        params: BaseModel,
     ) -> List[_Artifact]:
         """Generate an operator-specific report.
 
@@ -148,7 +156,7 @@ class BaseOperator(ABC, Generic[T_co]):
         :param resources: computation ephemeral resources
         :param aoi: the requested ara of interest as a shapely MultiPolygon with SRID 4326
         :param aoi_properties: properties related to and common for all AOIs
-        :param params: computation parameters in the form of the declared pydantic module
+        :param params: computation parameters in the form of the declared pydantic model
         :return: list of artifacts (files) produced by the operator
         """
         pass

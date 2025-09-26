@@ -3,6 +3,7 @@ from unittest.mock import ANY, patch
 
 import pytest
 from celery import Celery
+from semver import Version
 
 from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id
 from climatoology.utility.exception import VersionMismatchError
@@ -119,7 +120,7 @@ def test_version_matches_raises_on_lower(default_backend_db, default_info_final,
     _ = default_backend_db.write_info(info=default_info_final)
 
     older_plugin_info = default_info_final
-    older_plugin_info.version = '2.1.0'
+    older_plugin_info.version = Version(2, 1, 0)
     with pytest.raises(VersionMismatchError, match=r'Refusing to register plugin*'):
         _version_is_compatible(info=older_plugin_info, db=default_backend_db, celery=celery_app)
 
@@ -137,13 +138,13 @@ def test_version_matches_higher(default_backend_db, default_info_final, celery_a
     _ = default_backend_db.write_info(info=default_info_final)
 
     newer_plugin_info = default_info_final
-    newer_plugin_info.version = '3.1.1'
+    newer_plugin_info.version = Version(3, 1, 1)
     assert _version_is_compatible(info=newer_plugin_info, db=default_backend_db, celery=celery_app)
 
 
 def test_version_matches_higher_not_alone(default_plugin, default_backend_db, default_info_final, celery_app):
     newer_plugin_info = default_info_final.model_copy(deep=True)
-    newer_plugin_info.version = '3.1.1'
+    newer_plugin_info.version = Version(3, 1, 1)
     with pytest.raises(
         AssertionError,
         match=re.escape(

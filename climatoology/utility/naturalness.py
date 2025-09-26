@@ -12,7 +12,7 @@ import geopandas as gpd
 import pandas as pd
 import rasterio
 import requests
-from pydantic import BaseModel, Field, confloat, conint
+from pydantic import BaseModel, Field, confloat
 from shapely.geometry import shape
 from tqdm import tqdm
 
@@ -36,11 +36,12 @@ class NaturalnessWorkUnit(BaseModel):
         description='The time range of satellite observations to base the index on.',
         examples=[TimeRange()],
     )
-    resolution: conint(ge=10) = Field(
+    resolution: int = Field(
         title='Resolution',
         description='Resolution of the resulting raster image. Will be down sampled, if necessary.',
         default=90,
         examples=[90],
+        ge=10,
     )
     bbox: Tuple[
         confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
