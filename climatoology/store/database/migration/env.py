@@ -31,7 +31,7 @@ class MigrationSettings(BaseSettings):
 
     @property
     def db_connection_string(self) -> str:
-        return f'postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}'
+        return f'postgresql+psycopg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}'
 
 
 target_metadata = base.ClimatoologyTableBase.metadata
