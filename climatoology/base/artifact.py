@@ -36,6 +36,7 @@ from rasterio.enums import OverviewResampling
 from rasterio.rio.overview import get_maximum_overview_level
 
 from climatoology.base.computation import ComputationResources
+from climatoology.base.info import ArticleSource, IncollectionSource, MiscSource, _convert_bib
 
 log = logging.getLogger(__name__)
 
@@ -193,6 +194,24 @@ class _Artifact(BaseModel):
         examples=['This image shows A and was taken from B by C because of D.'],
         default=None,
     )
+    sources: Optional[Optional[list[ArticleSource | IncollectionSource | MiscSource]]] = Field(
+        description='A list of sources that were used to generate this artifact. ',
+        examples=[
+            [
+                {
+                    'pages': '14-15',
+                    'volume': '2',
+                    'journal': 'J. Geophys. Res.',
+                    'year': '1954',
+                    'title': "Nothing Particular in this Year's History",
+                    'author': 'J. G. Smith and H. K. Weston',
+                    'ENTRYTYPE': 'article',
+                    'ID': 'smit54',
+                }
+            ]
+        ],
+        default=None,
+    )
     correlation_uuid: Optional[UUID] = Field(
         description='Do not set! The correlation UUID for this call. Will be automatically set by the plugin.',
         default=None,
@@ -302,6 +321,7 @@ def create_markdown_artifact(
     resources: ComputationResources,
     name: str,
     tl_dr: str,
+    sources: Optional[Path] = None,
     primary: bool = True,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -314,6 +334,9 @@ def create_markdown_artifact(
     :param name: A potential heading for the text.
     :param tl_dr: A summary of the text.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources for this plugin.
     :param filename: A filename for the created file (without extension!).
@@ -325,8 +348,16 @@ def create_markdown_artifact(
     with open(file_path, 'x') as out_file:
         out_file.write(text)
 
+    sources = _convert_bib(sources)
+
     result = _Artifact(
-        name=name, modality=ArtifactModality.MARKDOWN, file_path=file_path, summary=tl_dr, primary=primary, tags=tags
+        name=name,
+        modality=ArtifactModality.MARKDOWN,
+        file_path=file_path,
+        summary=tl_dr,
+        sources=sources,
+        primary=primary,
+        tags=tags,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -340,6 +371,7 @@ def create_table_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -351,6 +383,9 @@ def create_table_artifact(
     :param title: Title or name of the table.
     :param caption: Caption of the table that describes the content.
     :param description: A longer description of the table content.
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources for this plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
@@ -363,12 +398,15 @@ def create_table_artifact(
     data = data.reset_index()
     data.to_csv(file_path, header=True, index=False, index_label=False, mode='x')
 
+    sources = _convert_bib(sources)
+
     result = _Artifact(
         name=title,
         modality=ArtifactModality.TABLE,
         file_path=file_path,
         summary=caption,
         description=description,
+        sources=sources,
         tags=tags,
         primary=primary,
     )
@@ -384,6 +422,7 @@ def create_image_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -395,6 +434,9 @@ def create_image_artifact(
     :param title: Title or name of the image.
     :param caption: Caption of the image that describes the content.
     :param description: A longer description of the image content.
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources for this plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
@@ -408,12 +450,15 @@ def create_image_artifact(
 
     image.save(file_path, format='PNG', optimize=True)
 
+    sources = _convert_bib(sources)
+
     result = _Artifact(
         name=title,
         modality=ArtifactModality.IMAGE,
         file_path=file_path,
         summary=caption,
         description=description,
+        sources=sources,
         tags=tags,
         primary=primary,
     )
@@ -429,6 +474,7 @@ def create_chart_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -440,6 +486,9 @@ def create_chart_artifact(
     :param title: Title for the resulting plot.
     :param caption: Caption for the resulting plot that describes the content.
     :param description: A longer description of the chart content.
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
@@ -473,6 +522,7 @@ def create_chart_artifact(
         resources=resources,
         primary=primary,
         description=description,
+        sources=sources,
         tags=tags,
         filename=filename,
     )
@@ -487,6 +537,7 @@ def create_plotly_chart_artifact(
     resources: ComputationResources,
     primary: bool = True,
     description: str = None,
+    sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -498,6 +549,9 @@ def create_plotly_chart_artifact(
     :param title: Title for the resulting artifact.
     :param caption: Caption for the resulting plot that describes the content.
     :param description: A longer description of the chart content.
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
@@ -510,12 +564,15 @@ def create_plotly_chart_artifact(
     with open(file_path, 'x') as out_file:
         plotly.io.write_json(figure, out_file)
 
+    sources = _convert_bib(sources)
+
     result = _Artifact(
         name=title,
         modality=ArtifactModality.CHART_PLOTLY,
         file_path=file_path,
         summary=caption,
         description=description,
+        sources=sources,
         tags=tags,
         primary=primary,
     )
@@ -534,6 +591,7 @@ def create_geojson_artifact(
     primary: bool = True,
     legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
+    sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -545,13 +603,16 @@ def create_geojson_artifact(
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param color: Column name for the color values, defaults to `'color'`. Column must contain
-    instances of `pydantic_extra_types.color.Color` only.
+      instances of `pydantic_extra_types.color.Color` only.
     :param label: Column name for the labels of the features, defaults to `'label'`.
     :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData
-    type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
-    distinct legend will be created from the unique combinations of labels and colors.
+      type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
+      distinct legend will be created from the unique combinations of labels and colors.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
@@ -566,7 +627,7 @@ def create_geojson_artifact(
     assert data.active_geometry_name is not None, 'No active geometry column in data'
     assert data.crs is not None, 'No CRS set for data.'
 
-    assert data['color'].apply(isinstance, args=[Color]).all(), (
+    assert data[color].apply(isinstance, args=[Color]).all(), (
         f'Not all values in column {color} are of type pydantic_extra_types.color.Color'
     )
     data[color] = data[color].apply(lambda color_value: color_value.as_hex())
@@ -595,12 +656,15 @@ def create_geojson_artifact(
         legend_df = legend_df.set_index('label')
         legend_data = legend_df.to_dict()['color']
 
+    sources = _convert_bib(sources)
+
     result = _Artifact(
         name=layer_name,
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         file_path=file_path,
         summary=caption,
         description=description,
+        sources=sources,
         tags=tags,
         primary=primary,
         attachments=Attachments(legend=Legend(legend_data=legend_data)),
@@ -649,6 +713,7 @@ def create_geotiff_artifact(
     primary: bool = True,
     legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
     description: str = None,
+    sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
 ) -> _Artifact:
@@ -660,6 +725,9 @@ def create_geotiff_artifact(
     :param layer_name: Name of the map layer.
     :param caption: A short description of the layer.
     :param description: A longer description of the layer.
+    :param sources: A list of sources that were used to generate this artifact. Provide a
+      [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
+      file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
     :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData type.
     For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a distinct
@@ -722,12 +790,15 @@ def create_geotiff_artifact(
     elif raster_info.colormap:
         legend = _legend_from_colormap(raster_info.colormap)
 
+    sources = _convert_bib(sources)
+
     result = _Artifact(
         name=layer_name,
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         file_path=file_path,
         summary=caption,
         description=description,
+        sources=sources,
         tags=tags,
         primary=primary,
         attachments=Attachments(legend=legend) if legend else None,

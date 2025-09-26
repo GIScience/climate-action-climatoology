@@ -230,7 +230,7 @@ def test_operator_compute_unsafe_results_no_computation_info(
 
 
 def test_operator_create_artifact_safely_with_only_good_artifact(
-    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties
+    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties, general_uuid
 ):
     def good_fn():
         return default_artifact
@@ -252,7 +252,7 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
             return artifacts
 
     operator = TestOperator()
-    input_resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir=Path())
+    input_resources = ComputationResources(correlation_uuid=general_uuid, computation_dir=Path())
     computed_artifacts = operator.compute_unsafe(
         resources=input_resources,
         aoi=default_aoi_geom_shapely,
@@ -311,7 +311,7 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
 
 
 def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
-    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties, caplog
+    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties, caplog, general_uuid
 ):
     def bad_fn():
         raise ValueError('Test artifact computation failed')
@@ -352,7 +352,7 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
     ]
 
     operator = TestOperator()
-    input_resources = ComputationResources(correlation_uuid=default_artifact.correlation_uuid, computation_dir=Path())
+    input_resources = ComputationResources(correlation_uuid=general_uuid, computation_dir=Path())
     with caplog.at_level(logging.ERROR):
         computed_artifacts = operator.compute_unsafe(
             resources=input_resources,

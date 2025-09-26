@@ -31,7 +31,7 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
-from climatoology.base.info import Concern, PluginAuthor, PluginBaseInfo, _Info, generate_plugin_info
+from climatoology.base.info import Concern, MiscSource, PluginAuthor, PluginBaseInfo, _Info, generate_plugin_info
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import ComputationInfo, MinioStorage
 from climatoology.utility.api import HealthCheck
@@ -139,16 +139,24 @@ def default_info_final(default_info_enriched) -> _Info:
 
 
 @pytest.fixture
-def default_artifact(general_uuid) -> _Artifact:
+def default_artifact() -> _Artifact:
+    """Note: this should only provide required fields.
+    This way it automatically is a test that optional fields are in fact optional.
+    """
     return _Artifact(
         name='test_name',
         modality=ArtifactModality.MARKDOWN,
         file_path=Path(__file__).parent / 'resources/test_artifact_file.md',
         summary='Test summary',
-        description='Test description',
-        correlation_uuid=general_uuid,
-        store_id=f'{general_uuid}_test_artifact_file.md',
     )
+
+
+@pytest.fixture
+def default_augmented_artifact(default_artifact, general_uuid) -> _Artifact:
+    final_artifact = default_artifact.model_copy(deep=True)
+    final_artifact.correlation_uuid = general_uuid
+    final_artifact.store_id = f'{general_uuid}_test_artifact_file.md'
+    return final_artifact
 
 
 class TestModel(BaseModel):
@@ -273,7 +281,7 @@ def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
 
 @pytest.fixture
 def default_computation_info(
-    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact, default_info
+    general_uuid, default_aoi_feature_geojson_pydantic, default_augmented_artifact, default_info
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
@@ -284,7 +292,7 @@ def default_computation_info(
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
-        artifacts=[default_artifact],
+        artifacts=[default_augmented_artifact],
         plugin_info=PluginBaseInfo(id=default_info.id, version=default_info.version),
     )
 
@@ -426,3 +434,18 @@ def alembic_config() -> Config:
 @pytest.fixture
 def alembic_engine(db_with_postgis, set_basic_envs):
     return sqlalchemy.create_engine(db_with_postgis)
+
+
+@pytest.fixture
+def default_sources() -> list[MiscSource]:
+    return [
+        MiscSource(
+            ID='CitekeyMisc',
+            title="Pluto: The 'Other' Red Planet",
+            author='{NASA}',
+            year='2015',
+            note='Accessed: 2018-12-06',
+            ENTRYTYPE='misc',
+            url='https://www.nasa.gov/nh/pluto-the-other-red-planet',
+        )
+    ]

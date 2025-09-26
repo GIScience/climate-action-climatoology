@@ -264,7 +264,7 @@ def _convert_icon_to_thumbnail(icon: Path) -> BytesIO:
     return buffered
 
 
-def _convert_bib(sources: Path = None) -> Optional[JsonSchemaValue]:
+def _convert_bib(sources: Optional[Path] = None) -> Optional[JsonSchemaValue]:
     if sources is None:
         return None
     with open(sources, mode='r') as file:
@@ -284,8 +284,8 @@ def generate_plugin_info(
     demo_input_parameters: BaseModel,
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
-    demo_aoi: Path = None,
-    sources: Path = None,
+    demo_aoi: Optional[Path] = None,
+    sources: Optional[Path] = None,
 ) -> _Info:
     """Generate a plugin info object.
 
