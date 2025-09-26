@@ -4,10 +4,11 @@ from uuid import UUID
 
 from geoalchemy2 import Geometry, WKTElement
 from semver import Version
-from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
+from sqlalchemy import JSON, Computed, ForeignKey, UniqueConstraint, asc
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 from climatoology.store.database.models.info import InfoTable
@@ -38,7 +39,7 @@ class ComputationTable(ClimatoologyTableBase):
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_id: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.plugin_id'))
-    plugin_version: Mapped[Version] = mapped_column(String)
+    plugin_version: Mapped[Version] = mapped_column(DbSemver)
     plugin: Mapped[InfoTable] = relationship()
     message: Mapped[Optional[str]]
     artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)

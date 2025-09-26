@@ -3,7 +3,6 @@ from typing import Optional
 
 from celery import Celery
 from kombu.entity import Exchange, Queue
-from semver import Version
 from sqlalchemy.orm import Session
 
 import climatoology
@@ -99,8 +98,8 @@ def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> 
         info_query = session.query(InfoTable).filter_by(plugin_id=info.plugin_id)
         existing_info = info_query.first()
     if existing_info:
-        existing_info_version = Version.parse(existing_info.version)
-        incoming_info_version = Version.parse(info.version)
+        existing_info_version = existing_info.version
+        incoming_info_version = info.version
         if existing_info_version > incoming_info_version:
             raise VersionMismatchError(
                 f'Refusing to register plugin {info.name} in version {info.version}.'

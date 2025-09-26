@@ -89,7 +89,7 @@ def default_info() -> _Info:
             )
         ],
         icon=Path(__file__).parent / 'resources/test_icon.png',
-        version=Version.parse('3.1.0'),
+        version=Version(3, 1, 0),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent / 'resources/test_purpose.md',
@@ -105,7 +105,7 @@ def default_info() -> _Info:
 @pytest.fixture
 def default_info_enriched(default_info) -> _Info:
     default_info_enriched = default_info.model_copy(deep=True)
-    default_info_enriched.library_version = str(climatoology.__version__)
+    default_info_enriched.library_version = climatoology.__version__
     default_info_enriched.operator_schema = {
         'properties': {
             'id': {'description': 'A required integer parameter.', 'examples': [1], 'title': 'ID', 'type': 'integer'},
@@ -285,7 +285,7 @@ def default_computation_info(
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact],
-        plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=default_info.version),
+        plugin_info=PluginBaseInfo(plugin_id=default_info.plugin_id, plugin_version=str(default_info.version)),
     )
 
 
@@ -412,7 +412,7 @@ def backend_with_computation(
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
         plugin_id=default_computation_info.plugin_info.plugin_id,
-        plugin_version=default_computation_info.plugin_info.plugin_version,
+        plugin_version=Version.parse(default_computation_info.plugin_info.plugin_version),
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     return default_backend_db

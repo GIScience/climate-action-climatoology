@@ -6,17 +6,17 @@ from datetime import timedelta
 from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import List, Literal, Optional, Set
+from typing import Annotated, List, Literal, Optional, Set
 
 import bibtexparser
 import geojson_pydantic
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, conlist, constr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, conlist, model_validator
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
 import climatoology
-from climatoology.base import T_co
+from climatoology.base import PydanticSemver
 
 log = logging.getLogger(__name__)
 
@@ -137,10 +137,14 @@ class _Info(BaseModel, extra='forbid'):
         description='The link to the source code of the plugin.',
         examples=[HttpUrl('https://gitlab.heigit.org/climate-action/net_zero')],
     )
-    version: str = Field(
-        description='The plugin version.',
-        examples=[str(Version(0, 0, 1)), 'alpha-centauri'],
-    )
+    version: Annotated[
+        Version,
+        PydanticSemver,
+        Field(
+            description='The plugin version.',
+            examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
+        ),
+    ]
     state: PluginState = Field(
         description='The current development state of the plugin using categories from https://github.com/GIScience/badges.',
         examples=[PluginState.ACTIVE],
@@ -151,10 +155,13 @@ class _Info(BaseModel, extra='forbid'):
         'group multiple plugins.',
         examples=[{Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION}],
     )
-    teaser: constr(strip_whitespace=True, min_length=20, max_length=150, pattern='^[A-Z].*\\.$') = Field(
+    teaser: str = Field(
         description='A single sentence teaser for the plugins functionality. The sentence must be between 20 and 150 '
         'characters long, start with an upper case letter and end with a full stop.',
         examples=['Calculate your path to become CO2 neutral by 2030.'],
+        min_length=20,
+        max_length=150,
+        pattern='^[A-Z].*\\.$',
     )
     purpose: str = Field(
         description='What will this plugin accomplish?',
@@ -220,9 +227,15 @@ class _Info(BaseModel, extra='forbid'):
         ],
         default=None,
     )
-    library_version: str = Field(
-        description='The climatoology library version, the plugin is using.', default=str(climatoology.__version__)
-    )
+    library_version: Annotated[
+        Version,
+        PydanticSemver,
+        Field(
+            description='The climatoology library version, the plugin is using.',
+            default=climatoology.__version__,
+            examples=[str(Version(1, 2, 3))],  # https://github.com/pydantic/pydantic/issues/12280
+        ),
+    ]
 
     @model_validator(mode='after')
     def create_id(self) -> '_Info':
@@ -265,7 +278,7 @@ def generate_plugin_info(
     teaser: str,
     purpose: Path,
     methodology: Path,
-    demo_input_parameters: T_co,
+    demo_input_parameters: BaseModel,
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
     demo_aoi: Path = None,
@@ -321,7 +334,7 @@ def generate_plugin_info(
         name=name,
         authors=authors,
         repository=repository,
-        version=str(version),
+        version=version,
         concerns=concerns,
         state=state,
         teaser=teaser,
@@ -334,7 +347,7 @@ def generate_plugin_info(
     )
 
 
-def compose_demo_config(demo_aoi: Optional[Path], demo_input_parameters: T_co) -> DemoConfig:
+def compose_demo_config(demo_aoi: Optional[Path], demo_input_parameters: BaseModel) -> DemoConfig:
     demo_aoi_path = demo_aoi or DEMO_AOI_PATH
     demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(demo_aoi_path.read_text()))
     demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())

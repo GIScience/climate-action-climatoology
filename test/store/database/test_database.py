@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import pytest
 from alembic.util.exc import CommandError
+from semver import Version
 
 from climatoology.base.info import PluginAuthor
 from climatoology.store.database.database import BackendDatabase
@@ -54,7 +55,7 @@ def test_overwrite_info(default_backend_db, default_info_final):
     _ = default_backend_db.write_info(info=default_info_final)
 
     newer_plugin_info = default_info_final
-    newer_plugin_info.version = '3.2.0'
+    newer_plugin_info.version = Version(3, 2, 0)
     _ = default_backend_db.write_info(info=default_info_final)
 
     read_info = default_backend_db.read_info(plugin_id=default_info_final.plugin_id)

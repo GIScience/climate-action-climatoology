@@ -133,12 +133,14 @@ class LulcWorkUnit(BaseModel):
         examples=['2023-06-01'],
         default=datetime.now(timezone.utc).date(),
     )
-    threshold: confloat(ge=0.0, le=1.0) = Field(
+    threshold: float = Field(
         title='Threshold',
         description='Not exceeding this value by the class prediction score results in the recognition of the result '
         'as "unknown"',
         default=0,
         examples=[0.75],
+        ge=0.0,
+        le=1.0,
     )
     fusion_mode: FusionMode = Field(
         title='Fusion Mode',

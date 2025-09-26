@@ -8,7 +8,6 @@ from uuid import UUID
 import geojson_pydantic
 from celery import Celery
 from celery.result import AsyncResult
-from semver import Version
 
 import climatoology
 from climatoology.app.plugin import extract_plugin_id
@@ -120,9 +119,7 @@ class CelerySender(Sender):
         log.debug(f"Requesting 'info' from {plugin_id}.")
         info_return = self.backend_db.read_info(plugin_id=plugin_id)
 
-        if self.assert_plugin_version and not Version.parse(info_return.library_version).is_compatible(
-            climatoology.__version__
-        ):
+        if self.assert_plugin_version and not info_return.library_version.is_compatible(climatoology.__version__):
             raise VersionMismatchError(
                 f'Refusing to register plugin '
                 f'{info_return.name} in version {info_return.version} due to a climatoology library '

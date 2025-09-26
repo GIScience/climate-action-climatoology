@@ -4,11 +4,12 @@ from typing import List, Optional, Set
 import sqlalchemy
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
-from sqlalchemy import JSON, Column, ForeignKey, Integer, String, Table, asc
+from sqlalchemy import JSON, Column, ForeignKey, Integer, Table, asc
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.base.info import Assets, Concern, DemoConfig, PluginState
+from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
 author_info_link_table = Table(
@@ -39,7 +40,7 @@ class InfoTable(ClimatoologyTableBase):
         secondary=author_info_link_table, order_by=asc(author_info_link_table.c.author_seat)
     )
     repository: Mapped[str]
-    version: Mapped[Version] = mapped_column(String)
+    version: Mapped[Version] = mapped_column(DbSemver)
     state: Mapped[PluginState] = mapped_column(sqlalchemy.Enum(PluginState))
     concerns: Mapped[Set[Concern]] = mapped_column(ARRAY(sqlalchemy.Enum(Concern)))
     teaser: Mapped[str]
@@ -51,4 +52,4 @@ class InfoTable(ClimatoologyTableBase):
     assets: Mapped[Assets] = mapped_column(JSON)
     plugin_id: Mapped[str] = mapped_column(primary_key=True)
     operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
-    library_version: Mapped[Version] = mapped_column(String)
+    library_version: Mapped[Version] = mapped_column(DbSemver)

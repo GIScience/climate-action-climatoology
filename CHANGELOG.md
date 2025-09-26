@@ -26,7 +26,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - allowed PNG icons and made PNG the default for
   icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
 - `teaser` and `demo_config` are now required for the plugin info
-- moved from [psycopg2 to psycopg3](https://www.psycopg.org) as db engine
+- moved from [psycopg2 to psycopg3](https://www.psycopg.org) as db
+  engine ([#222](https://gitlab.heigit.org/climate-action/climatoology/-/issues/222))
+- `Info` models (pydantic and DB) where augmented with adapters to accept `semver.Version` natively
 
 ### Fix
 
