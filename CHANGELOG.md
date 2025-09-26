@@ -63,6 +63,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   front-end ([#118](https://gitlab.heigit.org/climate-action/climatoology/-/issues/118))
 - `Info` now has the repository attribute that is automatically read from he pyproject.toml
 - CI triggers for canary builds in downstream projects
+- Artifacts can now have dedicated sources ([#202](https://gitlab.heigit.org/climate-action/climatoology/-/issues/202))
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 

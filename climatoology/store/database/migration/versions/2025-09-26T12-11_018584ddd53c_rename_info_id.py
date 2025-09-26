@@ -1,4 +1,4 @@
-"""remove_old_columns
+"""rename_info_id
 
 Revision ID: 018584ddd53c
 Revises: b117fa8afa0a

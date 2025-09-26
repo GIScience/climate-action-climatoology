@@ -9,9 +9,9 @@ from climatoology.base.info import Assets, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
 
 
-def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifact):
+def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_augmented_artifact):
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket'))) == 0
-    store_id = mocked_object_store.save(default_artifact)
+    store_id = mocked_object_store.save(default_augmented_artifact)
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket', recursive=True))) == 1
     with tempfile.TemporaryDirectory() as tmpdirname:
         fetched_file = mocked_object_store.fetch(
