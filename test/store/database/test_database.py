@@ -11,9 +11,9 @@ from climatoology.store.database.database import BackendDatabase
 
 def test_info_to_db_and_back(default_backend_db, default_info_final):
     plugin_id = default_backend_db.write_info(info=default_info_final)
-    assert plugin_id == default_info_final.plugin_id
+    assert plugin_id == default_info_final.id
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.plugin_id)
+    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
     assert read_info == default_info_final
 
 
@@ -45,7 +45,7 @@ def test_author_order_is_preserved(default_backend_db, default_info_final):
     ]
     _ = default_backend_db.write_info(info=info)
 
-    read_info = default_backend_db.read_info(plugin_id=info.plugin_id)
+    read_info = default_backend_db.read_info(plugin_id=info.id)
     author_names = ['Adam', 'Ddam', 'Bdam']
     for i in range(0, len(author_names)):
         assert author_names[i] == read_info.authors[i].name
@@ -58,7 +58,7 @@ def test_overwrite_info(default_backend_db, default_info_final):
     newer_plugin_info.version = Version(3, 2, 0)
     _ = default_backend_db.write_info(info=default_info_final)
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.plugin_id)
+    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
     assert read_info == newer_plugin_info
 
 
@@ -69,7 +69,7 @@ def test_add_authors(default_backend_db, default_info_final):
     changed_plugin_info.authors.append(PluginAuthor(name='anotherone'))
     _ = default_backend_db.write_info(info=default_info_final)
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.plugin_id)
+    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
     assert read_info == changed_plugin_info
 
 
@@ -80,7 +80,7 @@ def test_remove_authors(default_backend_db, default_info_final):
     changed_plugin_info.authors = [PluginAuthor(name='anotherone')]
     _ = default_backend_db.write_info(info=default_info_final)
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.plugin_id)
+    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
     assert read_info == changed_plugin_info
 
 
@@ -114,7 +114,7 @@ def test_register_computations(
         correlation_uuid=first_correlation_uuid,
         requested_params=params[0],
         aoi=default_computation_info.aoi,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=shelf_life,
     )
@@ -123,7 +123,7 @@ def test_register_computations(
         correlation_uuid=second_correlation_uuid,
         requested_params=params[1],
         aoi=default_computation_info.aoi,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=shelf_life,
     )
@@ -152,7 +152,7 @@ def test_read_duplicate_computation(
         correlation_uuid=second_computation_id,
         requested_params=params,
         aoi=default_aoi_feature_geojson_pydantic,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=None,
     )
@@ -160,7 +160,7 @@ def test_read_duplicate_computation(
         correlation_uuid=first_computation_id,
         requested_params=params,
         aoi=default_aoi_feature_geojson_pydantic,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=None,
     )
@@ -179,7 +179,7 @@ def test_resolve_deduplicated_computation_id(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.params,
         aoi=default_computation_info.aoi,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=None,
     )
@@ -187,7 +187,7 @@ def test_resolve_deduplicated_computation_id(
         correlation_uuid=duplicate_computation_id,
         requested_params=default_computation_info.params,
         aoi=default_computation_info.aoi,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=None,
     )
@@ -204,7 +204,7 @@ def test_update_successful_computation_with_validated_params(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=default_info.computation_shelf_life,
     )
@@ -242,7 +242,7 @@ def test_update_failed_computation(default_plugin, default_backend_db, default_c
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.params,
         aoi=default_computation_info.aoi,
-        plugin_id=default_info.plugin_id,
+        plugin_id=default_info.id,
         plugin_version=default_info.version,
         computation_shelf_life=None,
     )

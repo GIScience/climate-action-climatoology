@@ -124,7 +124,23 @@ class DemoConfig(BaseModel):
     params: dict = Field(description='The input parameters used for the demo.')
 
 
-class _Info(BaseModel, extra='forbid'):
+class PluginBaseInfo(BaseModel):
+    id: Optional[str] = Field(
+        description='A cleaned plugin name.',
+        examples=['the_plugin_001'],
+        default=None,
+    )
+    version: Annotated[
+        Version,
+        PydanticSemver,
+        Field(
+            description='The plugin version.',
+            examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
+        ),
+    ]
+
+
+class _Info(PluginBaseInfo, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
     model_config = ConfigDict(from_attributes=True)
@@ -137,14 +153,6 @@ class _Info(BaseModel, extra='forbid'):
         description='The link to the source code of the plugin.',
         examples=[HttpUrl('https://gitlab.heigit.org/climate-action/net_zero')],
     )
-    version: Annotated[
-        Version,
-        PydanticSemver,
-        Field(
-            description='The plugin version.',
-            examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
-        ),
-    ]
     state: PluginState = Field(
         description='The current development state of the plugin using categories from https://github.com/GIScience/badges.',
         examples=[PluginState.ACTIVE],
@@ -200,11 +208,6 @@ class _Info(BaseModel, extra='forbid'):
         default=timedelta(0),
     )
     assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.png')])
-    plugin_id: Optional[str] = Field(
-        description='A cleaned plugin name.',
-        examples=['the_plugin_001'],
-        default=None,
-    )
     operator_schema: JsonSchemaValue = Field(
         description='The schematic description of the parameters necessary to initiate a computation using '
         '[JSONSchema](https://json-schema.org/).',
@@ -242,7 +245,7 @@ class _Info(BaseModel, extra='forbid'):
         plugin_id = self.name.lower()
         plugin_id = re.sub(r'[^a-zA-Z-\s]', '', plugin_id)
         plugin_id = re.sub(r'\s', '_', plugin_id)
-        self.plugin_id = plugin_id
+        self.id = plugin_id
         return self
 
 

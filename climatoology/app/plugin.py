@@ -39,7 +39,7 @@ def start_plugin(operator: BaseOperator) -> Optional[int]:
 
 def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
     plugin = Celery(
-        operator.info_enriched.plugin_id,
+        operator.info_enriched.id,
         broker=settings.broker_connection_string,
         backend=settings.backend_connection_string,
     )
@@ -47,7 +47,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
 
     backend_database = BackendDatabase(
         connection_string=settings.db_connection_string,
-        user_agent=f'Plugin {operator.info_enriched.plugin_id}/{operator.info_enriched.version} based on climatoology/{climatoology.__version__}',
+        user_agent=f'Plugin {operator.info_enriched.id}/{operator.info_enriched.version} based on climatoology/{climatoology.__version__}',
     )
 
     assert _version_is_compatible(info=operator.info_enriched, db=backend_database, celery=plugin), (
@@ -95,7 +95,7 @@ def extract_plugin_id(plugin_id_with_suffix: str) -> str:
 
 def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> bool:
     with Session(db.engine) as session:
-        info_query = session.query(InfoTable).filter_by(plugin_id=info.plugin_id)
+        info_query = session.query(InfoTable).filter_by(id=info.id)
         existing_info = info_query.first()
     if existing_info:
         existing_info_version = existing_info.version
@@ -110,7 +110,7 @@ def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> 
         elif existing_info_version < incoming_info_version:
             workers = celery.control.inspect().ping() or dict()
             plugins = {extract_plugin_id(k) for k, _ in workers.items()}
-            assert info.plugin_id not in plugins, (
+            assert info.id not in plugins, (
                 f'Refusing to register plugin {info.name} version {incoming_info_version} because a plugin with a lower version ({existing_info_version}) is already running. Make sure to stop it before upgrading.'
             )
             log.info(
@@ -124,7 +124,7 @@ def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> 
 
 
 def synch_info(info: _Info, db: BackendDatabase, storage: Storage) -> _Info:
-    info.assets = storage.write_assets(plugin_id=info.plugin_id, assets=info.assets)
+    info.assets = storage.write_assets(plugin_id=info.id, assets=info.assets)
 
     _ = db.write_info(info=info)
 
