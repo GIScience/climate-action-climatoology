@@ -30,6 +30,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   engine ([#222](https://gitlab.heigit.org/climate-action/climatoology/-/issues/222))
 - `Info` models (pydantic and DB) where augmented with adapters to accept `semver.Version` natively
 - rename plugin info object `plugin_id` to `id` (the object should have the _Plugin_ name-part)
+- `generate_plugin_info` now accepts a `DemoConfig` object and includes `name` so a descriptive demo name can be
+  used ([#218](https://gitlab.heigit.org/climate-action/climatoology/-/issues/218))
 
 ### Fix
 
