@@ -99,7 +99,9 @@ class Assets(BaseModel):
 class DemoConfig(BaseModel):
     """Configuration to run a demonstration of a plugin."""
 
-    aoi: geojson_pydantic.MultiPolygon = Field(
+    params: dict = Field(description='The input parameters used for the demo.')
+    name: Optional[str] = Field(description='The display name of the demo AOI', default=None)
+    aoi: Optional[geojson_pydantic.MultiPolygon] = Field(
         description='The the area of interest the demo will be run in.',
         examples=[
             geojson_pydantic.MultiPolygon(
@@ -118,10 +120,21 @@ class DemoConfig(BaseModel):
                 }
             )
         ],
-        default=geojson_pydantic.MultiPolygon(**json.loads(DEMO_AOI_PATH.read_text())),
-        validate_default=True,
+        default=None,
     )
-    params: dict = Field(description='The input parameters used for the demo.')
+
+    @model_validator(mode='after')
+    def validate_aoi_inputs(self):
+        if not self.aoi:
+            self.aoi = geojson_pydantic.MultiPolygon(**json.loads(DEMO_AOI_PATH.read_text()))
+            if self.name:
+                log.warning(
+                    f'You provided `name` {self.name}, but not `aoi`. The default `name` for the default `aoi` will be used'
+                )
+            self.name = 'Heidelberg Demo'
+        elif self.aoi and not self.name:
+            raise ValueError('You provided `aoi` but no `name`. When providing `aoi`, `name` is required')
+        return self
 
 
 class PluginBaseInfo(BaseModel):
@@ -197,9 +210,7 @@ class _Info(PluginBaseInfo, extra='forbid'):
         ],
         default=None,
     )
-    demo_config: Optional[DemoConfig] = Field(
-        description='Configuration to run a demonstration of a plugin.', default=None
-    )
+    demo_config: DemoConfig = Field(description='Configuration to run a demonstration of a plugin.')
     computation_shelf_life: Optional[timedelta] = Field(
         description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
         'of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of 0 means '
@@ -281,10 +292,9 @@ def generate_plugin_info(
     teaser: str,
     purpose: Path,
     methodology: Path,
-    demo_input_parameters: BaseModel,
+    demo_config: DemoConfig,
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
-    demo_aoi: Optional[Path] = None,
     sources: Optional[Path] = None,
 ) -> _Info:
     """Generate a plugin info object.
@@ -320,8 +330,6 @@ def generate_plugin_info(
       file. You can extract such a file from most common bibliography management systems.
     :return: An _Info object that can be used to announce the plugin on the platform.
     """
-    demo_config = compose_demo_config(demo_aoi=demo_aoi, demo_input_parameters=demo_input_parameters)
-
     assets = Assets(icon=str(icon))
     sources = _convert_bib(sources)
 
