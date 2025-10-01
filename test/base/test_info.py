@@ -8,11 +8,22 @@ import pytest
 from pydantic import HttpUrl, ValidationError
 from semver import Version
 
-from climatoology.base.info import Concern, DemoConfig, PluginAuthor, PluginState, _Info, generate_plugin_info
+from climatoology.base.info import (
+    Concern,
+    DemoConfig,
+    PluginAuthor,
+    PluginState,
+    _Info,
+    compose_demo_config,
+    generate_plugin_info,
+)
+from test.conftest import TestModel
+
+DEMO_AOI_PATH = Path(__file__).parent.parent / 'resources/test_aoi.geojson'
 
 
 def test_demo_config_default_aoi():
-    demo_config = DemoConfig(params={'id': 1})
+    demo_config = compose_demo_config(input_parameters=TestModel(id=1))
 
     assert demo_config.name == 'Heidelberg Demo'
     assert isinstance(demo_config.aoi, geojson_pydantic.MultiPolygon)
@@ -20,23 +31,25 @@ def test_demo_config_default_aoi():
 
 def test_demo_config_custom_aoi_and_name(default_aoi_feature_geojson_pydantic):
     custom_aoi_name = 'custom_demo'
-    demo_config = DemoConfig(params={'id': 1}, name=custom_aoi_name, aoi=default_aoi_feature_geojson_pydantic.geometry)
+    demo_config = compose_demo_config(
+        input_parameters=TestModel(id=1), aoi_name=custom_aoi_name, aoi_path=DEMO_AOI_PATH
+    )
 
     assert demo_config.name == custom_aoi_name
     assert demo_config.aoi == default_aoi_feature_geojson_pydantic.geometry
 
 
 def test_demo_config_custom_aoi_and_no_name(default_aoi_feature_geojson_pydantic):
-    with pytest.raises(ValueError, match='You provided `aoi` but no `name`. When providing `aoi`, `name` is required'):
-        _ = DemoConfig(params={'id': 1}, aoi=default_aoi_feature_geojson_pydantic.geometry)
+    with pytest.raises(
+        ValueError, match='You provided `aoi_path` but no `name`. Please include a `name` for the demo AOI'
+    ):
+        _ = compose_demo_config(input_parameters=TestModel(id=1), aoi_path=DEMO_AOI_PATH)
 
 
 def test_demo_config_no_aoi_but_custom_name(caplog):
-    expected_warning = (
-        'You provided `name` custom_demo, but not `aoi`. The default `name` for the default `aoi` will be used'
-    )
+    expected_warning = 'You provided a `aoi_name` but not `aoi_path`. The default demo AOI and name will be used'
     with caplog.at_level(logging.WARNING):
-        _ = DemoConfig(params={'id': 1}, name='custom_demo')
+        _ = compose_demo_config(input_parameters=TestModel(id=1), aoi_name='custom_demo')
 
     assert expected_warning in caplog.messages
 
@@ -69,7 +82,7 @@ def test_plugin_id_special_characters():
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         sources=Path(__file__).parent.parent / 'resources/test.bib',
     )
     assert computed_info.id == 'test_plugin_with_pecial_characters_co'
@@ -91,7 +104,7 @@ def test_sources_are_optional(default_aoi_feature_geojson_pydantic):
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
     )
 
 
@@ -113,7 +126,7 @@ def test_invalid_sources(default_aoi_feature_geojson_pydantic):
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
             sources=Path(__file__).parent.parent / 'resources/invalid_test.bib',
-            demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+            demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         )
 
 
@@ -133,10 +146,10 @@ def test_demo_config_in_info(default_aoi_feature_geojson_pydantic):
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(
-            params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
-            aoi=default_aoi_feature_geojson_pydantic.geometry,
-            name='demo',
+        demo_config=compose_demo_config(
+            input_parameters=TestModel(id=1),
+            aoi_path=DEMO_AOI_PATH,
+            aoi_name='demo',
         ),
     )
     assert isinstance(computed_info.demo_config, DemoConfig)
@@ -159,7 +172,7 @@ def test_short_teaser():
             teaser='This.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-            demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+            demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         )
 
 
@@ -180,7 +193,7 @@ def test_long_teaser():
             teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-            demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+            demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         )
 
 
@@ -201,7 +214,7 @@ def test_small_start_teaser():
             teaser='this plugin does nothing.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-            demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+            demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         )
 
 
@@ -222,7 +235,7 @@ def test_no_fullstop_teaser():
             teaser='This plugin does nothing',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-            demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+            demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         )
 
 
@@ -242,7 +255,7 @@ def test_default_plugin_state():
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
     )
     assert computed_info.state == PluginState.ACTIVE
 
@@ -264,7 +277,7 @@ def test_plugin_state():
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
     )
     assert computed_info.state == PluginState.ARCHIVE
 
@@ -285,7 +298,7 @@ def test_shelf_life():
         teaser='This plugin does nothing and that is good.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         computation_shelf_life=timedelta(hours=1),
     )
     assert computed_info.computation_shelf_life == timedelta(hours=1)
@@ -307,7 +320,7 @@ def test_repository_url():
         teaser='This plugin does nothing and that is good.',
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         computation_shelf_life=timedelta(hours=1),
     )
     assert str(computed_info.repository) == 'https://gitlab.heigit.org/climate-action/climatoology'
