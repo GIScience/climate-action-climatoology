@@ -100,8 +100,8 @@ class DemoConfig(BaseModel):
     """Configuration to run a demonstration of a plugin."""
 
     params: dict = Field(description='The input parameters used for the demo.')
-    name: Optional[str] = Field(description='The display name of the demo AOI', default=None)
-    aoi: Optional[geojson_pydantic.MultiPolygon] = Field(
+    name: str = Field(description='The display name of the demo AOI')
+    aoi: geojson_pydantic.MultiPolygon = Field(
         description='The the area of interest the demo will be run in.',
         examples=[
             geojson_pydantic.MultiPolygon(
@@ -120,21 +120,7 @@ class DemoConfig(BaseModel):
                 }
             )
         ],
-        default=None,
     )
-
-    @model_validator(mode='after')
-    def validate_aoi_inputs(self):
-        if not self.aoi:
-            self.aoi = geojson_pydantic.MultiPolygon(**json.loads(DEMO_AOI_PATH.read_text()))
-            if self.name:
-                log.warning(
-                    f'You provided `name` {self.name}, but not `aoi`. The default `name` for the default `aoi` will be used'
-                )
-            self.name = 'Heidelberg Demo'
-        elif self.aoi and not self.name:
-            raise ValueError('You provided `aoi` but no `name`. When providing `aoi`, `name` is required')
-        return self
 
 
 class PluginBaseInfo(BaseModel):
@@ -317,14 +303,8 @@ def generate_plugin_info(
     :param computation_shelf_life: How long are computations valid (at most). Computations will be valid within a fixed
       time frame of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of
       0 means no caching while None means indefinite caching.
-    :param demo_input_parameters: An instance of the input parameters for the demo computation. It is currently
-      optional, but if not provided, users will be unable to view a demo and therefore will have to log in to the
-      platform to try the plugin. It will be required in a future release.
-    :param demo_aoi: A path to the file containing the geojson geometry for the area of interest for the demo
-      computation. It could be an administrative boundary or an arbitrary geometry. The default is the municipality of
-      Heidelberg, but make sure to provide another region if this is not suitable for your plugin. The computation will
-      only be done once (and then cached) so the size of the area may not be the biggest concern as long as it can be
-      computed within ~30min.
+    :param demo_config: A `DemoConfig` object defining the input parameters, AOI and AOI name for the demo computation.
+      The helper function `compose_demo_config` may be used to create this object with a default AOI.
     :param sources: A list of sources that were used in the process or are related. Self-citations are welcome and
       even preferred! Provide a [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
       file. You can extract such a file from most common bibliography management systems.
@@ -358,8 +338,26 @@ def generate_plugin_info(
     )
 
 
-def compose_demo_config(demo_aoi: Optional[Path], demo_input_parameters: BaseModel) -> DemoConfig:
-    demo_aoi_path = demo_aoi or DEMO_AOI_PATH
-    demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(demo_aoi_path.read_text()))
-    demo_config = DemoConfig(aoi=demo_aoi, params=demo_input_parameters.model_dump())
-    return demo_config
+def compose_demo_config(input_parameters: BaseModel, aoi_path: Path = None, aoi_name: str = None) -> DemoConfig:
+    """
+    Compose the demo config object from the provided components.
+
+    :param input_parameters: the input parameters for the plugin
+    :param aoi_path: A path to the file containing the geojson geometry for the area of interest for the demo
+    computation. It could be an administrative boundary or an arbitrary geometry. The default is the municipality of
+    Heidelberg, but make sure to provide another region if this is not suitable for your plugin. The computation will
+    only be done once (and then cached) so the size of the area may not be the biggest concern as long as it can be
+    computed within ~30min.
+    :param aoi_name: a string for the display name of the demo computation
+    """
+    if not aoi_path:
+        aoi_path = DEMO_AOI_PATH
+        if aoi_name:
+            log.warning('You provided a `aoi_name` but not `aoi_path`. The default demo AOI and name will be used')
+        aoi_name = 'Heidelberg Demo'
+
+    if aoi_path and not aoi_name:
+        raise ValueError('You provided `aoi_path` but no `name`. Please include a `name` for the demo AOI')
+
+    demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(aoi_path.read_text()))
+    return DemoConfig(aoi=demo_aoi, params=input_parameters.model_dump(), name=aoi_name)

@@ -33,11 +33,11 @@ from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.info import (
     Concern,
-    DemoConfig,
     MiscSource,
     PluginAuthor,
     PluginBaseInfo,
     _Info,
+    compose_demo_config,
     generate_plugin_info,
 )
 from climatoology.store.database.database import BackendDatabase
@@ -104,7 +104,7 @@ def default_info() -> _Info:
         methodology=Path(__file__).parent / 'resources/test_methodology.md',
         sources=Path(__file__).parent / 'resources/test.bib',
         computation_shelf_life=timedelta(days=1),
-        demo_config=DemoConfig(params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0}),
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1, name='John Doe', execution_time=0.0)),
     )
     return info
 
