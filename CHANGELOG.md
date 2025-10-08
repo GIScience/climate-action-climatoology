@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.3...main)
 
+### Fixed
+
+- make `resolution` a required input to `adjust_bounds` to ensure appropriate bounds will always be created ([#230](https://gitlab.heigit.org/climate-action/climatoology/-/issues/230))
+
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
 ### Fixed

@@ -123,7 +123,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         log.debug('Extracting aggregated raster statistics..')
 
         vectors = [v.to_crs(4326) for v in vectors]
-        vectors = self.split_vectors(vectors=vectors, max_unit_size=max_raster_size)
+        vectors = self.split_vectors(vectors=vectors, resolution=resolution, max_unit_size=max_raster_size)
 
         n = len(vectors)
         with tqdm(total=n) as pbar:
@@ -199,19 +199,19 @@ class NaturalnessUtility(PlatformHttpUtility):
     def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 1000) -> List[NaturalnessWorkUnit]:
         adjusted_units = []
         for unit in units:
-            bounds = adjust_bounds(unit.bbox, max_unit_size=max_unit_size, resolution=10)
+            bounds = adjust_bounds(unit.bbox, max_unit_size=max_unit_size, resolution=unit.resolution)
             adjusted_units.extend([unit.model_copy(update={'bbox': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units
 
     @staticmethod
-    def split_vectors(vectors: List[gpd.GeoSeries], max_unit_size: int = 1000) -> List[gpd.GeoSeries]:
+    def split_vectors(vectors: List[gpd.GeoSeries], resolution: int, max_unit_size: int = 1000) -> List[gpd.GeoSeries]:
         """Split vectors into separate GeoSeries, such that the total bounds of each GeoSeries is less than max_unit_size"""
         adjusted_vectors = []
         for vector in vectors:
             # the total bounds are a np.array of length 4 and the tuple command correctly turns it into a tuple
             # noinspection PyTypeChecker
             bbox: Tuple[float, float, float, float] = tuple(vector.total_bounds)
-            bounds = adjust_bounds(bbox=bbox, max_unit_size=max_unit_size, resolution=10)
+            bounds = adjust_bounds(bbox=bbox, max_unit_size=max_unit_size, resolution=resolution)
             split_features = [gpd.clip(gdf=vector, mask=b.geometry, keep_geom_type=True) for b in bounds]
             adjusted_vectors.extend([f for f in split_features if not f.empty])
 

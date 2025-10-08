@@ -135,9 +135,9 @@ def compute_raster(
 
 def adjust_bounds(
     bbox: Tuple[float, float, float, float],
+    resolution: int,
     max_unit_size: int = 2300,
     max_unit_area: int = None,
-    resolution: int = 10,
 ) -> list[BBox]:
     """Adjust the given bbox to be a list of bounds within a maximum size.
 
