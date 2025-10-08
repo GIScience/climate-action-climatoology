@@ -40,7 +40,6 @@ class CAPlatformComputeTask(Task):
         log.info(f'Compute task for {self.plugin_id} initialised')
 
     def on_failure(self, exc: Exception, task_id: str, args: Tuple, kwargs: Dict, einfo: ExceptionInfo) -> None:
-        log.error(f'Updating failed computation in database, with cache={isinstance(exc, InputValidationError)}')
         self.backend_db.update_failed_computation(
             correlation_uuid=task_id, failure_message=str(exc), cache=isinstance(exc, InputValidationError)
         )

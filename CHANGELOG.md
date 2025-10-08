@@ -7,9 +7,18 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.3...main)
 
+## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-10-08
+
+### Changed
+
+- make `resolution` a required input to `adjust_bounds` to ensure appropriate bounds will always be
+  created ([#230](https://gitlab.heigit.org/climate-action/climatoology/-/issues/230))
+
 ### Fixed
 
-- make `resolution` a required input to `adjust_bounds` to ensure appropriate bounds will always be created ([#230](https://gitlab.heigit.org/climate-action/climatoology/-/issues/230))
+- implementation of `adjust_bounds` to avoid recursion and instead pre-calculate the number of splits, and also to
+  raise an error if the dimensions of the provided bounds are
+  invalid ([#230](https://gitlab.heigit.org/climate-action/climatoology/-/issues/230))
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 

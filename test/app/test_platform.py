@@ -1,4 +1,3 @@
-import logging
 import time
 import uuid
 from typing import List
@@ -24,8 +23,6 @@ from climatoology.utility.exception import (
     VersionMismatchException,
 )
 from test.conftest import TestModel
-
-log = logging.getLogger(__name__)
 
 
 def test_platform_has_storage(default_platform_connection):
@@ -350,8 +347,9 @@ def test_send_compute_ClimatoologyUserError_is_not_cached(  # noqa: N802
     with pytest.raises(ClimatoologyUserError):
         _ = result.get(timeout=5)
 
-    time.sleep(1)  # sleep to fix temporamental test
-    log.error('Reading the database')
+    time.sleep(
+        3
+    )  # TODO: remove this. This sleep fixes the temporamental test in our runner and is already fixed in our v7 branch
     stored_computation_info = default_backend_db.read_computation(correlation_uuid)
     assert stored_computation_info.cache_epoch is None
 
