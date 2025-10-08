@@ -1,9 +1,10 @@
 import logging
+import math
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import date, timedelta
-from typing import Any, ContextManager, Iterable, List, Optional, Tuple
+from typing import Any, ContextManager, List, Optional, Tuple
 
 import rasterio
 import requests
@@ -146,32 +147,21 @@ def adjust_bounds(
     :param max_unit_area: The maximum area per bounding box (pixels squared), defaults to max_unit_size^2
     :param resolution: the resolution of the raster data (metres)
     """
-    if not max_unit_area:
-        max_unit_area = max_unit_size * max_unit_size
+    if max_unit_area:
+        max_unit_size = min(max_unit_size, math.sqrt(max_unit_area))
 
-    def flatten(iterable: Iterable[Any]) -> List[Any]:
-        """Convert nested iterables to single level list."""
-        for outer_i in iterable:
-            if isinstance(outer_i, list):
-                for inner_i in flatten(outer_i):
-                    yield inner_i
-            else:
-                yield outer_i
+    bounds = BBox(bbox, crs=CRS.WGS84)
+    w, h = bbox_to_dimensions(bounds, resolution=resolution)
 
-    def split(
-        bounds: Tuple[float, float, float, float], max_edge_length: int, max_area: int, pixel_edge_length: int
-    ) -> list[BBox | Any]:
-        """Split bounds into Bboxes with a given maximum unit size."""
-        bounds = BBox(bounds, crs=CRS.WGS84)
-        h, w = bbox_to_dimensions(bounds, resolution=pixel_edge_length)
-        if h > max_edge_length or w > max_edge_length or h * w > max_area:
-            return [
-                split(b, max_edge_length=max_edge_length, max_area=max_area, pixel_edge_length=pixel_edge_length)
-                for b in BBoxSplitter([bounds], CRS.WGS84, (2, 2)).bbox_list
-            ]
-        else:
-            return [bounds]
+    if (h < 1) or (w < 1):
+        raise ValueError(
+            'The provided bounding box dimensions must be greater than (0, 0).'
+            f'The provided bounds ({bounds}) at resolution `{resolution}` has dimensions {w, h}'
+        )
 
-    return list(
-        flatten(split(bounds=bbox, max_edge_length=max_unit_size, max_area=max_unit_area, pixel_edge_length=resolution))
-    )
+    h_splits = math.ceil(h / max_unit_size)
+    w_splits = math.ceil(w / max_unit_size)
+    if max(h_splits, w_splits) > 1:
+        return BBoxSplitter(shape_list=[bounds], crs=CRS.WGS84, split_shape=(w_splits, h_splits)).bbox_list
+    else:
+        return [bounds]
