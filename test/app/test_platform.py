@@ -1,3 +1,5 @@
+import logging
+import time
 import uuid
 from typing import List
 from unittest.mock import ANY, Mock, patch
@@ -22,6 +24,8 @@ from climatoology.utility.exception import (
     VersionMismatchException,
 )
 from test.conftest import TestModel
+
+log = logging.getLogger(__name__)
 
 
 def test_platform_has_storage(default_platform_connection):
@@ -346,6 +350,8 @@ def test_send_compute_ClimatoologyUserError_is_not_cached(  # noqa: N802
     with pytest.raises(ClimatoologyUserError):
         _ = result.get(timeout=5)
 
+    time.sleep(1)  # sleep to fix temporamental test
+    log.error('Reading the database')
     stored_computation_info = default_backend_db.read_computation(correlation_uuid)
     assert stored_computation_info.cache_epoch is None
 
