@@ -19,6 +19,7 @@ from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import PluginBaseInfo, _Info
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
+from climatoology.store.database.models.base import ClimatoologyTableBase
 from climatoology.store.database.models.computation import (
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
     ComputationLookup,
@@ -33,6 +34,8 @@ from climatoology.store.object_store import ComputationInfo
 from climatoology.utility.exception import InfoNotReceivedError
 
 log = logging.getLogger(__name__)
+
+DEMO_SUFFIX = '-demo'
 
 
 class BackendDatabase:
@@ -270,3 +273,9 @@ class BackendDatabase:
         with Session(self.engine) as session:
             session.execute(computation_update_stmt)
             session.commit()
+
+
+def row_to_dict(row: ClimatoologyTableBase) -> dict:
+    result = dict(row.__dict__)
+    result.pop('_sa_instance_state', None)
+    return result

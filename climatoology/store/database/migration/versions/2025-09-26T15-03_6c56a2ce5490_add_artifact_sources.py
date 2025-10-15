@@ -1,4 +1,4 @@
-"""remove_old_columns
+"""add_artifact_sources
 
 Revision ID: 6c56a2ce5490
 Revises: 018584ddd53c
