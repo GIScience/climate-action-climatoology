@@ -61,6 +61,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   only ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
 - the functionality to automatically up- and downgrade the
   database including celery tables ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
+- a set of overVIEWs in the database for monitoring and
+  reporting ([#187](https://gitlab.heigit.org/climate-action/climatoology/-/issues/187),
+  [#215](https://gitlab.heigit.org/climate-action/climatoology/-/issues/215))
 - sources given in the plugin info are now checked for completeness and compatibility with the
   front-end ([#118](https://gitlab.heigit.org/climate-action/climatoology/-/issues/118))
 - `Info` now has the repository attribute that is automatically read from he pyproject.toml

@@ -21,7 +21,8 @@ from pytest_alembic import Config
 from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
 from shapely import set_srid
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, insert, text, update
+from sqlalchemy.orm import Session
 
 import climatoology
 from climatoology.app.plugin import _create_plugin
@@ -31,6 +32,7 @@ from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
+from climatoology.base.event import ComputationState
 from climatoology.base.info import (
     Concern,
     MiscSource,
@@ -41,6 +43,8 @@ from climatoology.base.info import (
     generate_plugin_info,
 )
 from climatoology.store.database.database import BackendDatabase
+from climatoology.store.database.models.celery import CeleryTaskMeta
+from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.object_store import ComputationInfo, MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -430,6 +434,17 @@ def backend_with_computation(
         plugin_version=default_computation_info.plugin_info.version,
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
+    default_backend_db.add_validated_params(
+        correlation_uuid=default_computation_info.correlation_uuid, params=default_computation_info.params
+    )
+    with Session(default_backend_db.engine) as session:
+        session.execute(
+            insert(CeleryTaskMeta).values(
+                id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.SUCCESS.value
+            )
+        )
+        session.execute(update(ComputationTable).values(valid_until=datetime.now() + timedelta(hours=12)))
+        session.commit()
     return default_backend_db
 
 
