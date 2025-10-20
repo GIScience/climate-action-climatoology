@@ -19,6 +19,8 @@ from climatoology.store.database.models.views import (
     ValidComputationsView,
 )
 
+REAL_DATE = date.today()
+
 
 def test_valid_computations_view(
     backend_with_computation, default_computation_info, general_uuid, default_aoi_geom_shapely
@@ -268,7 +270,7 @@ def test_failed_computations_view(backend_with_computation, default_computation_
         'plugin_id': 'test_plugin',
         'no_of_failures_in_last_30_days': 1,
         'cause': 'Failure me',
-        'on_days': (date(2025, 10, 15),),
+        'on_days': (REAL_DATE,),
         'in_versions': (Version(3, 1, 0),),
         'with_messages': ('Failure message',),
         'with_tracebacks': ('Very long traceback',),
@@ -309,7 +311,7 @@ def test_failed_computations_view_multiple_and_traceback(
             'plugin_id': 'test_plugin',
             'no_of_failures_in_last_30_days': 1,
             'cause': 'Failure me',
-            'on_days': (date(2025, 10, 15),),
+            'on_days': (REAL_DATE,),
             'in_versions': (Version(3, 1, 0),),
             'with_messages': ('Failure message',),
             'with_tracebacks': ('Very long traceback',),
@@ -318,7 +320,7 @@ def test_failed_computations_view_multiple_and_traceback(
             'plugin_id': 'test_plugin',
             'no_of_failures_in_last_30_days': 1,
             'cause': 'Other trac',
-            'on_days': (date(2025, 10, 15),),
+            'on_days': (REAL_DATE,),
             'in_versions': (Version(3, 1, 0),),
             'with_messages': (None,),
             'with_tracebacks': ('Other traceback',),
@@ -372,7 +374,7 @@ def test_artifact_errors_view(backend_with_computation, default_computation_info
         'plugin_id': 'test_plugin',
         'no_of_computations_with_errors_in_last_30_days': 1,
         'artifact': 'artifact one',
-        'on_days': (date(2025, 10, 15),),
+        'on_days': (REAL_DATE,),
         'in_versions': (Version(3, 1, 0),),
         'with_messages': ('Artifact could not be computed',),
     }
@@ -413,7 +415,7 @@ def test_artifact_errors_view_multiple_errors(backend_with_computation, default_
             'artifact': 'artifact one',
             'in_versions': (Version(3, 1, 0),),
             'no_of_computations_with_errors_in_last_30_days': 1,
-            'on_days': (date(2025, 10, 15),),
+            'on_days': (REAL_DATE,),
             'plugin_id': 'test_plugin',
             'with_messages': ('Artifact could not be computed',),
         },
@@ -421,7 +423,7 @@ def test_artifact_errors_view_multiple_errors(backend_with_computation, default_
             'artifact': 'artifact two',
             'in_versions': (Version(3, 1, 0),),
             'no_of_computations_with_errors_in_last_30_days': 1,
-            'on_days': (date(2025, 10, 15),),
+            'on_days': (REAL_DATE,),
             'plugin_id': 'test_plugin',
             'with_messages': ('Artifact could not be computed',),
         },
@@ -453,7 +455,7 @@ def test_failed_computations_view_multiple_computations(
         'artifact': 'artifact one',
         'in_versions': (Version(3, 1, 0),),
         'no_of_computations_with_errors_in_last_30_days': 2,
-        'on_days': (date(2025, 10, 15),),
+        'on_days': (REAL_DATE,),
         'plugin_id': 'test_plugin',
         'with_messages': ('Artifact could not be computed',),
     }
@@ -496,7 +498,7 @@ def test_failed_computations_view_multiple_computations_different(
             'plugin_id': 'test_plugin',
             'no_of_computations_with_errors_in_last_30_days': 1,
             'artifact': 'artifact one',
-            'on_days': (date(2025, 10, 15),),
+            'on_days': (REAL_DATE,),
             'in_versions': (Version(3, 1, 0),),
             'with_messages': ('Artifact could not be computed',),
         },
@@ -504,7 +506,7 @@ def test_failed_computations_view_multiple_computations_different(
             'plugin_id': 'test_plugin',
             'no_of_computations_with_errors_in_last_30_days': 1,
             'artifact': 'artifact two',
-            'on_days': (date(2025, 10, 15),),
+            'on_days': (REAL_DATE,),
             'in_versions': (Version(3, 1, 0),),
             'with_messages': ('Artifact could not be computed',),
         },
