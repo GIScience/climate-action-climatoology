@@ -11,7 +11,6 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - the project now requires python >=3.13.5 <3.14.0
 - renamed
-    - `platform` module to `sender`
     - `LULC` utility module to `lulc`
     - `Naturalness` utility module to `naturalness`
     - `...Exception`s to `...Error`s
@@ -48,6 +47,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Removed
 
+- the `platform` module, which is now implemented in
+  the [API Gateway](https://gitlab.heigit.org/climate-action/api-gateway)
+  ([#184](https://gitlab.heigit.org/climate-action/climatoology/-/issues/184))
+- `deduplicate_computations` from `CABaseSettings`, which is now available within `SenderSettings` in
+  the [API Gateway](https://gitlab.heigit.org/climate-action/api-gateway)
 - the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
 - deprecated columns `aoi_name`, `aoi_id` and `status` from computation
   table ([#197](https://gitlab.heigit.org/climate-action/climatoology/-/issues/197))
@@ -56,9 +60,6 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - a dead letter queue to store expired
   messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
-- a check to the database class to assert the database is compatible with the climatoology version
-  used. This check is executed by the sender
-  only ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
 - the functionality to automatically up- and downgrade the
   database including celery tables ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
 - a set of overVIEWs in the database for monitoring and
