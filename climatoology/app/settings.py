@@ -31,8 +31,6 @@ class CABaseSettings(BaseSettings):
     postgres_user: str
     postgres_password: str
 
-    deduplicate_computations: bool = True
-
     model_config = SettingsConfigDict(env_file='.env.base')
 
     @property
@@ -59,11 +57,3 @@ class WorkerSettings(BaseSettings):
     result_extended: bool = True
 
     model_config = SettingsConfigDict(env_file='.env.worker')
-
-
-class SenderSettings(BaseSettings):
-    assert_plugin_version: bool = True
-    task_send_sent_event: bool = True
-    result_expires: Optional[int] = None
-
-    model_config = SettingsConfigDict(env_file='.env.sender')

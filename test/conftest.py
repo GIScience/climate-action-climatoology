@@ -15,7 +15,6 @@ import sqlalchemy
 from celery import Celery
 from celery.utils.threads import LocalStack
 from freezegun import freeze_time
-from kombu import Exchange, Queue
 from pydantic import BaseModel, Field, HttpUrl
 from pytest_alembic import Config
 from pytest_postgresql.janitor import DatabaseJanitor
@@ -26,8 +25,7 @@ from sqlalchemy.orm import Session
 
 import climatoology
 from climatoology.app.plugin import _create_plugin
-from climatoology.app.sender import CelerySender
-from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings
+from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
@@ -324,29 +322,8 @@ def default_computation_task(
 
 
 @pytest.fixture
-def default_sender(
-    celery_app, mocked_object_store, set_basic_envs, default_backend_db
-) -> Generator[CelerySender, None, None]:
-    with (
-        patch('climatoology.app.sender.Celery', return_value=celery_app),
-        patch('climatoology.app.sender.CelerySender.construct_storage', return_value=mocked_object_store),
-        patch('climatoology.app.sender.BackendDatabase', return_value=default_backend_db),
-    ):
-        yield CelerySender()
-
-
-@pytest.fixture
 def celery_worker_parameters():
     return {'hostname': 'test_plugin@hostname'}
-
-
-@pytest.fixture
-def celery_app(celery_app):
-    # Add queue to the base celery_app, so the platform also knows about it (because we aren't running rabbitmq for real)
-    compute_queue = Queue('test_plugin', Exchange(EXCHANGE_NAME), 'test_plugin')
-    celery_app.amqp.queues.select_add(compute_queue)
-
-    yield celery_app
 
 
 @pytest.fixture
