@@ -83,7 +83,10 @@ def test_create_extensive_geojson_artifact(
         tags=default_association_tags,
         primary=False,
         attachments=Attachments(
-            legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
+            legend=Legend(
+                legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')},
+                title='Custom Legend Title',
+            )
         ),
     )
 
@@ -96,6 +99,10 @@ def test_create_extensive_geojson_artifact(
         crs='EPSG:4326',
     )
 
+    legend = Legend(
+        legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')},
+        title='Custom Legend Title',
+    )
     generated_artifact = create_geojson_artifact(
         data=method_input,
         layer_name='Test Vector',
@@ -104,6 +111,7 @@ def test_create_extensive_geojson_artifact(
         color='my_color',
         label='my_label',
         primary=False,
+        legend=legend,
         description='Vector caption',
         sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
         tags=default_association_tags,
@@ -142,7 +150,9 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         crs='EPSG:4326',
     )
 
-    legend = ContinuousLegendData(cmap_name='plasma', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
+    legend = Legend(
+        legend_data=ContinuousLegendData(cmap_name='plasma', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
+    )
 
     generated_artifact = create_geojson_artifact(
         data=method_input,
@@ -150,7 +160,7 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
         caption='Vector caption',
         resources=default_computation_resources,
         filename=str(general_uuid),
-        legend_data=legend,
+        legend=legend,
     )
 
     assert generated_artifact == expected_artifact

@@ -70,7 +70,7 @@ def test_create_extensive_geotiff_artifact_2d(
         sources=default_sources,
         tags=default_association_tags,
         primary=False,
-        attachments=Attachments(legend=Legend(legend_data={'1': Color('#0f0')})),
+        attachments=Attachments(legend=Legend(legend_data={'1': Color('#0f0')}, title='Custom Legend Title')),
     )
 
     method_input = RasterInfo(
@@ -87,12 +87,14 @@ def test_create_extensive_geotiff_artifact_2d(
         colormap=colormap_type({1: (0, 255, 0)}),
     )
 
+    legend = Legend(legend_data={'1': Color('#0f0')}, title='Custom Legend Title')
     generated_artifact = create_geotiff_artifact(
         raster_info=method_input,
         layer_name='Test Raster',
         caption='Raster caption',
         resources=default_computation_resources,
         primary=False,
+        legend=legend,
         description='Raster description',
         sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
         tags=default_association_tags,
@@ -198,7 +200,7 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
         caption='Raster caption',
         resources=default_computation_resources,
         filename=str(general_uuid),
-        legend_data={'A': Color('red')},
+        legend=Legend(legend_data={'A': Color('red')}),
     )
 
     assert generated_artifact == expected_artifact

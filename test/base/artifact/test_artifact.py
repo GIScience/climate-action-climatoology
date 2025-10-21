@@ -8,6 +8,8 @@ from climatoology.base.artifact import (
     Attachments,
     Legend,
     _Artifact,
+    colormap_type,
+    legend_data_from_colormap,
 )
 from climatoology.base.info import MiscSource
 
@@ -45,5 +47,23 @@ def test_artifact_optional_fields():
         sources=[MiscSource(ID='id', title='title', author='author', year='2025', ENTRYTYPE='misc', url='https://a.b')],
         correlation_uuid=uuid.uuid4(),
         store_id='stor_id',
-        attachments=Attachments(legend=Legend(legend_data={'a': Color('blue')})),
+        attachments=Attachments(legend=Legend(legend_data={'a': Color('blue')}, title='Custom Legend Title')),
     )
+
+
+def test_legend_data_from_colormap():
+    expected_legend_data = {'1': Color((255, 255, 255))}
+
+    colormap: colormap_type = {1: (255, 255, 255)}
+    computed_legend_data = legend_data_from_colormap(colormap=colormap)
+
+    assert computed_legend_data == expected_legend_data
+
+
+def test_legend_data_from_colormap_with_alpha():
+    expected_legend_data = {'1': Color((255, 255, 255, 0.1))}
+
+    colormap: colormap_type = {1: (255, 255, 255, 25.5)}
+    computed_legend_data = legend_data_from_colormap(colormap=colormap)
+
+    assert computed_legend_data == expected_legend_data

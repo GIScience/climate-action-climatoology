@@ -31,6 +31,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - rename plugin info object `plugin_id` to `id` (the object should have the _Plugin_ name-part)
 - `generate_plugin_info` now accepts a `DemoConfig` object and includes `name` so a descriptive demo name can be
   used ([#218](https://gitlab.heigit.org/climate-action/climatoology/-/issues/218))
+- `create_geojson_artifact` and `create_geotiff_artifact` now accept `legend: Legend` instead
+  of `legend_data: Union[ContinuousLegendData, Dict[str, Color]]` to enable users to provide a custom
+  title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 
 ### Fix
 
@@ -70,6 +73,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - `Info` now has the repository attribute that is automatically read from he pyproject.toml
 - CI triggers for canary builds in downstream projects
 - Artifacts can now have dedicated sources ([#202](https://gitlab.heigit.org/climate-action/climatoology/-/issues/202))
+- Users can provide a custom title in the `Legend`
+  object ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+- Users can create legend data from a colormap using the `legend_data_from_colormap`
+  function ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
