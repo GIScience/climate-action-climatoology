@@ -102,10 +102,16 @@ class ContinuousLegendData(BaseModel):
 
 
 class Legend(BaseModel):
+    title: Optional[str] = Field(
+        title='Legend Title',
+        description='A custom legend title to use instead of the artifact name.',
+        default=None,
+        examples=['Legend Title'],
+    )
     legend_data: Union[Dict[str, Color], ContinuousLegendData] = Field(
         title='Legend Data',
-        description='The data that is required to plot the legend. For discrete legends, all unique values with their '
-        'respective color must be given. For continuous legends, a continuous legend object is required.',
+        description='The data that is required to plot the legend. For a legend with distinct colors provide a '
+        'dictionary mapping labels (str) to colors. For a continuous legend, use the ContinuousLegendData type.',
         examples=[
             {'The black void', Color('black').as_hex()},
             ContinuousLegendData(cmap_name='plasma', ticks={'low': 0, 'high': 1}),
@@ -370,7 +376,7 @@ def create_table_artifact(
     caption: str,
     resources: ComputationResources,
     primary: bool = True,
-    description: str = None,
+    description: Optional[str] = None,
     sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -421,7 +427,7 @@ def create_image_artifact(
     caption: str,
     resources: ComputationResources,
     primary: bool = True,
-    description: str = None,
+    description: Optional[str] = None,
     sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -473,7 +479,7 @@ def create_chart_artifact(
     caption: str,
     resources: ComputationResources,
     primary: bool = True,
-    description: str = None,
+    description: Optional[str] = None,
     sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -536,7 +542,7 @@ def create_plotly_chart_artifact(
     caption: str,
     resources: ComputationResources,
     primary: bool = True,
-    description: str = None,
+    description: Optional[str] = None,
     sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -589,8 +595,8 @@ def create_geojson_artifact(
     color: str = 'color',
     label: str = 'label',
     primary: bool = True,
-    legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
-    description: str = None,
+    legend: Optional[Legend] = None,
+    description: Optional[str] = None,
     sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -610,9 +616,8 @@ def create_geojson_artifact(
     :param color: Column name for the color values, defaults to `'color'`. Column must contain
       instances of `pydantic_extra_types.color.Color` only.
     :param label: Column name for the labels of the features, defaults to `'label'`.
-    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData
-      type. For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a
-      distinct legend will be created from the unique combinations of labels and colors.
+    :param legend: Can be used to display a custom legend. If not provided, a distinct legend will be created from the
+      unique combinations of labels and colors.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
@@ -651,10 +656,11 @@ def create_geojson_artifact(
         layer_options={'SIGNIFICANT_FIGURES': 7, 'RFC7946': 'YES', 'WRITE_NAME': 'NO'},
     )
 
-    if not legend_data:
+    if not legend:
         legend_df = data.groupby(['color', 'label']).size().index.to_frame(index=False)
         legend_df = legend_df.set_index('label')
         legend_data = legend_df.to_dict()['color']
+        legend = Legend(legend_data=legend_data)
 
     sources = _convert_bib(sources)
 
@@ -667,7 +673,7 @@ def create_geojson_artifact(
         sources=sources,
         tags=tags,
         primary=primary,
-        attachments=Attachments(legend=Legend(legend_data=legend_data)),
+        attachments=Attachments(legend=legend),
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -711,8 +717,8 @@ def create_geotiff_artifact(
     caption: str,
     resources: ComputationResources,
     primary: bool = True,
-    legend_data: Union[ContinuousLegendData, Dict[str, Color]] = None,
-    description: str = None,
+    legend: Optional[Legend] = None,
+    description: Optional[str] = None,
     sources: Optional[Path] = None,
     tags: Set[StrEnum] = (),
     filename: str = uuid.uuid4(),
@@ -729,9 +735,8 @@ def create_geotiff_artifact(
       [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
       file. You can extract such a file from most common bibliography management systems.
     :param tags: Association tags this artifact belongs to.
-    :param legend_data: Can be used to display a custom legend. For a continuous legend, use the ContinuousLegendData type.
-    For a legend with distinct colors provide a dictionary mapping labels (str) to colors. If not provided, a distinct
-    legend will be created from the colormap, if it exists.
+    :param legend: Can be used to display a custom legend. If not provided, a distinct legend will be created from the
+      colormap, if it exists.
     :param resources: The computation resources of the plugin.
     :param primary: Is this a primary artifact or does it exhibit additional or contextual information?
     :param filename: A filename for the created file (without extension!).
@@ -784,11 +789,9 @@ def create_geotiff_artifact(
             assert data_array.dtype in (np.uint8, np.uint16), f'Colormaps are not allowed for dtype {data_array.dtype}.'
             out_map_file.write_colormap(1, raster_info.colormap)
 
-    legend = None
-    if legend_data:
+    if not legend and raster_info.colormap:
+        legend_data = legend_data_from_colormap(raster_info.colormap)
         legend = Legend(legend_data=legend_data)
-    elif raster_info.colormap:
-        legend = _legend_from_colormap(raster_info.colormap)
 
     sources = _convert_bib(sources)
 
@@ -809,7 +812,10 @@ def create_geotiff_artifact(
     return result
 
 
-def _legend_from_colormap(colormap: colormap_type) -> Legend:
+def legend_data_from_colormap(colormap: colormap_type) -> Dict[str, Color]:
+    """
+    Create a legend from a colormap type.
+    """
     legend_data = {}
     for color_id, color_values in colormap.items():
         if len(color_values) == 3:
@@ -818,4 +824,4 @@ def _legend_from_colormap(colormap: colormap_type) -> Legend:
             r, g, b, a = color_values
             color = Color((r, g, b, a / 255))
         legend_data[str(color_id)] = color
-    return Legend(legend_data=legend_data)
+    return legend_data
