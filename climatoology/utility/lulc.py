@@ -1,15 +1,19 @@
 import logging
+import typing
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from io import BytesIO
-from typing import ContextManager, Dict, List, Optional, Tuple
+from typing import Dict, Generator, List, Optional, Tuple, Union
 
+import rasterio
 import rasterio as rio
 import requests
+import shapely
 from geopandas import GeoSeries
-from pydantic import BaseModel, Field, confloat, model_validator
-from shapely import geometry
+from pydantic import BaseModel, Field, model_validator
+from pydantic_shapely import GeometryField
+from shapely import MultiPolygon, Polygon, geometry
 
 from climatoology.utility.api import PlatformHttpUtility, compute_raster, generate_bounds
 from climatoology.utility.exception import PlatformUtilityError
@@ -103,20 +107,25 @@ class LabelResponse(BaseModel):
 class LulcWorkUnit(BaseModel):
     """LULC area of interest."""
 
-    area_coords: Tuple[
-        confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
-    ] = Field(
-        title='Area Coordinates',
-        description='Bounding box coordinates in WGS 84 (west, south, east, north)',
-        examples=[
-            [
-                12.304687500000002,
-                48.2246726495652,
-                12.480468750000002,
-                48.3416461723746,
-            ]
-        ],
-    )
+    aoi: typing.Annotated[
+        Union[Polygon, MultiPolygon],
+        GeometryField(),
+        Field(
+            title='Area of interest',
+            description='The area of interest in WGS84 to request LULC data from. Note that the request will be roughly '
+            'limited to the geometry but filled with no-data to fit the bounds.',
+            examples=[
+                shapely.to_geojson(
+                    geometry.box(
+                        12.304687500000002,
+                        48.2246726495652,
+                        12.480468750000002,
+                        48.3416461723746,
+                    )
+                )
+            ],
+        ),
+    ]
     start_date: Optional[date] = Field(
         title='Start Date',
         description='Lower bound (inclusive) of remote sensing imagery acquisition date (UTC). '
@@ -204,7 +213,7 @@ class LulcUtility(PlatformHttpUtility):
     @contextmanager
     def compute_raster(
         self, units: List[LulcWorkUnit], max_unit_size: int = 2300, max_unit_area: int = 4e6
-    ) -> ContextManager[rio.DatasetReader]:
+    ) -> Generator[rasterio.DatasetReader]:
         """Generate a remote sensing-based LULC classification.
 
         :param units: Areas of interest
@@ -240,7 +249,7 @@ class LulcUtility(PlatformHttpUtility):
 
         adjusted_units = []
         for unit in units:
-            request_shapes = GeoSeries([geometry.box(*unit.area_coords)])
+            request_shapes = GeoSeries([unit.aoi])
             bounds = generate_bounds(
                 request_shapes, max_unit_size=max_unit_size, max_unit_area=max_unit_area, resolution=10.0
             )

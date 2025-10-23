@@ -4,7 +4,7 @@ from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import date, timedelta
-from typing import Any, ContextManager, List, Optional
+from typing import Any, Callable, Generator, List, Optional
 
 import rasterio
 import requests
@@ -92,15 +92,15 @@ class PlatformHttpUtility(ABC):
 
 @contextmanager
 def compute_raster(
-    units: List[Any], max_workers: int, fetch_data: callable, has_color_map: bool
-) -> ContextManager[rasterio.DatasetReader]:
+    units: List[Any], max_workers: int, fetch_data: Callable, has_color_map: bool
+) -> Generator[rasterio.DatasetReader]:
     """Generate a remote sensing-based LULC classification.
 
     :param has_color_map:
     :param fetch_data:
     :param max_workers:
     :param units: Areas of interest
-    :return: An opened geo-tiff file within a context manager. Use it as `with compute_raster(units) as lulc:`
+    :return: An opened geo-tiff file within a generator. Use it as `with compute_raster(units) as lulc:`
     """
     assert len(units) > 0
 

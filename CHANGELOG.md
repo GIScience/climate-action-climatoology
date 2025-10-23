@@ -36,9 +36,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 - renamed `adjust_bounds` to `generate_bounds` and accept a GeoSeries as input instead of a bounding box,
   which enables ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
-  - If the resulting bounds would have a dimension of 0, instead extend the bounds to the east/north to ensure valid
-    bounds are returned.
-  - Filter the returned bounds to drop any bounds that do not intersect the input geometry space.
+    - If the resulting bounds would have a dimension of 0, instead extend the bounds to the east/north to ensure valid
+      bounds are returned.
+    - Filter the returned bounds to drop any bounds that do not intersect the input geometry space.
+- LULC and Naturalness utility now accept polygonal geometries instead of bboxes. This allows them to limit their
+  requests and save resources ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
 
 ### Fix
 

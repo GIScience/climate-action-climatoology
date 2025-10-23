@@ -1,20 +1,23 @@
 import json
 import logging
+import typing
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from enum import StrEnum
 from functools import partial
 from io import BytesIO
 from itertools import repeat
-from typing import ContextManager, List, Tuple
+from typing import Generator, List, Union
 
 import geopandas as gpd
 import pandas as pd
 import rasterio
 import requests
+import shapely
 from geopandas import GeoSeries
-from pydantic import BaseModel, Field, confloat
-from shapely import geometry
+from pydantic import BaseModel, Field
+from pydantic_shapely import GeometryField
+from shapely import MultiPolygon, Polygon, geometry
 from shapely.geometry import shape
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -46,13 +49,25 @@ class NaturalnessWorkUnit(BaseModel):
         examples=[90.0],
         ge=10.0,
     )
-    bbox: Tuple[
-        confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
-    ] = Field(
-        title='Area Coordinates',
-        description='Bounding box coordinates in WGS 84 (west, south, east, north)',
-        examples=[[8.70, 49.41, 8.71, 49.42]],
-    )
+    aoi: typing.Annotated[
+        Union[Polygon, MultiPolygon],
+        GeometryField(),
+        Field(
+            title='Area of interest',
+            description='The area of interest in WGS84 to request LULC data from. Note that the request will be roughly '
+            'limited to the geometry but filled with no-data to fit the bounds.',
+            examples=[
+                shapely.to_geojson(
+                    geometry.box(
+                        12.304687500000002,
+                        48.2246726495652,
+                        12.480468750000002,
+                        48.3416461723746,
+                    )
+                )
+            ],
+        ),
+    ]
 
 
 class NaturalnessUtility(PlatformHttpUtility):
@@ -79,7 +94,7 @@ class NaturalnessUtility(PlatformHttpUtility):
     @contextmanager
     def compute_raster(
         self, index: NaturalnessIndex, units: List[NaturalnessWorkUnit], max_unit_size: int = 1000
-    ) -> ContextManager[rasterio.DatasetReader]:
+    ) -> Generator[rasterio.DatasetReader]:
         """Generate a remote sensing-based Naturalness raster.
 
         :param index: The index to be requested from the utility
@@ -204,7 +219,7 @@ class NaturalnessUtility(PlatformHttpUtility):
     def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 1000) -> List[NaturalnessWorkUnit]:
         adjusted_units = []
         for unit in units:
-            request_shapes = GeoSeries([geometry.box(*unit.bbox)])
+            request_shapes = GeoSeries([unit.aoi])
             bounds = generate_bounds(request_shapes, max_unit_size=max_unit_size, resolution=unit.resolution)
             adjusted_units.extend([unit.model_copy(update={'bbox': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units
