@@ -12,15 +12,15 @@ from pyproj import CRS
 from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
-from shapely import Point
+from shapely import Point, geometry
 from shapely.geometry.polygon import Polygon
 
 from climatoology.utility.api import TimeRange
 from climatoology.utility.exception import PlatformUtilityError
 from climatoology.utility.naturalness import NaturalnessIndex, NaturalnessUtility, NaturalnessWorkUnit
 
-NATURALNESS_UNIT_A = NaturalnessWorkUnit(
-    bbox=(7.38, 47.5, 7.385, 47.52),
+NATURALNESS_UNIT = NaturalnessWorkUnit(
+    aoi=geometry.box(7.38, 47.5, 7.385, 47.52),
     time_range=TimeRange(end_date=date(2023, 6, 1)),
 )
 
@@ -60,7 +60,7 @@ def test_naturalness_connection_issues(mocked_utility_response):
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
     with pytest.raises(PlatformUtilityError):
-        with operator.compute_raster(index='NDVI', units=[NATURALNESS_UNIT_A]):
+        with operator.compute_raster(index='NDVI', units=[NATURALNESS_UNIT]):
             pass
 
 
@@ -77,7 +77,7 @@ def test_compute_raster_single_unit(mocked_utility_response):
 
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
 
-    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT_A]) as raster:
+    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT]) as raster:
         assert raster.shape == (221, 42)
         assert raster.count == 1
         assert raster.dtypes[0] == rasterio.float32
