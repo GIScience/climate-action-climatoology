@@ -7,9 +7,11 @@ from typing import ContextManager, Dict, List, Optional, Tuple
 
 import rasterio as rio
 import requests
+from geopandas import GeoSeries
 from pydantic import BaseModel, Field, confloat, model_validator
+from shapely import geometry
 
-from climatoology.utility.api import PlatformHttpUtility, adjust_bounds, compute_raster
+from climatoology.utility.api import PlatformHttpUtility, compute_raster, generate_bounds
 from climatoology.utility.exception import PlatformUtilityError
 
 log = logging.getLogger(__name__)
@@ -238,8 +240,9 @@ class LulcUtility(PlatformHttpUtility):
 
         adjusted_units = []
         for unit in units:
-            bounds = adjust_bounds(
-                unit.area_coords, max_unit_size=max_unit_size, max_unit_area=max_unit_area, resolution=10
+            request_shapes = GeoSeries([geometry.box(*unit.area_coords)])
+            bounds = generate_bounds(
+                request_shapes, max_unit_size=max_unit_size, max_unit_area=max_unit_area, resolution=10.0
             )
             adjusted_units.extend([unit.model_copy(update={'area_coords': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units

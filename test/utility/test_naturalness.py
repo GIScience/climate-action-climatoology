@@ -337,6 +337,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
         vectors=vectors,
         time_range=time_range,
         max_raster_size=150,
+        resolution=10,
     )
 
     mocked_utility_response.assert_call_count(url='http://localhost:80/NDVI/vector', count=2)
@@ -353,7 +354,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
     testing.assert_geodataframe_equal(response_gdf, expected_output)
 
 
-@pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 4], [100, 16]])
+@pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 4], [100, 9]])
 def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, mocked_utility_response, caplog):
     # (h, w) of default vectors = (221, 223)
     operator = NaturalnessUtility(host='localhost', port=80, path='/')
@@ -372,7 +373,7 @@ def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, m
     )
 
     with caplog.at_level(logging.WARNING):
-        vector_groups = operator.split_vectors(vectors=[vectors], max_unit_size=max_unit_size)
+        vector_groups = operator.split_vectors(vectors=[vectors], resolution=10, max_unit_size=max_unit_size)
 
     assert expected_warning in caplog.messages
     assert len(vector_groups) == expected_groups

@@ -1,17 +1,26 @@
 import logging
+import math
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import date, timedelta
-from typing import Any, ContextManager, Generator, Iterable, List, Optional, Tuple
+from typing import Any, ContextManager, List, Optional
 
 import rasterio
 import requests
+from geopandas import GeoSeries
 from pydantic import BaseModel, Field, model_validator
 from rasterio.merge import merge
 from requests.adapters import HTTPAdapter
-from sentinelhub import CRS, BBox, BBoxSplitter, bbox_to_dimensions
+from sentinelhub import (
+    CRS,
+    BBox,
+    BBoxSplitter,
+    bbox_to_dimensions,
+    get_utm_crs,
+)
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 from urllib3 import Retry
 
 log = logging.getLogger(__name__)
@@ -95,88 +104,87 @@ def compute_raster(
     """
     assert len(units) > 0
 
-    with tqdm(total=len(units)) as pbar:
-        slices = []
+    with logging_redirect_tqdm():
+        with tqdm(total=len(units)) as pbar:
+            slices = []
 
-        with ThreadPoolExecutor(max_workers) as pool:
-            for dataset in pool.map(fetch_data, units):
-                pbar.update()
-                pbar.set_description(f'Collecting rasters: {dataset.shape}')
-                slices.append(dataset)
+            with ThreadPoolExecutor(max_workers) as pool:
+                for dataset in pool.map(fetch_data, units):
+                    pbar.update()
+                    pbar.set_description(f'Collecting rasters: {dataset.shape}')
+                    slices.append(dataset)
 
-            pbar.set_description(f'Merging {len(slices)} slices')
-            mosaic, transform = merge(slices)
+                pbar.set_description(f'Merging {len(slices)} slices')
+                mosaic, transform = merge(slices)
 
-            if has_color_map:
-                first_colormap = slices[0].colormap(1)
-
-        with rasterio.MemoryFile() as memfile:
-            log.debug('Creating LULC file.')
-
-            write_profile = slices[0].profile
-            write_profile['transform'] = transform
-            write_profile['height'] = mosaic.shape[1]
-            write_profile['width'] = mosaic.shape[2]
-
-            with memfile.open(**write_profile) as m:
-                pbar.set_description(f'Writing mosaic {mosaic.shape}')
-
-                m.write(mosaic)
                 if has_color_map:
-                    m.write_colormap(1, first_colormap)
+                    first_colormap = slices[0].colormap(1)
 
-                del mosaic
-                del slices
+            with rasterio.MemoryFile() as memfile:
+                log.debug('Creating LULC file.')
 
-            with memfile.open() as dataset:
-                log.debug('Serving LULC classification')
-                yield dataset
+                write_profile = slices[0].profile
+                write_profile['transform'] = transform
+                write_profile['height'] = mosaic.shape[1]
+                write_profile['width'] = mosaic.shape[2]
+
+                with memfile.open(**write_profile) as m:
+                    pbar.set_description(f'Writing mosaic {mosaic.shape}')
+
+                    m.write(mosaic)
+                    if has_color_map:
+                        m.write_colormap(1, first_colormap)
+
+                    del mosaic
+                    del slices
+
+                with memfile.open() as dataset:
+                    log.debug('Serving LULC classification')
+                    yield dataset
 
 
-def adjust_bounds(
-    bbox: Tuple[float, float, float, float],
+def generate_bounds(
+    target_geometries: GeoSeries,
+    resolution: float,
     max_unit_size: int = 2300,
     max_unit_area: int = None,
-    resolution: int = 10,
 ) -> list[BBox]:
-    """Adjust the given bbox to be a list of bounds within a maximum size.
+    """Generate a list of bounding boxes for the area covered by the provided geometry, where each bounding box is
+    smaller than the maximum size. The union of the returned boxes may be up to one 'pixel' larger than the input
+    geometry space to avoid empty (invalid) boxes.
 
-    :param bbox: The input bounding box to be adjusted
+    :param target_geometries: The input geometries to be adjusted
+    :param resolution: the resolution of the raster data (metres)
     :param max_unit_size: The maximum edge length per bounding box (pixels)
     :param max_unit_area: The maximum area per bounding box (pixels squared), defaults to max_unit_size^2
-    :param resolution: the resolution of the raster data (metres)
     """
-    if not max_unit_area:
-        max_unit_area = max_unit_size * max_unit_size
+    if max_unit_area:
+        max_unit_size = min(max_unit_size, int(math.sqrt(max_unit_area)))
+        log.debug(f'Using max_unit_size of {max_unit_size} to adjust bounds')
 
-    def flatten(iterable: Iterable[Any]) -> Generator[Any, Any, None]:
-        """Convert nested iterables to single level list."""
-        for outer_i in iterable:
-            if isinstance(outer_i, list):
-                for inner_i in flatten(outer_i):
-                    yield inner_i
-            else:
-                yield outer_i
+    # the total bounds are a np.array of length 4 and the tuple command correctly turns it into a tuple
+    # noinspection PyTypeChecker
+    bbox: tuple[float, float, float, float] = tuple(target_geometries.total_bounds)
+    bounds = BBox(bbox, crs=CRS.WGS84)
+    w, h = bbox_to_dimensions(bounds, resolution=resolution)
 
-    def split(
-        bounds: Tuple[float, float, float, float], max_edge_length: int, max_area: int, pixel_edge_length: int
-    ) -> list[BBox | Any]:
-        """Split bounds into Bboxes with a given maximum unit size."""
-        bounds = BBox(bounds, crs=CRS.WGS84)
-        h, w = bbox_to_dimensions(bounds, resolution=pixel_edge_length)
-        if h > max_edge_length or w > max_edge_length or h * w > max_area:
-            return [
-                split(
-                    b.geometry.bounds,
-                    max_edge_length=max_edge_length,
-                    max_area=max_area,
-                    pixel_edge_length=pixel_edge_length,
-                )
-                for b in BBoxSplitter([bounds], CRS.WGS84, (2, 2)).bbox_list
-            ]
-        else:
-            return [bounds]
+    if min(h, w) < 1:
+        w, h = max(w, 1), max(h, 1)
 
-    return list(
-        flatten(split(bounds=bbox, max_edge_length=max_unit_size, max_area=max_unit_area, pixel_edge_length=resolution))
-    )
+        utm_crs = get_utm_crs(lng=bounds.min_x, lat=bounds.min_y)
+        t_bounds = bounds.transform(utm_crs)
+        t_bounds.max_x = max(t_bounds.min_x + resolution, t_bounds.max_x)
+        t_bounds.max_y = max(t_bounds.min_y + resolution, t_bounds.max_y)
+        bounds = t_bounds.transform(CRS.WGS84)
+        log.debug(f'The bounds were adjusted from {bbox} to {bounds}')
+
+    h_splits = math.ceil(h / max_unit_size)
+    w_splits = math.ceil(w / max_unit_size)
+
+    split_bounds = BBoxSplitter(shape_list=[bounds], crs=CRS.WGS84, split_shape=(w_splits, h_splits)).bbox_list
+
+    intersecting_bounds = [b for b in split_bounds if any(target_geometries.intersects(b.geometry))]
+    log.debug(f'Removed {len(split_bounds) - len(intersecting_bounds)} non-overlapping bounding boxes')
+    log.info(f'The geometry space was split into {len(intersecting_bounds)} bounding boxes')
+
+    return intersecting_bounds
