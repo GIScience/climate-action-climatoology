@@ -12,11 +12,14 @@ import geopandas as gpd
 import pandas as pd
 import rasterio
 import requests
+from geopandas import GeoSeries
 from pydantic import BaseModel, Field, confloat
+from shapely import geometry
 from shapely.geometry import shape
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
-from climatoology.utility.api import PlatformHttpUtility, TimeRange, adjust_bounds, compute_raster
+from climatoology.utility.api import PlatformHttpUtility, TimeRange, compute_raster, generate_bounds
 from climatoology.utility.exception import PlatformUtilityError
 
 log = logging.getLogger(__name__)
@@ -36,12 +39,12 @@ class NaturalnessWorkUnit(BaseModel):
         description='The time range of satellite observations to base the index on.',
         examples=[TimeRange()],
     )
-    resolution: int = Field(
+    resolution: float = Field(
         title='Resolution',
         description='Resolution of the resulting raster image. Will be down sampled, if necessary.',
-        default=90,
-        examples=[90],
-        ge=10,
+        default=90.0,
+        examples=[90.0],
+        ge=10.0,
     )
     bbox: Tuple[
         confloat(ge=-180, le=180), confloat(ge=-90, le=90), confloat(ge=-180, le=180), confloat(ge=-90, le=90)
@@ -101,7 +104,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         aggregation_stats: list[str],
         vectors: List[gpd.GeoSeries],
         time_range: TimeRange,
-        resolution: int = 90,
+        resolution: float = 90.0,
         max_raster_size: int = 1000,
     ) -> gpd.GeoDataFrame:
         """Generate vector features with aggregated raster statistics.
@@ -124,23 +127,24 @@ class NaturalnessUtility(PlatformHttpUtility):
         log.debug('Extracting aggregated raster statistics..')
 
         vectors = [v.to_crs(4326) for v in vectors]
-        vectors = self.split_vectors(vectors=vectors, max_unit_size=max_raster_size)
+        vectors = self.split_vectors(vectors=vectors, resolution=resolution, max_unit_size=max_raster_size)
 
         n = len(vectors)
-        with tqdm(total=n) as pbar:
-            slices = []
+        with logging_redirect_tqdm():
+            with tqdm(total=n) as pbar:
+                slices = []
 
-            with ThreadPoolExecutor(self.max_workers) as pool:
-                for dataset in pool.map(
-                    self.__fetch_zonal_statistics,
-                    repeat(index, n),
-                    repeat(aggregation_stats, n),
-                    vectors,
-                    repeat(time_range, n),
-                    repeat(resolution, n),
-                ):
-                    pbar.update()
-                    slices.append(dataset)
+                with ThreadPoolExecutor(self.max_workers) as pool:
+                    for dataset in pool.map(
+                        self.__fetch_zonal_statistics,
+                        repeat(index, n),
+                        repeat(aggregation_stats, n),
+                        vectors,
+                        repeat(time_range, n),
+                        repeat(resolution, n),
+                    ):
+                        pbar.update()
+                        slices.append(dataset)
 
         # pd.concat correctly returns a GeoDataFrame but the type checker cannot know
         # noinspection PyTypeChecker
@@ -200,19 +204,19 @@ class NaturalnessUtility(PlatformHttpUtility):
     def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 1000) -> List[NaturalnessWorkUnit]:
         adjusted_units = []
         for unit in units:
-            bounds = adjust_bounds(unit.bbox, max_unit_size=max_unit_size, resolution=10)
+            request_shapes = GeoSeries([geometry.box(*unit.bbox)])
+            bounds = generate_bounds(request_shapes, max_unit_size=max_unit_size, resolution=unit.resolution)
             adjusted_units.extend([unit.model_copy(update={'bbox': tuple(b)}, deep=True) for b in bounds])
         return adjusted_units
 
     @staticmethod
-    def split_vectors(vectors: List[gpd.GeoSeries], max_unit_size: int = 1000) -> List[gpd.GeoSeries]:
+    def split_vectors(
+        vectors: List[gpd.GeoSeries], resolution: float, max_unit_size: int = 1000
+    ) -> List[gpd.GeoSeries]:
         """Split vectors into separate GeoSeries, such that the total bounds of each GeoSeries is less than max_unit_size"""
         adjusted_vectors = []
         for vector in vectors:
-            # the total bounds are a np.array of length 4 and the tuple command correctly turns it into a tuple
-            # noinspection PyTypeChecker
-            bbox: Tuple[float, float, float, float] = tuple(vector.total_bounds)
-            bounds = adjust_bounds(bbox=bbox, max_unit_size=max_unit_size, resolution=10)
+            bounds = generate_bounds(target_geometries=vector, max_unit_size=max_unit_size, resolution=resolution)
             split_features = [gpd.clip(gdf=vector, mask=b.geometry, keep_geom_type=True) for b in bounds]
             adjusted_vectors.extend([f for f in split_features if not f.empty])
 

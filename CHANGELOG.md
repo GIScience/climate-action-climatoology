@@ -34,6 +34,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - `create_geojson_artifact` and `create_geotiff_artifact` now accept `legend: Legend` instead
   of `legend_data: Union[ContinuousLegendData, Dict[str, Color]]` to enable users to provide a custom
   title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+- renamed `adjust_bounds` to `generate_bounds` and accept a GeoSeries as input instead of a bounding box,
+  which enables ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
+  - If the resulting bounds would have a dimension of 0, instead extend the bounds to the east/north to ensure valid
+    bounds are returned.
+  - Filter the returned bounds to drop any bounds that do not intersect the input geometry space.
 
 ### Fix
 
@@ -77,6 +82,19 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   object ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 - Users can create legend data from a colormap using the `legend_data_from_colormap`
   function ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+
+## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-10-08
+
+### Changed
+
+- make `resolution` a required input to `adjust_bounds` to ensure appropriate bounds will always be
+  created ([#230](https://gitlab.heigit.org/climate-action/climatoology/-/issues/230))
+
+### Fixed
+
+- implementation of `adjust_bounds` to avoid recursion and instead pre-calculate the number of splits, and also to
+  raise an error if the dimensions of the provided bounds are
+  invalid ([#230](https://gitlab.heigit.org/climate-action/climatoology/-/issues/230))
 
 ## [6.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-06-13
 
