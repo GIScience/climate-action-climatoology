@@ -146,15 +146,6 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def list_all(self, correlation_uuid: UUID) -> List[_Artifact]:
-        """
-        Acquire all artifacts created under a single correlator
-        :param correlation_uuid: platform action correlator
-        :return: artifact description list
-        """
-        pass
-
-    @abstractmethod
     def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
         """Fetch an object from the store.
 
@@ -238,26 +229,6 @@ class MinioStorage(Storage):
 
     def save_all(self, artifacts: List[_Artifact]) -> List[str]:
         return [self.save(artifact) for artifact in artifacts]
-
-    def list_all(self, correlation_uuid: UUID) -> List[_Artifact]:
-        metadata_object_name = Storage.generate_object_name(
-            correlation_uuid=correlation_uuid, store_id=COMPUTATION_INFO_FILENAME
-        )
-        metadata = None
-        try:
-            metadata = self.client.get_object(
-                bucket_name=self.__bucket,
-                object_name=metadata_object_name,
-            )
-            metadata_obj = ComputationInfo.model_validate(metadata.json())
-        finally:
-            if metadata:
-                metadata.close()
-                metadata.release_conn()
-
-        log.debug(f'Found {len(metadata_obj.artifacts)} artifacts for correlation_uuid {correlation_uuid}')
-
-        return metadata_obj.artifacts
 
     def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
         if not file_name:

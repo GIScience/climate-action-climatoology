@@ -1,5 +1,5 @@
 import re
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 import pytest
 from celery import Celery
@@ -27,7 +27,7 @@ def test_worker_send_compute_task(
     default_computation_info,
     general_uuid,
     default_aoi_feature_pure_dict,
-    backend_with_computation,
+    backend_with_computation_registered,
     frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
@@ -50,7 +50,7 @@ def test_successful_compute_saves_metadata_to_storage(
     default_plugin,
     general_uuid,
     default_aoi_feature_pure_dict,
-    backend_with_computation,
+    backend_with_computation_registered,
     default_computation_info,
     mocker,
     frozen_time,
@@ -76,12 +76,12 @@ def test_successful_compute_saves_metadata_to_backend(
     default_plugin,
     general_uuid,
     default_aoi_feature_pure_dict,
-    backend_with_computation,
+    backend_with_computation_registered,
     default_computation_info,
     frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True)
-    expected_computation_info.artifacts[0].rank = ANY
+    expected_computation_info.artifacts[0].rank = 0
 
     with patch('uuid.uuid4', return_value=general_uuid):
         kwargs = {
@@ -94,12 +94,12 @@ def test_successful_compute_saves_metadata_to_backend(
             task_id=str(general_uuid),
         ).get(timeout=5)
 
-    saved_computation = backend_with_computation.read_computation(correlation_uuid=general_uuid)
+    saved_computation = backend_with_computation_registered.read_computation(correlation_uuid=general_uuid)
     assert saved_computation == expected_computation_info
 
 
 def test_failing_compute_updates_backend(
-    default_plugin, general_uuid, default_aoi_feature_pure_dict, backend_with_computation
+    default_plugin, general_uuid, default_aoi_feature_pure_dict, backend_with_computation_registered
 ):
     kwargs = {
         'aoi': default_aoi_feature_pure_dict,
@@ -112,7 +112,7 @@ def test_failing_compute_updates_backend(
             task_id=str(general_uuid),
         ).get(timeout=5)
 
-    updated_computation = backend_with_computation.read_computation(correlation_uuid=general_uuid)
+    updated_computation = backend_with_computation_registered.read_computation(correlation_uuid=general_uuid)
     assert updated_computation.message == 'ID: Field required. You provided: {}.'
 
 

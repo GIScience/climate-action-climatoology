@@ -2,7 +2,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 import geoalchemy2
@@ -15,6 +15,7 @@ from sqlalchemy import NullPool, column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
+from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import PluginBaseInfo, _Info
 from climatoology.store.database import migration
@@ -217,6 +218,10 @@ class BackendDatabase:
             else:
                 log.warning(f'Correlation {correlation_uuid} does not exist in database')
                 return None
+
+    def list_artifacts(self, correlation_uuid: UUID) -> List[_Artifact]:
+        computation_info = self.read_computation(correlation_uuid=correlation_uuid)
+        return computation_info.artifacts
 
     def resolve_computation_id(self, user_correlation_uuid: UUID) -> Optional[UUID]:
         with Session(self.engine) as session:
