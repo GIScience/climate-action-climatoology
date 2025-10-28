@@ -20,7 +20,7 @@ from pytest_alembic import Config
 from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
 from shapely import set_srid
-from sqlalchemy import create_engine, insert, text, update
+from sqlalchemy import String, cast, create_engine, insert, text, update
 from sqlalchemy.orm import Session
 
 import climatoology
@@ -399,7 +399,7 @@ def default_backend_db(db_with_tables) -> BackendDatabase:
 
 
 @pytest.fixture
-def backend_with_computation(
+def backend_with_computation_registered(
     default_backend_db, default_computation_info, default_info_final, set_basic_envs, frozen_time
 ) -> BackendDatabase:
     default_backend_db.write_info(info=default_info_final)
@@ -417,12 +417,25 @@ def backend_with_computation(
     with Session(default_backend_db.engine) as session:
         session.execute(
             insert(CeleryTaskMeta).values(
-                id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.SUCCESS.value
+                id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.PENDING.value
             )
+        )
+        session.commit()
+    return default_backend_db
+
+
+@pytest.fixture
+def backend_with_computation_successful(backend_with_computation_registered, default_computation_info):
+    with Session(backend_with_computation_registered.engine) as session:
+        session.execute(
+            update(CeleryTaskMeta)
+            .values(status=ComputationState.SUCCESS.value)
+            .where(CeleryTaskMeta.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update(ComputationTable).values(valid_until=datetime.now() + timedelta(hours=12)))
         session.commit()
-    return default_backend_db
+    backend_with_computation_registered.update_successful_computation(computation_info=default_computation_info)
+    return backend_with_computation_registered
 
 
 @pytest.fixture

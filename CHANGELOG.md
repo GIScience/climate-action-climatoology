@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.3...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
 ### Changed
 
@@ -65,6 +65,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
 - deprecated columns `aoi_name`, `aoi_id` and `status` from computation
   table ([#197](https://gitlab.heigit.org/climate-action/climatoology/-/issues/197))
+- `MinioStorage.list_all()` function, which is replaced
+  by `BackendDatabase.list_artifacts()` ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
 
 ### Added
 
@@ -84,8 +86,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   object ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 - Users can create legend data from a colormap using the `legend_data_from_colormap`
   function ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+- `BackendDatabase` now has `list_artifacts()` to return a list of the artifacts for a
+  computation ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
 
-## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.3) - 2025-10-08
+## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.4) - 2025-10-08
 
 ### Changed
 

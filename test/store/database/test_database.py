@@ -131,11 +131,11 @@ def test_register_computations(
     assert deduplicated == expected_deduplication
 
 
-def test_read_computation_with_request_ts(backend_with_computation, default_computation_info):
+def test_read_computation_with_request_ts(backend_with_computation_registered, default_computation_info):
     computation_info = default_computation_info.model_copy()
     computation_info.timestamp = datetime(2025, 1, 1, 12)
-    backend_with_computation.update_successful_computation(computation_info=computation_info)
-    db_computation_info = backend_with_computation.read_computation(
+    backend_with_computation_registered.update_successful_computation(computation_info=computation_info)
+    db_computation_info = backend_with_computation_registered.read_computation(
         correlation_uuid=computation_info.correlation_uuid, state_actual_computation_time=True
     )
     assert db_computation_info.timestamp == datetime(2018, 1, 1, 12)
@@ -169,6 +169,12 @@ def test_read_duplicate_computation(
     second_computation = default_backend_db.read_computation(correlation_uuid=first_computation_id)
 
     assert first_computation == second_computation
+
+
+def test_list_artifacts(general_uuid, backend_with_computation_successful, default_computation_info):
+    default_computation_info.artifacts[0].rank = 0
+    artifacts = backend_with_computation_successful.list_artifacts(correlation_uuid=general_uuid)
+    assert artifacts == default_computation_info.artifacts
 
 
 def test_resolve_deduplicated_computation_id(
@@ -215,22 +221,22 @@ def test_update_successful_computation_with_validated_params(
     default_backend_db.update_successful_computation(computation_info=default_computation_info)
 
     db_computation = default_backend_db.read_computation(correlation_uuid=default_computation_info.correlation_uuid)
-    assert db_computation.artifacts[0].rank == 0
-    db_computation.artifacts[0].rank = None
+
+    default_computation_info.artifacts[0].rank = 0
     assert db_computation == default_computation_info
 
 
 def test_computation_artifact_order_is_preserved(
-    backend_with_computation, default_computation_info, default_augmented_artifact
+    backend_with_computation_registered, default_computation_info, default_augmented_artifact
 ):
     info = default_computation_info.model_copy(deep=True)
     second_artifact = default_augmented_artifact.model_copy(deep=True)
     second_artifact.name = 'second'
 
     info.artifacts.append(second_artifact)
-    backend_with_computation.update_successful_computation(computation_info=info)
+    backend_with_computation_registered.update_successful_computation(computation_info=info)
 
-    db_computation = backend_with_computation.read_computation(
+    db_computation = backend_with_computation_registered.read_computation(
         correlation_uuid=default_computation_info.correlation_uuid
     )
     artifact_names = ['test_name', 'second']

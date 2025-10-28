@@ -24,7 +24,7 @@ def test_computation_task_run(
     default_computation_info,
     general_uuid,
     default_aoi_feature_pure_dict,
-    backend_with_computation,
+    backend_with_computation_registered,
     frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
@@ -75,7 +75,7 @@ def test_computation_task_run_forward_input(
     default_aoi_feature_pure_dict,
     default_aoi_properties,
     default_aoi_geom_shapely,
-    backend_with_computation,
+    backend_with_computation_registered,
     frozen_time,
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
@@ -107,7 +107,7 @@ def test_computation_task_run_input_validated(
     default_aoi_feature_pure_dict,
     default_aoi_geom_shapely,
     default_aoi_properties,
-    backend_with_computation,
+    backend_with_computation_registered,
 ):
     compute_unsafe_mock = Mock(side_effect=default_computation_task.operator.compute_unsafe)
     default_computation_task.operator.compute_unsafe = compute_unsafe_mock
