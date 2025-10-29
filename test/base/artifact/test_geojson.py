@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from geopandas import GeoDataFrame
+from geopandas.testing import assert_geodataframe_equal
 from pydantic_extra_types.color import Color
 from shapely import Point
 
@@ -99,6 +100,8 @@ def test_create_extensive_geojson_artifact(
         crs='EPSG:4326',
     )
 
+    method_input_copy = method_input.copy(deep=True)
+
     legend = Legend(
         legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')},
         title='Custom Legend Title',
@@ -117,8 +120,9 @@ def test_create_extensive_geojson_artifact(
         tags=default_association_tags,
         filename=str(general_uuid),
     )
-
     assert generated_artifact == expected_artifact
+    # Method input should not be mutated during artifact creation
+    assert_geodataframe_equal(method_input, method_input_copy)
 
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()

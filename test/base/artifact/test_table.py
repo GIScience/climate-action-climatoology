@@ -59,6 +59,7 @@ def test_create_extensive_table_artifact(
 Row1,Data1,2.5
 Row2,Data2,
 """
+    method_input_copy = method_input.copy(deep=True)
 
     generated_artifact = create_table_artifact(
         data=method_input,
@@ -74,5 +75,6 @@ Row2,Data2,
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
 
+    assert method_input.equals(method_input_copy), 'Method input should not be mutated during artifact creation'
     assert generated_artifact == expected_artifact
     assert generated_content == expected_content
