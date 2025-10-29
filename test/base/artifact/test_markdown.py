@@ -45,6 +45,7 @@ def test_create_extensive_markdown_artifact(
 
     Content
     """
+    expected_content_copy = expected_content
 
     generated_artifact = create_markdown_artifact(
         text=expected_content,
@@ -59,5 +60,6 @@ def test_create_extensive_markdown_artifact(
     with open(generated_artifact.file_path, 'r') as test_file:
         generated_content = test_file.read()
 
+    assert expected_content_copy == expected_content
     assert generated_artifact == expected_artifact
     assert generated_content == expected_content

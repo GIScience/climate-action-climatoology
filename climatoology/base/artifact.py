@@ -623,6 +623,8 @@ def create_geojson_artifact(
     :param filename: A filename for the created file (without extension!).
     :return: The artifact that contains a path-pointer to the created file.
     """
+    data = data.copy(deep=True)
+
     file_path = resources.computation_dir / f'{filename}.geojson'
     assert not file_path.exists(), (
         'The target artifact data file already exists. Make sure to choose a unique filename.'

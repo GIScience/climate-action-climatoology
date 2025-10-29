@@ -42,6 +42,8 @@ def test_create_extensive_image_artifact(
     )
     expected_content = Image.new(mode='RGB', size=(2, 2), color=(153, 153, 255))
 
+    expected_content_copy = expected_content.copy()
+
     generated_artifact = create_image_artifact(
         image=expected_content,
         title='Test Image',
@@ -55,5 +57,6 @@ def test_create_extensive_image_artifact(
     )
     generated_content = Image.open(generated_artifact.file_path, mode='r', formats=['PNG'])
 
+    assert expected_content == expected_content_copy, 'Method input should not be mutated during artifact creation'
     assert generated_artifact == expected_artifact
     assert generated_content.convert('RGB') == expected_content

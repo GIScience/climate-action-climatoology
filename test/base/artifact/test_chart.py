@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 import plotly
@@ -153,6 +154,7 @@ def test_create_extensive_chart_artifact(
         color=Color('green'),
         chart_type=chart_type,
     )
+    method_input_copy = method_input.model_copy(deep=True)
 
     generated_artifact = create_chart_artifact(
         data=method_input,
@@ -167,6 +169,7 @@ def test_create_extensive_chart_artifact(
     )
 
     assert generated_artifact == expected_artifact
+    assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
 
 
 def test_create_concise_plotly_chart_artifact(
@@ -180,6 +183,7 @@ def test_create_concise_plotly_chart_artifact(
         summary='Chart caption',
     )
     method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+    method_input_copy = deepcopy(method_input)
 
     generated_artifact = create_plotly_chart_artifact(
         figure=method_input,
@@ -193,6 +197,8 @@ def test_create_concise_plotly_chart_artifact(
 
     generated_chart = plotly.io.read_json(generated_artifact.file_path)
     assert generated_chart == method_input
+
+    assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
 
 
 def test_create_plotly_chart_artifact(

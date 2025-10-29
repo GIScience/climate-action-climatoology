@@ -86,6 +86,7 @@ def test_create_extensive_geotiff_artifact_2d(
         ),
         colormap=colormap_type({1: (0, 255, 0)}),
     )
+    method_input_copy = method_input.model_copy(deep=True)
 
     legend = Legend(legend_data={'1': Color('#0f0')}, title='Custom Legend Title')
     generated_artifact = create_geotiff_artifact(
@@ -102,6 +103,12 @@ def test_create_extensive_geotiff_artifact_2d(
     )
 
     assert generated_artifact == expected_artifact
+
+    # Method input should not be mutated during artifact creation
+    assert (method_input.data == method_input_copy.data).all()
+    assert method_input.crs == method_input_copy.crs
+    assert method_input.transformation == method_input_copy.transformation
+    assert method_input.colormap == method_input_copy.colormap
 
     with rasterio.open(generated_artifact.file_path) as generated_content:
         assert_array_equal(generated_content.read(), [method_input.data])
