@@ -6,7 +6,7 @@ from celery import Celery
 from semver import Version
 
 from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id
-from climatoology.utility.exception import VersionMismatchError
+from climatoology.utility.exception import InputValidationError, VersionMismatchError
 
 
 def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):
@@ -36,12 +36,12 @@ def test_worker_send_compute_task(
         'aoi': default_aoi_feature_pure_dict,
         'params': {'id': 1},
     }
-    with patch('uuid.uuid4', return_value=general_uuid):
-        computed_compute_result = default_plugin.send_task(
-            'compute',
-            kwargs=kwargs,
-            task_id=str(general_uuid),
-        ).get(timeout=5)
+
+    computed_compute_result = default_plugin.send_task(
+        'compute',
+        kwargs=kwargs,
+        task_id=str(general_uuid),
+    ).get(timeout=5)
 
     assert computed_compute_result == expected_computation_info
 
@@ -58,16 +58,15 @@ def test_successful_compute_saves_metadata_to_storage(
     expected_computation_info = default_computation_info.model_copy(deep=True)
     save_info_spy = mocker.spy(default_plugin.tasks['compute'], '_save_computation_info')
 
-    with patch('uuid.uuid4', return_value=general_uuid):
-        kwargs = {
-            'aoi': default_aoi_feature_pure_dict,
-            'params': {'id': 1},
-        }
-        _ = default_plugin.send_task(
-            'compute',
-            kwargs=kwargs,
-            task_id=str(general_uuid),
-        ).get(timeout=5)
+    kwargs = {
+        'aoi': default_aoi_feature_pure_dict,
+        'params': {'id': 1},
+    }
+    _ = default_plugin.send_task(
+        'compute',
+        kwargs=kwargs,
+        task_id=str(general_uuid),
+    ).get(timeout=5)
 
     save_info_spy.assert_called_once_with(computation_info=expected_computation_info)
 
@@ -83,16 +82,15 @@ def test_successful_compute_saves_metadata_to_backend(
     expected_computation_info = default_computation_info.model_copy(deep=True)
     expected_computation_info.artifacts[0].rank = 0
 
-    with patch('uuid.uuid4', return_value=general_uuid):
-        kwargs = {
-            'aoi': default_aoi_feature_pure_dict,
-            'params': {'id': 1},
-        }
-        _ = default_plugin.send_task(
-            'compute',
-            kwargs=kwargs,
-            task_id=str(general_uuid),
-        ).get(timeout=5)
+    kwargs = {
+        'aoi': default_aoi_feature_pure_dict,
+        'params': {'id': 1},
+    }
+    _ = default_plugin.send_task(
+        'compute',
+        kwargs=kwargs,
+        task_id=str(general_uuid),
+    ).get(timeout=5)
 
     saved_computation = backend_with_computation_registered.read_computation(correlation_uuid=general_uuid)
     assert saved_computation == expected_computation_info
@@ -105,7 +103,7 @@ def test_failing_compute_updates_backend(
         'aoi': default_aoi_feature_pure_dict,
         'params': {},
     }
-    with patch('uuid.uuid4', return_value=general_uuid), pytest.raises(Exception):
+    with pytest.raises(InputValidationError, match='ID: Field required. You provided: {}.'):
         _ = default_plugin.send_task(
             'compute',
             kwargs=kwargs,

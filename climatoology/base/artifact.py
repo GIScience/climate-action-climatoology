@@ -40,6 +40,8 @@ from climatoology.base.info import ArticleSource, IncollectionSource, MiscSource
 
 log = logging.getLogger(__name__)
 
+COMPUTATION_INFO_FILENAME: str = 'metadata.json'
+
 plotly_template = pio.templates['plotly_white']
 plotly_template.layout.colorway = px.colors.qualitative.Safe
 pio.templates.default = plotly_template
@@ -185,9 +187,9 @@ class _Artifact(BaseModel):
         examples=[{'Tag A'}],
         default=set(),
     )
-    file_path: Path = Field(
-        description='The full path to the file that stores the artefact.',
-        examples=['/tmp/7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
+    filename: str = Field(
+        description='The name of the file that stores the artifact.',
+        examples=['image.png'],
     )
     summary: str = Field(
         description='A short description of the artifact that could be used in a caption.',
@@ -218,20 +220,21 @@ class _Artifact(BaseModel):
         ],
         default=None,
     )
-    correlation_uuid: Optional[UUID] = Field(
+    correlation_uuid: UUID = Field(
         description='Do not set! The correlation UUID for this call. Will be automatically set by the plugin.',
-        default=None,
-    )
-    store_id: Optional[str] = Field(
-        description='Do not set! This is the pointer to the file in the artifactory store. Will be automatically set.',
-        examples=['7dbcabe2-0961-44ad-b8a2-03a61f45d059_image.png'],
-        default=None,
+        examples=[uuid.uuid4()],
     )
     attachments: Optional[Attachments] = Field(
         description='Additional information or files that are linked to this artifact.',
         examples=[Attachments(legend=Legend(legend_data={'The red object': Color('red')}))],
         default=None,
     )
+
+    @field_validator('filename', mode='after')
+    @classmethod
+    def check_filename_ascii_compliance(cls, value: str) -> str:
+        value.encode(encoding='ascii', errors='strict')
+        return value
 
 
 class ChartType(Enum):
@@ -359,11 +362,12 @@ def create_markdown_artifact(
     result = _Artifact(
         name=name,
         modality=ArtifactModality.MARKDOWN,
-        file_path=file_path,
+        filename=file_path.name,
         summary=tl_dr,
         sources=sources,
         primary=primary,
         tags=tags,
+        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -409,12 +413,13 @@ def create_table_artifact(
     result = _Artifact(
         name=title,
         modality=ArtifactModality.TABLE,
-        file_path=file_path,
+        filename=file_path.name,
         summary=caption,
         description=description,
         sources=sources,
         tags=tags,
         primary=primary,
+        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -461,12 +466,13 @@ def create_image_artifact(
     result = _Artifact(
         name=title,
         modality=ArtifactModality.IMAGE,
-        file_path=file_path,
+        filename=file_path.name,
         summary=caption,
         description=description,
         sources=sources,
         tags=tags,
         primary=primary,
+        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -575,12 +581,13 @@ def create_plotly_chart_artifact(
     result = _Artifact(
         name=title,
         modality=ArtifactModality.CHART_PLOTLY,
-        file_path=file_path,
+        filename=file_path.name,
         summary=caption,
         description=description,
         sources=sources,
         tags=tags,
         primary=primary,
+        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -669,13 +676,14 @@ def create_geojson_artifact(
     result = _Artifact(
         name=layer_name,
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        file_path=file_path,
+        filename=file_path.name,
         summary=caption,
         description=description,
         sources=sources,
         tags=tags,
         primary=primary,
         attachments=Attachments(legend=legend),
+        correlation_uuid=resources.correlation_uuid,
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -800,13 +808,14 @@ def create_geotiff_artifact(
     result = _Artifact(
         name=layer_name,
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
-        file_path=file_path,
+        filename=file_path.name,
         summary=caption,
         description=description,
         sources=sources,
         tags=tags,
         primary=primary,
         attachments=Attachments(legend=legend) if legend else None,
+        correlation_uuid=resources.correlation_uuid,
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')

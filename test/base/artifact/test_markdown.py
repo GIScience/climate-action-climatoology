@@ -7,8 +7,9 @@ def test_create_concise_markdown_artifact(default_computation_resources, general
     expected_artifact = _Artifact(
         name='-',
         modality=ArtifactModality.MARKDOWN,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.md'),
+        filename='test_file.md',
         summary='-',
+        correlation_uuid=general_uuid,
     )
     expected_content = """# Header
 
@@ -20,9 +21,9 @@ def test_create_concise_markdown_artifact(default_computation_resources, general
         resources=default_computation_resources,
         name='-',
         tl_dr='-',
-        filename=str(general_uuid),
+        filename='test_file',
     )
-    with open(generated_artifact.file_path, 'r') as test_file:
+    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
         generated_content = test_file.read()
 
     assert generated_artifact == expected_artifact
@@ -35,11 +36,12 @@ def test_create_extensive_markdown_artifact(
     expected_artifact = _Artifact(
         name='-',
         modality=ArtifactModality.MARKDOWN,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.md'),
+        filename='test_file.md',
         summary='-',
         sources=default_sources,
         primary=False,
         tags=default_association_tags,
+        correlation_uuid=general_uuid,
     )
     expected_content = """# Header
 
@@ -55,9 +57,9 @@ def test_create_extensive_markdown_artifact(
         sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
         primary=False,
         tags=default_association_tags,
-        filename=str(general_uuid),
+        filename='test_file',
     )
-    with open(generated_artifact.file_path, 'r') as test_file:
+    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
         generated_content = test_file.read()
 
     assert expected_content_copy == expected_content

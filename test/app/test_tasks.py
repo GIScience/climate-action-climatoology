@@ -29,11 +29,10 @@ def test_computation_task_run(
 ):
     expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
 
-    with patch('uuid.uuid4', return_value=general_uuid):
-        computed_result = default_computation_task.run(
-            aoi=default_aoi_feature_pure_dict,
-            params={'id': 1},
-        )
+    computed_result = default_computation_task.run(
+        aoi=default_aoi_feature_pure_dict,
+        params={'id': 1},
+    )
 
     assert computed_result == expected_computation_info
     default_computation_task.update_state.assert_called_once_with(task_id=general_uuid, state='STARTED')
@@ -86,11 +85,10 @@ def test_computation_task_run_forward_input(
     method_input_params = {'id': 1}
     method_input_params_obj = default_computation_task.operator._model(**method_input_params)
 
-    with patch('uuid.uuid4', return_value=general_uuid):
-        computed_result = default_computation_task.run(
-            aoi=default_aoi_feature_pure_dict,
-            params=method_input_params,
-        )
+    computed_result = default_computation_task.run(
+        aoi=default_aoi_feature_pure_dict,
+        params=method_input_params,
+    )
 
     compute_unsafe_mock.assert_called_once_with(
         resources=ANY,
@@ -131,9 +129,7 @@ def test_save_computation_info(
     default_operator,
     mocked_object_store,
     general_uuid,
-    default_aoi_feature_geojson_pydantic,
     default_backend_db,
-    default_artifact,
     default_computation_info,
 ):
     task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store, backend_db=default_backend_db)
@@ -145,14 +141,14 @@ def test_save_computation_info(
         expected_save_artifact = _Artifact(
             name='Computation Info',
             modality=ArtifactModality.COMPUTATION_INFO,
-            file_path=Path(f'{temp_dir}/metadata.json'),
+            filename='metadata.json',
             summary=f'Computation information of correlation_uuid {general_uuid}',
             correlation_uuid=general_uuid,
         )
         with patch('climatoology.app.tasks.tempfile.TemporaryDirectory.__enter__', return_value=temp_dir):
             task._save_computation_info(computation_info=default_computation_info)
 
-            save_mock.assert_called_once_with(expected_save_artifact)
+            save_mock.assert_called_once_with(expected_save_artifact, file_dir=Path(temp_dir))
 
-            with open(expected_save_artifact.file_path, 'r') as metadata_file:
+            with open(Path(temp_dir) / expected_save_artifact.filename, 'r') as metadata_file:
                 assert metadata_file.read() == default_computation_info.model_dump_json()
