@@ -109,8 +109,9 @@ def test_create_concise_chart_artifact(chart_type, default_computation_resources
     expected_artifact = _Artifact(
         name='Test Chart',
         modality=ArtifactModality.CHART_PLOTLY,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+        filename='test_file.json',
         summary='Chart caption',
+        correlation_uuid=general_uuid,
     )
     method_input = Chart2dData(
         x=[1, 2, 3],
@@ -126,7 +127,7 @@ def test_create_concise_chart_artifact(chart_type, default_computation_resources
         title='Test Chart',
         caption='Chart caption',
         resources=default_computation_resources,
-        filename=str(general_uuid),
+        filename='test_file',
     )
 
     assert generated_artifact == expected_artifact
@@ -139,12 +140,13 @@ def test_create_extensive_chart_artifact(
     expected_artifact = _Artifact(
         name='Test Chart',
         modality=ArtifactModality.CHART_PLOTLY,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+        filename='test_file.json',
         summary='Chart caption',
         description='Chart description',
         sources=default_sources,
         tags=default_association_tags,
         primary=False,
+        correlation_uuid=general_uuid,
     )
     method_input = Chart2dData(
         x=[1, 2, 3],
@@ -165,7 +167,7 @@ def test_create_extensive_chart_artifact(
         description='Chart description',
         sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
         tags=default_association_tags,
-        filename=str(general_uuid),
+        filename='test_file',
     )
 
     assert generated_artifact == expected_artifact
@@ -179,8 +181,9 @@ def test_create_concise_plotly_chart_artifact(
     expected_artifact = _Artifact(
         name='Test Plotly Chart',
         modality=ArtifactModality.CHART_PLOTLY,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+        filename='test_file.json',
         summary='Chart caption',
+        correlation_uuid=general_uuid,
     )
     method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
     method_input_copy = deepcopy(method_input)
@@ -190,12 +193,12 @@ def test_create_concise_plotly_chart_artifact(
         title='Test Plotly Chart',
         caption='Chart caption',
         resources=default_computation_resources,
-        filename=str(general_uuid),
+        filename='test_file',
     )
 
     assert generated_artifact == expected_artifact
 
-    generated_chart = plotly.io.read_json(generated_artifact.file_path)
+    generated_chart = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
     assert generated_chart == method_input
 
     assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
@@ -207,12 +210,13 @@ def test_create_plotly_chart_artifact(
     expected_artifact = _Artifact(
         name='Test Plotly Chart',
         modality=ArtifactModality.CHART_PLOTLY,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.json'),
+        filename='test_file.json',
         summary='Chart caption',
         description='Chart description',
         sources=default_sources,
         tags=default_association_tags,
         primary=False,
+        correlation_uuid=general_uuid,
     )
     method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
 
@@ -225,10 +229,10 @@ def test_create_plotly_chart_artifact(
         description='Chart description',
         sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
         tags=default_association_tags,
-        filename=str(general_uuid),
+        filename='test_file',
     )
 
     assert generated_artifact == expected_artifact
 
-    generated_chart = plotly.io.read_json(generated_artifact.file_path)
+    generated_chart = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
     assert generated_chart == method_input

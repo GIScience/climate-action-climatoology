@@ -4,14 +4,15 @@ from unittest.mock import ANY, patch
 
 import pytest
 
-from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.info import Assets, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
 
+TEST_RESOURCES_DIR = Path(__file__).parent.parent / 'resources'
 
-def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_augmented_artifact):
+
+def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifact):
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket'))) == 0
-    store_id = mocked_object_store.save(default_augmented_artifact)
+    store_id = mocked_object_store.save(default_artifact, file_dir=TEST_RESOURCES_DIR)
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket', recursive=True))) == 1
     with tempfile.TemporaryDirectory() as tmpdirname:
         fetched_file = mocked_object_store.fetch(
@@ -20,22 +21,9 @@ def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_augment
         assert fetched_file.read_text() == '# Test'
 
 
-def test_minio_save_special_character_filename(mocked_object_store, general_uuid, default_artifact):
-    artifact = _Artifact(
-        name='test_name',
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        file_path=Path(__file__).parent.parent / 'resources/test_artifact_file_$p€ciöl.md',
-        summary='Test summary',
-    )
-    with patch.object(tempfile._RandomNameSequence, attribute='characters', new='a') as _:
-        store_id = mocked_object_store.save(artifact)
-
-    assert store_id.endswith('_test_artifact_file_$pcil.md')
-
-
 def test_minio_save_content_type(mocked_object_store, default_artifact, mocker):
     save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
-    mocked_object_store.save(default_artifact)
+    mocked_object_store.save(default_artifact, file_dir=TEST_RESOURCES_DIR)
 
     save_info_spy.assert_called_once_with(
         bucket_name=ANY, content_type='text/markdown', file_path=ANY, metadata=ANY, object_name=ANY
@@ -46,15 +34,15 @@ def test_minio_save_all(mocked_object_store, general_uuid, default_artifact, moc
     second_artifact = default_artifact.model_copy()
     saved_artifacts = [default_artifact, second_artifact]
     save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
-    mocked_object_store.save_all(saved_artifacts)
+    mocked_object_store.save_all(saved_artifacts, file_dir=TEST_RESOURCES_DIR)
 
     assert save_info_spy.call_count == 2
 
 
 def test_minio_get_artifact_url(mocked_object_store, general_uuid):
-    store_id = f'{general_uuid}_test_file.tiff'
+    store_id = 'test_file.tiff'
     result = mocked_object_store.get_artifact_url(general_uuid, store_id)
-    assert result == f'https://test.host:1234/minio_test_bucket/{general_uuid}/{general_uuid}_test_file.tiff'
+    assert result == f'https://test.host:1234/minio_test_bucket/{general_uuid}/test_file.tiff'
 
 
 def test_get_icon_url(mocked_object_store):

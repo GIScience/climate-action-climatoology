@@ -207,12 +207,11 @@ def test_operator_compute_unsafe_results_no_computation_info(
     default_aoi_geom_shapely,
     default_aoi_properties,
     default_computation_resources,
-    default_info,
 ):
     computation_info_artifact = _Artifact(
         name='Computation Info',
         modality=ArtifactModality.COMPUTATION_INFO,
-        file_path=Path('metadata.json'),
+        filename='metadata.json',
         summary='Computation information of correlation_uuid {general_uuid}',
         correlation_uuid=general_uuid,
     )

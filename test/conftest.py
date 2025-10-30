@@ -27,7 +27,7 @@ import climatoology
 from climatoology.app.plugin import _create_plugin
 from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
-from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.artifact import ArtifactModality, _Artifact, create_markdown_artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.event import ComputationState
@@ -148,24 +148,17 @@ def default_info_final(default_info_enriched) -> _Info:
 
 
 @pytest.fixture
-def default_artifact() -> _Artifact:
+def default_artifact(general_uuid) -> _Artifact:
     """Note: this should only provide required fields.
     This way it automatically is a test that optional fields are in fact optional.
     """
     return _Artifact(
         name='test_name',
         modality=ArtifactModality.MARKDOWN,
-        file_path=Path(__file__).parent / 'resources/test_artifact_file.md',
+        filename='test_artifact_file.md',
         summary='Test summary',
+        correlation_uuid=general_uuid,
     )
-
-
-@pytest.fixture
-def default_augmented_artifact(default_artifact, general_uuid) -> _Artifact:
-    final_artifact = default_artifact.model_copy(deep=True)
-    final_artifact.correlation_uuid = general_uuid
-    final_artifact.store_id = f'{general_uuid}_test_artifact_file.md'
-    return final_artifact
 
 
 class TestModel(BaseModel):
@@ -201,7 +194,15 @@ def default_operator(default_info, default_artifact) -> BaseOperator:
             params: TestModel,
         ) -> List[_Artifact]:
             time.sleep(params.execution_time)
-            return [default_artifact]
+            artifact_text = (Path(__file__).parent / 'resources/test_artifact_file.md').read_text()
+            artifact = create_markdown_artifact(
+                text=artifact_text,
+                resources=resources,
+                name=default_artifact.name,
+                tl_dr=default_artifact.summary,
+                filename='test_artifact_file',
+            )
+            return [artifact]
 
     return TestOperator()
 
@@ -290,7 +291,7 @@ def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
 
 @pytest.fixture
 def default_computation_info(
-    general_uuid, default_aoi_feature_geojson_pydantic, default_augmented_artifact, default_info
+    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact, default_info
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
@@ -301,7 +302,7 @@ def default_computation_info(
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
-        artifacts=[default_augmented_artifact],
+        artifacts=[default_artifact],
         plugin_info=PluginBaseInfo(id=default_info.id, version=default_info.version),
     )
 

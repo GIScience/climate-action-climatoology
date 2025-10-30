@@ -10,11 +10,11 @@ from celery import Task
 from celery.signals import task_revoked
 from shapely import set_srid
 
-from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import COMPUTATION_INFO_FILENAME, ComputationInfo, Storage
+from climatoology.store.object_store import ComputationInfo, Storage
 from climatoology.utility.exception import InputValidationError
 
 log = logging.getLogger(__name__)
@@ -47,13 +47,13 @@ class CAPlatformComputeTask(Task):
                 result = _Artifact(
                     name='Computation Info',
                     modality=ArtifactModality.COMPUTATION_INFO,
-                    file_path=Path(out_file.name),
+                    filename=COMPUTATION_INFO_FILENAME,
                     summary=f'Computation information of correlation_uuid {computation_info.correlation_uuid}',
                     correlation_uuid=computation_info.correlation_uuid,
                 )
                 log.debug(f'Returning Artifact: {result.model_dump()}.')
 
-            return self.storage.save(result)
+            return self.storage.save(result, file_dir=Path(temp_dir))
 
     def run(self, aoi: dict, params: dict) -> dict:
         correlation_uuid: UUID = self.request.correlation_id  # Typing seems wrong
@@ -79,16 +79,12 @@ class CAPlatformComputeTask(Task):
                     resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
                 )
                 artifact_errors = resources.artifact_errors
-                plugin_artifacts = [
-                    _Artifact(correlation_uuid=correlation_uuid, **artifact.model_dump(exclude={'correlation_uuid'}))
-                    for artifact in artifacts
-                ]
-                self.storage.save_all(plugin_artifacts)
+                self.storage.save_all(artifacts, file_dir=resources.computation_dir)
 
             computation_info = self.backend_db.read_computation(correlation_uuid=correlation_uuid)
             computation_info.timestamp = datetime.now(UTC).replace(tzinfo=None)
             computation_info.params = validated_params.model_dump()
-            computation_info.artifacts = plugin_artifacts
+            computation_info.artifacts = artifacts
             computation_info.artifact_errors = artifact_errors
 
             self._save_computation_info(computation_info=computation_info)

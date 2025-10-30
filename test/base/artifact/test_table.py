@@ -10,8 +10,9 @@ def test_create_concise_table_artifact(default_computation_resources, general_uu
     expected_artifact = _Artifact(
         name='Test Table',
         modality=ArtifactModality.TABLE,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.csv'),
+        filename='test_file.csv',
         summary='Table caption',
+        correlation_uuid=general_uuid,
     )
     method_input = DataFrame(
         data=[('Data1', 2.5), ('Data2', np.nan)],
@@ -28,9 +29,9 @@ Row2,Data2,
         title='Test Table',
         caption='Table caption',
         resources=default_computation_resources,
-        filename=str(general_uuid),
+        filename='test_file',
     )
-    with open(generated_artifact.file_path, 'r') as test_file:
+    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
         generated_content = test_file.read()
 
     assert generated_artifact == expected_artifact
@@ -43,12 +44,13 @@ def test_create_extensive_table_artifact(
     expected_artifact = _Artifact(
         name='Test Table',
         modality=ArtifactModality.TABLE,
-        file_path=Path(default_computation_resources.computation_dir / f'{general_uuid}.csv'),
+        filename='test_file.csv',
         primary=False,
         summary='Table caption',
         description='Table description',
         sources=default_sources,
         tags=default_association_tags,
+        correlation_uuid=general_uuid,
     )
     method_input = DataFrame(
         data=[('Data1', 2.5), ('Data2', np.nan)],
@@ -70,9 +72,9 @@ Row2,Data2,
         description='Table description',
         sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
         tags=default_association_tags,
-        filename=str(general_uuid),
+        filename='test_file',
     )
-    with open(generated_artifact.file_path, 'r') as test_file:
+    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
         generated_content = test_file.read()
 
     assert method_input.equals(method_input_copy), 'Method input should not be mutated during artifact creation'

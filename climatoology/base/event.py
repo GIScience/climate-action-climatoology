@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
+# TODO: re-introduce dead pre-commit and remove the dead code here and also move the computation state to computation
 class InfoCommand(BaseModel):
     """Info request command attributes."""
 

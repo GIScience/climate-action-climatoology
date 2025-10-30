@@ -41,6 +41,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
     - Filter the returned bounds to drop any bounds that do not intersect the input geometry space.
 - LULC and Naturalness utility now accept polygonal geometries instead of bboxes. This allows them to limit their
   requests and save resources ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
+- the `_Artifact.store_id` field was removed in favour of the `_Artifact.filename` which in turn replaces
+  `_Artifact.file_path`.
 
 ### Fix
 

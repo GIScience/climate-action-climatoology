@@ -1,6 +1,7 @@
 import uuid
-from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
 from pydantic_extra_types.color import Color
 
 from climatoology.base.artifact import (
@@ -18,7 +19,7 @@ def test_artifact_init_from_json():
     target_artifact = _Artifact(
         name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        file_path=Path(__file__).parent / 'test_file.tiff',
+        filename='test_file.tiff',
         summary='Test summary',
         description='Test description',
         correlation_uuid=uuid.uuid4(),
@@ -41,7 +42,7 @@ def test_artifact_optional_fields():
         modality=ArtifactModality.MARKDOWN,
         primary=True,
         tags={'A', 'B'},
-        file_path=Path(__file__).parent / 'resources/test_artifact_file.md',
+        filename='test_artifact_file.md',
         summary='Test summary',
         description='Test description',
         sources=[MiscSource(ID='id', title='title', author='author', year='2025', ENTRYTYPE='misc', url='https://a.b')],
@@ -49,6 +50,17 @@ def test_artifact_optional_fields():
         store_id='stor_id',
         attachments=Attachments(legend=Legend(legend_data={'a': Color('blue')}, title='Custom Legend Title')),
     )
+
+
+def test_artifact_filename_ascii_compliance_check():
+    with pytest.raises(ValidationError, match="Value error, 'ascii' codec can't encode character"):
+        _ = _Artifact(
+            name='test_name',
+            modality=ArtifactModality.MARKDOWN,
+            filename='test_artifact_file_$p€ciöl.md',
+            summary='Test summary',
+            correlation_uuid=uuid.uuid4(),
+        )
 
 
 def test_legend_data_from_colormap():
