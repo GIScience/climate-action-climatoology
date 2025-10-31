@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from io import StringIO
 from pathlib import Path
 from typing import List, Optional
@@ -223,6 +224,7 @@ class BackendDatabase:
         computation_info = self.read_computation(correlation_uuid=correlation_uuid)
         return computation_info.artifacts
 
+    @lru_cache(maxsize=256)
     def resolve_computation_id(self, user_correlation_uuid: UUID) -> Optional[UUID]:
         with Session(self.engine) as session:
             resolve_query = select(ComputationLookup.computation_id).where(
