@@ -3,11 +3,17 @@
   "schedule": [
     "* * 1 * *"
   ],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "matchUpdateTypes": [
-        "patch"
+        "patch",
+        "lockFileMaintenance"
       ],
+      "schedule": ["* 0-3 1 * *"],
+      "automerge": true,
       "groupName": "dependency patches"
     },
     {
