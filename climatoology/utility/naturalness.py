@@ -1,5 +1,4 @@
 import json
-import logging
 import typing
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -22,10 +21,11 @@ from shapely.geometry import shape
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
+from climatoology.base.logging import get_climatoology_logger
 from climatoology.utility.api import PlatformHttpUtility, TimeRange, compute_raster, generate_bounds
 from climatoology.utility.exception import PlatformUtilityError
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 
 class NaturalnessIndex(StrEnum):
@@ -139,7 +139,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         :return: A GeoDataFrame with a column for each stat in aggregation_stats.
         Note that the geometries may not match the provided `vectors` geometries (due to clipping for the max_raster_size).
         """
-        log.debug('Extracting aggregated raster statistics..')
+        log.debug('Extracting aggregated raster statistics.')
 
         vectors = [v.to_crs(4326) for v in vectors]
         vectors = self.split_vectors(vectors=vectors, resolution=resolution, max_unit_size=max_raster_size)

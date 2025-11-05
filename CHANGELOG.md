@@ -92,6 +92,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   function ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 - `BackendDatabase` now has `list_artifacts()` to return a list of the artifacts for a
   computation ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
+- a custom logger that injects the celery task name and task id before log
+  messages ([#153](https://gitlab.heigit.org/climate-action/climatoology/-/issues/153))
 
 ## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.4) - 2025-10-08
 

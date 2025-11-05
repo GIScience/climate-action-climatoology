@@ -1,4 +1,3 @@
-import logging
 import typing
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -15,10 +14,11 @@ from pydantic import BaseModel, Field, model_validator
 from pydantic_shapely import GeometryField
 from shapely import MultiPolygon, Polygon, geometry
 
+from climatoology.base.logging import get_climatoology_logger
 from climatoology.utility.api import PlatformHttpUtility, compute_raster, generate_bounds
 from climatoology.utility.exception import PlatformUtilityError
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 
 class FusionMode(Enum):

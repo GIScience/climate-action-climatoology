@@ -1,4 +1,3 @@
-import logging
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,11 +12,12 @@ from shapely import set_srid
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
+from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import ComputationInfo, Storage
 from climatoology.utility.exception import InputValidationError
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 
 class CAPlatformComputeTask(Task):
@@ -59,7 +59,7 @@ class CAPlatformComputeTask(Task):
         correlation_uuid: UUID = self.request.correlation_id  # Typing seems wrong
         try:
             self.update_state(task_id=self.request.correlation_id, state='STARTED')
-            log.info(f'Acquired compute request ({correlation_uuid}) with id {self.request.id}')
+            log.debug('Acquired compute request')
 
             aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
 
@@ -72,7 +72,7 @@ class CAPlatformComputeTask(Task):
             self.backend_db.add_validated_params(
                 correlation_uuid=correlation_uuid, params=validated_params.model_dump(mode='json')
             )
-            log.debug(f'Validated compute parameters for request ({correlation_uuid}): {validated_params}')
+            log.debug(f'Validated compute parameters to: {validated_params}')
 
             with ComputationScope(correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(
@@ -94,7 +94,7 @@ class CAPlatformComputeTask(Task):
 
             output = computation_info.model_dump(mode='json')
 
-            log.debug(f'{correlation_uuid} successfully computed')
+            log.debug('Successfully completed')
         except Exception as e:
             # Note that the on_success and on_failure callbacks provided by celery.Task class will create an
             # inconsistent DB-state where celery is already aware of the result while our custom result tables are not.

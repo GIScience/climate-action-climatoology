@@ -1,4 +1,3 @@
-import logging
 import math
 from abc import ABC
 from concurrent.futures import ThreadPoolExecutor
@@ -23,7 +22,9 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 from urllib3 import Retry
 
-log = logging.getLogger(__name__)
+from climatoology.base.logging import get_climatoology_logger
+
+log = get_climatoology_logger(__name__)
 
 
 class TimeRange(BaseModel):
@@ -121,7 +122,7 @@ def compute_raster(
                     first_colormap = slices[0].colormap(1)
 
             with rasterio.MemoryFile() as memfile:
-                log.debug('Creating LULC file.')
+                log.debug('Creating raster file')
 
                 write_profile = slices[0].profile
                 write_profile['transform'] = transform
@@ -139,7 +140,7 @@ def compute_raster(
                     del slices
 
                 with memfile.open() as dataset:
-                    log.debug('Serving LULC classification')
+                    log.debug('Serving raster file')
                     yield dataset
 
 

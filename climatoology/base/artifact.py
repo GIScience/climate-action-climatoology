@@ -1,4 +1,3 @@
-import logging
 import uuid
 from enum import Enum
 from numbers import Number
@@ -38,8 +37,9 @@ from rasterio.rio.overview import get_maximum_overview_level
 
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import ArticleSource, IncollectionSource, MiscSource, _convert_bib
+from climatoology.base.logging import get_climatoology_logger
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 COMPUTATION_INFO_FILENAME: str = 'metadata.json'
 
