@@ -22,7 +22,7 @@ class ArtifactTable(ClimatoologyTableBase):
     name: Mapped[str]
     modality: Mapped[ArtifactModality]
     primary: Mapped[bool]
-    tags: Mapped[Optional[Set[str]]] = mapped_column(ARRAY(sqlalchemy.String))
+    tags: Mapped[Set[str]] = mapped_column(ARRAY(sqlalchemy.String))
     summary: Mapped[str]
     description: Mapped[Optional[str]]
     sources: Mapped[Optional[list[dict]]] = mapped_column(JSON)

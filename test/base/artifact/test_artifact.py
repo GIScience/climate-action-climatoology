@@ -23,7 +23,6 @@ def test_artifact_init_from_json():
         summary='Test summary',
         description='Test description',
         correlation_uuid=uuid.uuid4(),
-        store_id='test_file.tiff',
         tags={'A', 'B'},
     )
     transformed_artifact = target_artifact.model_dump(mode='json')
@@ -47,7 +46,6 @@ def test_artifact_optional_fields():
         description='Test description',
         sources=[MiscSource(ID='id', title='title', author='author', year='2025', ENTRYTYPE='misc', url='https://a.b')],
         correlation_uuid=uuid.uuid4(),
-        store_id='stor_id',
         attachments=Attachments(legend=Legend(legend_data={'a': Color('blue')}, title='Custom Legend Title')),
     )
 

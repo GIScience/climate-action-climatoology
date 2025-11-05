@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '0364d1c8dd4e'
@@ -22,10 +23,13 @@ def upgrade() -> None:
     """Upgrade schema."""
     op.execute(sa.text('alter table ca_base.artifact rename column store_id to filename;'))
     op.drop_column('artifact', 'file_path', schema='ca_base')
+    op.execute(sa.text('update ca_base.artifact set tags=ARRAY[]::text[] where tags is NULL'))
+    op.alter_column('artifact', 'tags', existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=False, schema='ca_base')
 
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.alter_column('artifact', 'tags', existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=True, schema='ca_base')
     op.add_column(
         'artifact', sa.Column('file_path', sa.String(), nullable=False, default='/tmp/dummy_filename'), schema='ca_base'
     )
