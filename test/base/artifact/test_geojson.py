@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pandas as pd
 import pytest
 from geopandas import GeoDataFrame
@@ -17,27 +15,7 @@ from climatoology.base.artifact import (
 )
 
 
-def test_create_concise_geojson_artifact(default_computation_resources, general_uuid):
-    expected_geojson = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": 0, "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": 1, "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": 2, "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
-    expected_artifact = _Artifact(
-        name='Test Vector',
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        filename='test_file.geojson',
-        summary='Vector caption',
-        attachments=Attachments(
-            legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
-        ),
-        correlation_uuid=general_uuid,
-    )
-
+def test_create_concise_geojson_artifact(default_computation_resources, default_artifact, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -46,27 +24,7 @@ def test_create_concise_geojson_artifact(default_computation_resources, general_
         },
         crs='EPSG:4326',
     )
-
-    generated_artifact = create_geojson_artifact(
-        data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
-        resources=default_computation_resources,
-        filename='test_file',
-    )
-
-    assert generated_artifact == expected_artifact
-
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == expected_geojson
-
-
-def test_create_extensive_geojson_artifact(
-    default_computation_resources, general_uuid, default_association_tags, default_sources
-):
-    expected_geojson = """{
+    expected_content = """{
 "type": "FeatureCollection",
 "features": [
 { "type": "Feature", "properties": { "index": 0, "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
@@ -75,24 +33,29 @@ def test_create_extensive_geojson_artifact(
 ]
 }
 """
-    expected_artifact = _Artifact(
-        name='Test Vector',
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        filename='test_file.geojson',
-        summary='Vector caption',
-        description='Vector caption',
-        sources=default_sources,
-        tags=default_association_tags,
-        primary=False,
-        attachments=Attachments(
-            legend=Legend(
-                legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')},
-                title='Custom Legend Title',
-            )
-        ),
-        correlation_uuid=general_uuid,
+
+    default_artifact_copy = default_artifact.model_copy(deep=True)
+    default_artifact_copy.modality = ArtifactModality.MAP_LAYER_GEOJSON
+    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.geojson'
+    default_artifact_copy.attachments = Attachments(
+        legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
     )
 
+    generated_artifact = create_geojson_artifact(
+        data=method_input,
+        metadata=default_artifact_metadata,
+        resources=default_computation_resources,
+    )
+    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
+        generated_content = test_file.read()
+
+    assert generated_artifact == default_artifact_copy
+    assert generated_content == expected_content
+
+
+def test_create_extensive_geojson_artifact(
+    default_computation_resources, extensive_artifact, extensive_artifact_metadata
+):
     method_input = GeoDataFrame(
         data={
             'my_color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -101,43 +64,39 @@ def test_create_extensive_geojson_artifact(
         },
         crs='EPSG:4326',
     )
-
-    method_input_copy = method_input.copy(deep=True)
-
     legend = Legend(
         legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')},
         title='Custom Legend Title',
     )
+    method_input_copy = method_input.copy(deep=True)
+
+    extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
+    extensive_artifact_copy.modality = ArtifactModality.MAP_LAYER_GEOJSON
+    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.geojson'
+    extensive_artifact_copy.attachments = Attachments(legend=legend.model_copy(deep=True))
+
     generated_artifact = create_geojson_artifact(
         data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
+        metadata=extensive_artifact_metadata,
         resources=default_computation_resources,
         color='my_color',
         label='my_label',
-        primary=False,
         legend=legend,
-        description='Vector caption',
-        sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
-        tags=default_association_tags,
-        filename='test_file',
     )
-    assert generated_artifact == expected_artifact
+
     # Method input should not be mutated during artifact creation
     assert_geodataframe_equal(method_input, method_input_copy)
-
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == expected_geojson
+    assert generated_artifact == extensive_artifact_copy
 
 
-def test_create_geojson_artifact_continuous_legend(default_computation_resources, general_uuid):
+def test_create_geojson_artifact_continuous_legend(
+    default_computation_resources, general_uuid, default_artifact_metadata
+):
     expected_artifact = _Artifact(
-        name='Test Vector',
+        name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        filename='test_file.geojson',
-        summary='Vector caption',
+        filename='test_artifact_file.geojson',
+        summary='Test summary',
         attachments=Attachments(
             legend=Legend(
                 legend_data=ContinuousLegendData(
@@ -163,17 +122,15 @@ def test_create_geojson_artifact_continuous_legend(default_computation_resources
 
     generated_artifact = create_geojson_artifact(
         data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
+        metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
         legend=legend,
     )
 
     assert generated_artifact == expected_artifact
 
 
-def test_create_geojson_artifact_index_str(default_computation_resources, general_uuid, default_association_tags):
+def test_create_geojson_artifact_index_str(default_computation_resources, general_uuid, default_artifact_metadata):
     expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
@@ -195,12 +152,7 @@ def test_create_geojson_artifact_index_str(default_computation_resources, genera
     )
 
     generated_artifact = create_geojson_artifact(
-        data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
-        resources=default_computation_resources,
-        filename='test_file',
-        tags=default_association_tags,
+        data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
     )
 
     with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
@@ -210,7 +162,7 @@ def test_create_geojson_artifact_index_str(default_computation_resources, genera
 
 
 def test_create_geojson_artifact_index_non_unique(
-    default_computation_resources, general_uuid, default_association_tags
+    default_computation_resources, general_uuid, default_artifact_metadata
 ):
     expected_geojson = """{
 "type": "FeatureCollection",
@@ -234,11 +186,8 @@ def test_create_geojson_artifact_index_non_unique(
 
     generated_artifact = create_geojson_artifact(
         data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
+        metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
-        tags=default_association_tags,
     )
 
     with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
@@ -258,12 +207,12 @@ EXPECTED_MULTIINDEX_GEOJSON = """{
 """
 
 
-def test_create_geojson_artifact_multiindex(default_computation_resources, general_uuid):
+def test_create_geojson_artifact_multiindex(default_computation_resources, general_uuid, default_artifact_metadata):
     expected_artifact = _Artifact(
-        name='Test Vector',
+        name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
-        filename='test_file.geojson',
-        summary='Vector caption',
+        filename='test_artifact_file.geojson',
+        summary='Test summary',
         attachments=Attachments(
             legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
         ),
@@ -285,11 +234,7 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
     )
 
     generated_artifact = create_geojson_artifact(
-        data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
-        resources=default_computation_resources,
-        filename='test_file',
+        data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
     )
 
     assert generated_artifact == expected_artifact
@@ -300,7 +245,7 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
         assert generated_content == EXPECTED_MULTIINDEX_GEOJSON
 
 
-def test_create_geojson_artifact_tuple_index(default_computation_resources):
+def test_create_geojson_artifact_tuple_index(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -313,10 +258,8 @@ def test_create_geojson_artifact_tuple_index(default_computation_resources):
 
     generated_artifact = create_geojson_artifact(
         data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
+        metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
     )
 
     with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
@@ -325,7 +268,7 @@ def test_create_geojson_artifact_tuple_index(default_computation_resources):
         assert generated_content == EXPECTED_MULTIINDEX_GEOJSON
 
 
-def test_create_geojson_artifact_multicolumn(default_computation_resources):
+def test_create_geojson_artifact_multicolumn(default_computation_resources, default_artifact_metadata):
     expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
@@ -350,10 +293,8 @@ def test_create_geojson_artifact_multicolumn(default_computation_resources):
 
     generated_artifact = create_geojson_artifact(
         data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
+        metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
     )
 
     with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
@@ -362,7 +303,7 @@ def test_create_geojson_artifact_multicolumn(default_computation_resources):
         assert generated_content == expected_geojson
 
 
-def test_create_geojson_artifact_fail_on_wrong_color_type(default_computation_resources):
+def test_create_geojson_artifact_fail_on_wrong_color_type(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': ['#ffffff', '#b00b1e', '#000000'],
@@ -373,13 +314,11 @@ def test_create_geojson_artifact_fail_on_wrong_color_type(default_computation_re
         crs='EPSG:4326',
     )
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match=r'Not all values in column color are of type'):
         create_geojson_artifact(
             data=method_input,
-            layer_name='Test Vector',
-            caption='Vector caption',
+            metadata=default_artifact_metadata,
             resources=default_computation_resources,
-            filename='test_file',
         )
 
 
@@ -394,7 +333,7 @@ EXPECTED_ROUNDING_GEOJSON = """{
 """
 
 
-def test_write_geojson_file_max_precision(default_computation_resources):
+def test_write_geojson_file_max_precision(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -406,10 +345,8 @@ def test_write_geojson_file_max_precision(default_computation_resources):
 
     generated_artifact = create_geojson_artifact(
         data=method_input,
-        layer_name='Test Vector',
-        caption='Vector caption',
+        metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
     )
 
     with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:

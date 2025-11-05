@@ -43,6 +43,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   requests and save resources ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
 - the `_Artifact.store_id` field was removed in favour of the `_Artifact.filename` which in turn replaces
   `_Artifact.file_path`.
+- the `Artifact` creation helper methods now bundle their common input variables into a common `ArtifactMetadata`
+  object ([#240](https://gitlab.heigit.org/climate-action/climatoology/-/issues/240))
 
 ### Fix
 

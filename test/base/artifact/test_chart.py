@@ -1,5 +1,4 @@
 from copy import deepcopy
-from pathlib import Path
 
 import plotly
 import pytest
@@ -11,7 +10,6 @@ from climatoology.base.artifact import (
     ArtifactModality,
     Chart2dData,
     ChartType,
-    _Artifact,
     create_chart_artifact,
     create_plotly_chart_artifact,
 )
@@ -105,14 +103,9 @@ def test_three_instance_chart2ddata():
 
 
 @pytest.mark.parametrize('chart_type', [ChartType.SCATTER, ChartType.LINE, ChartType.BAR, ChartType.PIE])
-def test_create_concise_chart_artifact(chart_type, default_computation_resources, general_uuid):
-    expected_artifact = _Artifact(
-        name='Test Chart',
-        modality=ArtifactModality.CHART_PLOTLY,
-        filename='test_file.json',
-        summary='Chart caption',
-        correlation_uuid=general_uuid,
-    )
+def test_create_concise_chart_artifact(
+    chart_type, default_computation_resources, default_artifact, default_artifact_metadata
+):
     method_input = Chart2dData(
         x=[1, 2, 3],
         y=[3, 2, 1],
@@ -122,32 +115,24 @@ def test_create_concise_chart_artifact(chart_type, default_computation_resources
         chart_type=chart_type,
     )
 
+    default_artifact_copy = default_artifact.model_copy(deep=True)
+    default_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
+    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.json'
+
     generated_artifact = create_chart_artifact(
         data=method_input,
-        title='Test Chart',
-        caption='Chart caption',
+        metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
     )
 
-    assert generated_artifact == expected_artifact
+    assert generated_artifact == default_artifact_copy
+    assert plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
 
 
 @pytest.mark.parametrize('chart_type', [ChartType.SCATTER, ChartType.LINE, ChartType.BAR, ChartType.PIE])
 def test_create_extensive_chart_artifact(
-    chart_type, default_computation_resources, general_uuid, default_association_tags, default_sources
+    chart_type, default_computation_resources, extensive_artifact, extensive_artifact_metadata
 ):
-    expected_artifact = _Artifact(
-        name='Test Chart',
-        modality=ArtifactModality.CHART_PLOTLY,
-        filename='test_file.json',
-        summary='Chart caption',
-        description='Chart description',
-        sources=default_sources,
-        tags=default_association_tags,
-        primary=False,
-        correlation_uuid=general_uuid,
-    )
     method_input = Chart2dData(
         x=[1, 2, 3],
         y=[3, 2, 1],
@@ -158,81 +143,55 @@ def test_create_extensive_chart_artifact(
     )
     method_input_copy = method_input.model_copy(deep=True)
 
+    extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
+    extensive_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
+    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.json'
+
     generated_artifact = create_chart_artifact(
         data=method_input,
-        title='Test Chart',
-        caption='Chart caption',
+        metadata=extensive_artifact_metadata,
         resources=default_computation_resources,
-        primary=False,
-        description='Chart description',
-        sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
-        tags=default_association_tags,
-        filename='test_file',
     )
 
-    assert generated_artifact == expected_artifact
+    assert generated_artifact == extensive_artifact_copy
     assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
 
 
 def test_create_concise_plotly_chart_artifact(
-    default_computation_resources,
-    general_uuid,
+    default_computation_resources, default_artifact, default_artifact_metadata
 ):
-    expected_artifact = _Artifact(
-        name='Test Plotly Chart',
-        modality=ArtifactModality.CHART_PLOTLY,
-        filename='test_file.json',
-        summary='Chart caption',
-        correlation_uuid=general_uuid,
+    method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+
+    default_artifact_copy = default_artifact.model_copy(deep=True)
+    default_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
+    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.json'
+
+    generated_artifact = create_plotly_chart_artifact(
+        figure=method_input,
+        metadata=default_artifact_metadata,
+        resources=default_computation_resources,
     )
+    generated_content = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+
+    assert generated_artifact == default_artifact_copy
+    assert generated_content == method_input
+
+
+def test_create_extensive_plotly_chart_artifact(
+    default_computation_resources, extensive_artifact, extensive_artifact_metadata
+):
     method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
     method_input_copy = deepcopy(method_input)
 
+    extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
+    extensive_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
+    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.json'
+
     generated_artifact = create_plotly_chart_artifact(
         figure=method_input,
-        title='Test Plotly Chart',
-        caption='Chart caption',
+        metadata=extensive_artifact_metadata,
         resources=default_computation_resources,
-        filename='test_file',
     )
-
-    assert generated_artifact == expected_artifact
-
-    generated_chart = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
-    assert generated_chart == method_input
 
     assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
-
-
-def test_create_plotly_chart_artifact(
-    default_computation_resources, general_uuid, default_association_tags, default_sources
-):
-    expected_artifact = _Artifact(
-        name='Test Plotly Chart',
-        modality=ArtifactModality.CHART_PLOTLY,
-        filename='test_file.json',
-        summary='Chart caption',
-        description='Chart description',
-        sources=default_sources,
-        tags=default_association_tags,
-        primary=False,
-        correlation_uuid=general_uuid,
-    )
-    method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
-
-    generated_artifact = create_plotly_chart_artifact(
-        figure=method_input,
-        title='Test Plotly Chart',
-        caption='Chart caption',
-        resources=default_computation_resources,
-        primary=False,
-        description='Chart description',
-        sources=Path(__file__).parent.parent.parent / 'resources/minimal.bib',
-        tags=default_association_tags,
-        filename='test_file',
-    )
-
-    assert generated_artifact == expected_artifact
-
-    generated_chart = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
-    assert generated_chart == method_input
+    assert generated_artifact == extensive_artifact_copy

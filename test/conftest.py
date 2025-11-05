@@ -27,7 +27,13 @@ import climatoology
 from climatoology.app.plugin import _create_plugin
 from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
-from climatoology.base.artifact import ArtifactModality, _Artifact, create_markdown_artifact
+from climatoology.base.artifact import (
+    ARTIFACT_OVERWRITE_FIELDS,
+    ArtifactMetadata,
+    ArtifactModality,
+    _Artifact,
+    create_markdown_artifact,
+)
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.event import ComputationState
@@ -148,15 +154,49 @@ def default_info_final(default_info_enriched) -> _Info:
 
 
 @pytest.fixture
-def default_artifact(general_uuid) -> _Artifact:
-    """Note: this should only provide required fields.
+def default_artifact_metadata() -> ArtifactMetadata:
+    """Note: this should only provide required fields (except filename, which would make testing very cumbersome).
+    This way it automatically is a test that optional fields are in fact optional.
+    """
+    return ArtifactMetadata(name='test_name', filename='test_artifact_file', summary='Test summary')
+
+
+@pytest.fixture
+def extensive_artifact_metadata(default_association_tags) -> ArtifactMetadata:
+    return ArtifactMetadata(
+        name='test_name',
+        primary=False,
+        tags=default_association_tags,
+        filename='test_artifact_file',
+        summary='Test summary',
+        description='Test description',
+        sources=Path(__file__).parent / 'resources/minimal.bib',
+    )
+
+
+@pytest.fixture
+def default_artifact(general_uuid, default_artifact_metadata) -> _Artifact:
+    """Note: this should only provide required fields (except filename, which would make testing very cumbersome).
     This way it automatically is a test that optional fields are in fact optional.
     """
     return _Artifact(
-        name='test_name',
+        **default_artifact_metadata.model_dump(exclude={'filename'}),
         modality=ArtifactModality.MARKDOWN,
         filename='test_artifact_file.md',
-        summary='Test summary',
+        correlation_uuid=general_uuid,
+    )
+
+
+@pytest.fixture
+def extensive_artifact(general_uuid, extensive_artifact_metadata, default_sources) -> _Artifact:
+    """Note: this should alter ALL fields (including optional ones,
+    except rank and attachments, which would make testing very cumbersome).
+    """
+    return _Artifact(
+        **extensive_artifact_metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
+        modality=ArtifactModality.MARKDOWN,
+        sources=default_sources,
+        filename='test_artifact_file.md',
         correlation_uuid=general_uuid,
     )
 
@@ -181,7 +221,7 @@ def default_input_model() -> TestModel:
 
 
 @pytest.fixture
-def default_operator(default_info, default_artifact) -> BaseOperator:
+def default_operator(default_info, default_artifact_metadata) -> BaseOperator:
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> _Info:
             return default_info.model_copy(deep=True)
@@ -197,10 +237,8 @@ def default_operator(default_info, default_artifact) -> BaseOperator:
             artifact_text = (Path(__file__).parent / 'resources/test_artifact_file.md').read_text()
             artifact = create_markdown_artifact(
                 text=artifact_text,
+                metadata=default_artifact_metadata,
                 resources=resources,
-                name=default_artifact.name,
-                tl_dr=default_artifact.summary,
-                filename='test_artifact_file',
             )
             return [artifact]
 
