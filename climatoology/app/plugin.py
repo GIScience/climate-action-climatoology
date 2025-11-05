@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 
 from celery import Celery
@@ -10,12 +9,13 @@ from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSetti
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.info import _Info
+from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.info import InfoTable
 from climatoology.store.object_store import MinioStorage, Storage
 from climatoology.utility.exception import VersionMismatchError
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 
 def start_plugin(operator: BaseOperator) -> Optional[int]:

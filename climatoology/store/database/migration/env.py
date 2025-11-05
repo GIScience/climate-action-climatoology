@@ -1,4 +1,3 @@
-import logging
 from typing import Optional, Type
 
 from alembic import context
@@ -28,8 +27,6 @@ from climatoology.store.database.models.views import (
     UsageView,
     ValidComputationsView,
 )
-
-log = logging.getLogger(__name__)
 
 
 def create_view_tracking_object(view_cls: Type[ClimatoologyTableBase]) -> PGView:

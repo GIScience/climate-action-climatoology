@@ -12,7 +12,7 @@ import pytest
 import responses
 import shapely
 import sqlalchemy
-from celery import Celery
+from celery import Celery, signals
 from celery.utils.threads import LocalStack
 from freezegun import freeze_time
 from pydantic import BaseModel, Field, HttpUrl
@@ -363,6 +363,20 @@ def default_computation_task(
 @pytest.fixture
 def celery_worker_parameters():
     return {'hostname': 'test_plugin@hostname'}
+
+
+@signals.setup_logging.connect
+def setup_celery_logging(**kwargs):
+    """
+    Override the default celery logging setup, which would otherwise override the root logger. By overriding the root
+    logger, the pytest `caplog` fixture no longer works, because the `caplog` handler gets removed. For more info, see
+    the warning here: https://docs.pytest.org/en/latest/how-to/logging.html#caplog-fixture
+
+    Note that celery has a setting `worker_hijack_root_logger`, but this is somewhat misleading. Even if you set this to
+    `False`, celery still interferes with the root logger.  This is intentional
+    behaviour: https://github.com/celery/celery/pull/2016
+    """
+    pass
 
 
 @pytest.fixture

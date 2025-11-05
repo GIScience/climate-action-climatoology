@@ -1,10 +1,11 @@
-import logging
 from typing import Any
 
 from pydantic import ValidationError
 from pydantic.fields import FieldInfo
 
-log = logging.getLogger(__name__)
+from climatoology.base.logging import get_climatoology_logger
+
+log = get_climatoology_logger(__name__)
 
 
 class PlatformUtilityError(Exception):

@@ -1,4 +1,3 @@
-import logging
 import mimetypes
 import uuid
 from abc import ABC, abstractmethod
@@ -17,8 +16,9 @@ from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.event import ComputationState
 from climatoology.base.info import Assets, PluginBaseInfo, _convert_icon_to_thumbnail
+from climatoology.base.logging import get_climatoology_logger
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 
 # TODO: move this to computation.py module? I always search for it there (but that creates a circular import so the artifact creation methods would need to be moved)
@@ -232,7 +232,7 @@ class MinioStorage(Storage):
 
         try:
             object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
-            log.debug(f'Download{object_name} from bucket {self.__bucket} to {file_path}')
+            log.debug(f'Downloading {object_name} from bucket {self.__bucket} to {file_path}')
             self.client.fget_object(
                 bucket_name=self.__bucket,
                 object_name=object_name,

@@ -1,5 +1,4 @@
 import json
-import logging
 import re
 import tomllib
 from datetime import timedelta
@@ -17,8 +16,9 @@ from semver import Version
 
 import climatoology
 from climatoology.base import PydanticSemver
+from climatoology.base.logging import get_climatoology_logger
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 DEMO_AOI_PATH = Path(__file__).parent.parent / 'resources/Heidelberg_AOI.geojson'
 

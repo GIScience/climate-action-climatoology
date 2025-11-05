@@ -1,4 +1,3 @@
-import logging
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from io import StringIO
@@ -19,6 +18,7 @@ from sqlalchemy.orm import Session, joinedload
 from climatoology.base.artifact import _Artifact
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import PluginBaseInfo, _Info
+from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import ClimatoologyTableBase
@@ -35,7 +35,7 @@ from climatoology.store.database.models.info import (
 from climatoology.store.object_store import ComputationInfo
 from climatoology.utility.exception import InfoNotReceivedError
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 DEMO_SUFFIX = '-demo'
 

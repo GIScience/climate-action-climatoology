@@ -1,5 +1,4 @@
 import json
-import logging
 import uuid
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
@@ -14,9 +13,10 @@ from climatoology.base import T_co
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
+from climatoology.base.logging import get_climatoology_logger
 from climatoology.utility.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 
-log = logging.getLogger(__name__)
+log = get_climatoology_logger(__name__)
 
 
 class AoiProperties(BaseModel):
@@ -121,7 +121,8 @@ class BaseOperator(ABC, Generic[T_co]):
         :param params: computation configuration parameters
         :return: a list of artifacts
         """
-        logging.debug(f'Beginning computation for correlation_uuid {resources.correlation_uuid}')
+        log.info(f'Handling compute request for area: {aoi_properties.model_dump()} with params: {params.model_dump()}')
+
         artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params)
         artifacts = list(filter(None, artifacts))
 
@@ -181,6 +182,4 @@ class BaseOperator(ABC, Generic[T_co]):
         except Exception as e:
             msg = str(e) if isinstance(e, ClimatoologyUserError) else ''
             resources.artifact_errors[indicator_name] = msg
-            log.error(
-                f'{indicator_name} computation failed for correlation id {resources.correlation_uuid}', exc_info=e
-            )
+            log.error(f'{indicator_name} computation failed', exc_info=e)
