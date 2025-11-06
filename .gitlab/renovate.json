@@ -9,16 +9,18 @@
   "packageRules": [
     {
       "matchUpdateTypes": [
-        "patch",
-        "lockFileMaintenance"
+        "patch"
       ],
-      "schedule": ["* 0-3 1 * *"],
       "automerge": true,
       "groupName": "dependency patches"
     },
     {
       "matchUpdateTypes": [
-        "minor"
+        "minor",
+        "lockFileMaintenance"
+      ],
+      "schedule": [
+        "* 0-3 1 * *"
       ],
       "groupName": "dependency feature release updates"
     }
