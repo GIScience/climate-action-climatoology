@@ -29,6 +29,7 @@ from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import (
     ARTIFACT_OVERWRITE_FIELDS,
+    ArtifactEnriched,
     ArtifactMetadata,
     ArtifactModality,
     _Artifact,
@@ -110,7 +111,13 @@ def default_info() -> _Info:
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent / 'resources/test_methodology.md',
-        sources=Path(__file__).parent / 'resources/test.bib',
+        sources_library=Path(__file__).parent / 'resources/test.bib',
+        info_sources={
+            'test2023',
+            'CitekeyInbook',
+            'CitekeyInproceedings',
+            'CitekeyMisc',
+        },  # TODO: this is an optional field and should be seperated to also make sure the filtering works (do when refactoring info stages, see other todo)
         computation_shelf_life=timedelta(days=1),
         demo_config=compose_demo_config(input_parameters=TestModel(id=1, name='John Doe', execution_time=0.0)),
     )
@@ -170,7 +177,7 @@ def extensive_artifact_metadata(default_association_tags) -> ArtifactMetadata:
         filename='test_artifact_file',
         summary='Test summary',
         description='Test description',
-        sources=Path(__file__).parent / 'resources/minimal.bib',
+        sources={'key1', 'key2'},
     )
 
 
@@ -183,21 +190,33 @@ def default_artifact(general_uuid, default_artifact_metadata) -> _Artifact:
         **default_artifact_metadata.model_dump(exclude={'filename'}),
         modality=ArtifactModality.MARKDOWN,
         filename='test_artifact_file.md',
-        correlation_uuid=general_uuid,
     )
 
 
 @pytest.fixture
-def extensive_artifact(general_uuid, extensive_artifact_metadata, default_sources) -> _Artifact:
+def extensive_artifact(general_uuid, extensive_artifact_metadata) -> _Artifact:
     """Note: this should alter ALL fields (including optional ones,
     except rank and attachments, which would make testing very cumbersome).
     """
     return _Artifact(
         **extensive_artifact_metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MARKDOWN,
-        sources=default_sources,
         filename='test_artifact_file.md',
+    )
+
+
+@pytest.fixture
+def default_artifact_enriched(default_artifact, general_uuid) -> ArtifactEnriched:
+    return ArtifactEnriched(**default_artifact.model_dump(exclude={'sources'}), rank=0, correlation_uuid=general_uuid)
+
+
+@pytest.fixture
+def extensive_artifact_enriched(extensive_artifact, general_uuid) -> ArtifactEnriched:
+    return ArtifactEnriched(
+        **extensive_artifact.model_dump(exclude={'sources'}),
+        rank=0,
         correlation_uuid=general_uuid,
+        sources=[MiscSource(ID='id', title='title', author='author', year='2025', ENTRYTYPE='misc', url='https://a.b')],
     )
 
 
@@ -329,7 +348,7 @@ def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
 
 @pytest.fixture
 def default_computation_info(
-    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact, default_info
+    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact_enriched, default_info
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
@@ -340,7 +359,7 @@ def default_computation_info(
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
-        artifacts=[default_artifact],
+        artifacts=[default_artifact_enriched],
         plugin_info=PluginBaseInfo(id=default_info.id, version=default_info.version),
     )
 

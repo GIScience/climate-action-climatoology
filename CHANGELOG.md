@@ -7,6 +7,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
+TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
+
 ### Changed
 
 - the project now requires python >=3.13.5 <3.14.0
@@ -45,6 +47,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   `_Artifact.file_path`.
 - the `Artifact` creation helper methods now bundle their common input variables into a common `ArtifactMetadata`
   object ([#240](https://gitlab.heigit.org/climate-action/climatoology/-/issues/240))
+- the plugin info now takes in a library that can be subsetted for the info-sources (general sources of the plugin) but
+  will also be reused for the artifact sources (see
+  below) ([#224](https://gitlab.heigit.org/climate-action/climatoology/-/issues/224))
+- the different stages of the `_Artifact` are now more visible through different class names that also present the
+  enrichment cycle through inheritance.
 
 ### Fix
 
@@ -85,7 +92,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   front-end ([#118](https://gitlab.heigit.org/climate-action/climatoology/-/issues/118))
 - `Info` now has the repository attribute that is automatically read from he pyproject.toml
 - CI triggers for canary builds in downstream projects
-- Artifacts can now have dedicated sources ([#202](https://gitlab.heigit.org/climate-action/climatoology/-/issues/202))
+- Artifacts can now have dedicated sources that are read from the central library defined during plugin info
+  generation ([#202](https://gitlab.heigit.org/climate-action/climatoology/-/issues/202))
 - Users can provide a custom title in the `Legend`
   object ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 - Users can create legend data from a colormap using the `legend_data_from_colormap`

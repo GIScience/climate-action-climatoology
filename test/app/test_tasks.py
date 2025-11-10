@@ -1,3 +1,4 @@
+import sys
 import tempfile
 from pathlib import Path
 from typing import List
@@ -9,7 +10,7 @@ from pydantic import BaseModel
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask
-from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.artifact import ArtifactEnriched, ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
@@ -138,8 +139,9 @@ def test_save_computation_info(
     mocked_object_store.save = save_mock
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        expected_save_artifact = _Artifact(
+        expected_save_artifact = ArtifactEnriched(
             name='Computation Info',
+            rank=sys.maxsize,
             modality=ArtifactModality.COMPUTATION_INFO,
             filename='metadata.json',
             summary=f'Computation information of correlation_uuid {general_uuid}',

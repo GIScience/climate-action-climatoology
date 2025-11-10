@@ -1,8 +1,7 @@
 import uuid
 from enum import Enum
 from numbers import Number
-from pathlib import Path
-from typing import Dict, List, NewType, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 from uuid import UUID
 
 import numpy as np
@@ -21,7 +20,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    FilePath,
     computed_field,
     confloat,
     conint,
@@ -36,7 +34,7 @@ from rasterio.enums import OverviewResampling
 from rasterio.rio.overview import get_maximum_overview_level
 
 from climatoology.base.computation import ComputationResources
-from climatoology.base.info import ArticleSource, IncollectionSource, MiscSource, _convert_bib
+from climatoology.base.info import ArticleSource, Source, filter_sources
 from climatoology.base.logging import get_climatoology_logger
 
 log = get_climatoology_logger(__name__)
@@ -47,16 +45,14 @@ plotly_template = pio.templates['plotly_white']
 plotly_template.layout.colorway = px.colors.qualitative.Safe
 pio.templates.default = plotly_template
 
-colormap_type = NewType(
-    'colormap_type',
-    Dict[
-        Number,
-        Union[
-            Tuple[conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255)],
-            Tuple[conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255)],
-        ],
+type Colormap = Dict[
+    Number,
+    Union[
+        Tuple[conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255)],
+        Tuple[conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255), conint(ge=0, le=255)],
     ],
-)
+]
+
 
 ACCEPTABLE_COLORMAPS = (
     # uniform sequential
@@ -194,12 +190,11 @@ class ArtifactMetadata(BaseModel):
         examples=['This image shows A and was taken from B by C because of D.'],
         default=None,
     )
-    sources: Optional[FilePath] = Field(
-        description=' A list of sources that were used to generate this artifact. Provide a '
-        '[.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/) file. '
-        'You can extract such a file from most common bibliography management systems.',
-        examples=[Path('/path/to/library.bib')],
-        default=None,
+    sources: set[str] = Field(
+        description='A list of bibtex source-keys that will be used to select the sources for this artifact from your '
+        "library defined in the plugin's info method.",
+        examples=[{'key1', 'foo2025'}],
+        default=set(),
     )
 
     @field_validator('filename', mode='after')
@@ -219,35 +214,36 @@ class _Artifact(ArtifactMetadata):
     model_config = ConfigDict(from_attributes=True)
 
     modality: ArtifactModality = Field(description='The type of artefact created.', examples=[ArtifactModality.IMAGE])
-    rank: Optional[int] = Field(
-        description='Rank of the artifact within the computation.', examples=[0, 1, 2, 3], default=None, ge=0
-    )
-    sources: Optional[Optional[list[ArticleSource | IncollectionSource | MiscSource]]] = Field(
-        description='A list of sources that were used to generate this artifact. ',
-        examples=[
-            [
-                {
-                    'pages': '14-15',
-                    'volume': '2',
-                    'journal': 'J. Geophys. Res.',
-                    'year': '1954',
-                    'title': "Nothing Particular in this Year's History",
-                    'author': 'J. G. Smith and H. K. Weston',
-                    'ENTRYTYPE': 'article',
-                    'ID': 'smit54',
-                }
-            ]
-        ],
-        default=None,
-    )
-    correlation_uuid: UUID = Field(
-        description='The correlation UUID of the computation that generated this artifact.',
-        examples=[uuid.uuid4()],
-    )
     attachments: Optional[Attachments] = Field(
         description='Additional information or files that are linked to this artifact.',
         examples=[Attachments(legend=Legend(legend_data={'The red object': Color('red')}))],
         default=None,
+    )
+
+
+class ArtifactEnriched(_Artifact):
+    correlation_uuid: UUID = Field(
+        description='The correlation UUID of the computation that generated this artifact.',
+        examples=[uuid.uuid4()],
+    )
+    rank: int = Field(description='Rank of the artifact within the computation.', examples=[0, 1, 2, 3], ge=0)
+    sources: list[Source] = Field(
+        description='A list of sources that were used to generate this artifact. ',
+        examples=[
+            [
+                ArticleSource(
+                    pages='14-15',
+                    volume='2',
+                    journal='J. Geophys. Res.',
+                    year='1954',
+                    title="Nothing Particular in this Year's History",
+                    author='J. G. Smith and H. K. Weston',
+                    ENTRYTYPE='article',
+                    ID='smit54',
+                )
+            ]
+        ],
+        default=list(),
     )
 
 
@@ -339,7 +335,23 @@ class Chart2dData(BaseModel):
             return [c.as_hex() for c in co]
 
 
-ARTIFACT_OVERWRITE_FIELDS = {'filename', 'sources'}
+def enrich_artifacts(
+    artifacts: list[_Artifact], correlation_uuid: UUID, sources_library: dict[str, Source]
+) -> list[ArtifactEnriched]:
+    enriched_artifacts = []
+    for rank, artifact in enumerate(artifacts):
+        sources_filtered = filter_sources(sources_library=sources_library, source_keys=artifact.sources)
+        enriched_artifact = ArtifactEnriched(
+            **artifact.model_dump(exclude={'sources'}),
+            correlation_uuid=correlation_uuid,
+            rank=rank,
+            sources=sources_filtered,
+        )
+        enriched_artifacts.append(enriched_artifact)
+    return enriched_artifacts
+
+
+ARTIFACT_OVERWRITE_FIELDS = {'filename'}
 
 
 def create_markdown_artifact(
@@ -365,14 +377,10 @@ def create_markdown_artifact(
     with open(file_path, 'x') as out_file:
         out_file.write(text)
 
-    sources = _convert_bib(metadata.sources)
-
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MARKDOWN,
         filename=file_path.name,
-        sources=sources,
-        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -399,14 +407,10 @@ def create_table_artifact(
     data = data.reset_index()
     data.to_csv(file_path, header=True, index=False, index_label=False, mode='x')
 
-    sources = _convert_bib(metadata.sources)
-
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.TABLE,
         filename=file_path.name,
-        sources=sources,
-        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -434,14 +438,10 @@ def create_image_artifact(
 
     image.save(file_path, format='PNG', optimize=True)
 
-    sources = _convert_bib(metadata.sources)
-
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.IMAGE,
         filename=file_path.name,
-        sources=sources,
-        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -506,14 +506,10 @@ def create_plotly_chart_artifact(
     with open(file_path, 'x') as out_file:
         plotly.io.write_json(figure, out_file)
 
-    sources = _convert_bib(metadata.sources)
-
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.CHART_PLOTLY,
         filename=file_path.name,
-        sources=sources,
-        correlation_uuid=resources.correlation_uuid,
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
@@ -583,15 +579,11 @@ def create_geojson_artifact(
         legend_data = legend_df.to_dict()['color']
         legend = Legend(legend_data=legend_data)
 
-    sources = _convert_bib(metadata.sources)
-
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         filename=file_path.name,
-        sources=sources,
         attachments=Attachments(legend=legend),
-        correlation_uuid=resources.correlation_uuid,
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -616,7 +608,7 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
         'using https://github.com/rasterio/affine',
         examples=[Affine.identity()],
     )
-    colormap: Optional[colormap_type] = Field(
+    colormap: Optional[Colormap] = Field(
         title='Colormap',
         description='An optional colormap for easy '
         'display. It will be applied to the '
@@ -697,15 +689,11 @@ def create_geotiff_artifact(
         legend_data = legend_data_from_colormap(raster_info.colormap)
         legend = Legend(legend_data=legend_data)
 
-    sources = _convert_bib(metadata.sources)
-
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         filename=file_path.name,
-        sources=sources,
         attachments=Attachments(legend=legend) if legend else None,
-        correlation_uuid=resources.correlation_uuid,
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
@@ -713,7 +701,7 @@ def create_geotiff_artifact(
     return result
 
 
-def legend_data_from_colormap(colormap: colormap_type) -> Dict[str, Color]:
+def legend_data_from_colormap(colormap: Colormap) -> Dict[str, Color]:
     """
     Create a legend from a colormap type.
     """

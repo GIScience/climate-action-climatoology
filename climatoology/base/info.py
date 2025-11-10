@@ -5,7 +5,7 @@ from datetime import timedelta
 from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import Annotated, List, Literal, Optional, Set
+from typing import Annotated, List, Literal, Optional, Set, Union
 
 import bibtexparser
 import geojson_pydantic
@@ -90,10 +90,29 @@ class MiscSource(BaseSource):
     url: str
 
 
+type Source = Union[ArticleSource, IncollectionSource, MiscSource]
+
+
 class Assets(BaseModel):
     """Static data linked to the plugin that should be stored in the object store."""
 
     icon: str = Field(description='The icon asset', examples=['icon.png'])
+    sources_library: dict[str, Source] = Field(
+        description='The sources available in this plugin',
+        examples=[
+            {
+                'id1': MiscSource(
+                    ENTRYTYPE='misc',
+                    ID='id1',
+                    title='title1',
+                    author='author1',
+                    year='2008',
+                    url='https://example.com',
+                )
+            }
+        ],
+        default=dict(),
+    )
 
 
 class DemoConfig(BaseModel):
@@ -178,23 +197,21 @@ class _Info(PluginBaseInfo, extra='forbid'):
         description='How does this plugin achieve its goal?',
         examples=['This plugin uses a combination of data source A and method B to accomplish the purpose.'],
     )
-    sources: Optional[List[ArticleSource | IncollectionSource | MiscSource]] = Field(
+    sources: list[Source] = Field(
         description='A list of sources that were used in the process or are related. ',
         examples=[
             [
-                {
-                    'pages': '14-15',
-                    'volume': '2',
-                    'journal': 'J. Geophys. Res.',
-                    'year': '1954',
-                    'title': "Nothing Particular in this Year's History",
-                    'author': 'J. G. Smith and H. K. Weston',
-                    'ENTRYTYPE': 'article',
-                    'ID': 'smit54',
-                }
+                MiscSource(
+                    ENTRYTYPE='misc',
+                    ID='id1',
+                    title='title1',
+                    author='author1',
+                    year='2008',
+                    url='https://example.com',
+                )
             ]
         ],
-        default=None,
+        default=list(),
     )
     demo_config: DemoConfig = Field(description='Configuration to run a demonstration of a plugin.')
     computation_shelf_life: Optional[timedelta] = Field(
@@ -261,11 +278,25 @@ def _convert_icon_to_thumbnail(icon: Path) -> BytesIO:
     return buffered
 
 
-def _convert_bib(sources: Optional[Path] = None) -> Optional[JsonSchemaValue]:
+def _convert_bib(sources: Optional[Path] = None) -> dict[str, dict[str, str]]:
     if sources is None:
-        return None
+        return dict()
     with open(sources, mode='r') as file:
-        return bibtexparser.load(file).get_entry_list()
+        return bibtexparser.load(file).get_entry_dict()
+
+
+def filter_sources(sources_library: dict[str, Source], source_keys: set[str]) -> list[Source]:
+    sources_filtered = []
+    for key in source_keys:
+        if key in sources_library:
+            sources_filtered.append(sources_library[key])
+        else:
+            raise ValueError(
+                f'The sources library does not contain a source with the id: {key}. '
+                'Check the keys in your sources bib file provided to the generate_plugin_info '
+                'method.'
+            )
+    return sources_filtered
 
 
 def generate_plugin_info(
@@ -281,7 +312,8 @@ def generate_plugin_info(
     demo_config: DemoConfig,
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
-    sources: Optional[Path] = None,
+    sources_library: Optional[Path] = None,
+    info_sources: Optional[set[str]] = None,
 ) -> _Info:
     """Generate a plugin info object.
 
@@ -305,13 +337,21 @@ def generate_plugin_info(
       0 means no caching while None means indefinite caching.
     :param demo_config: A `DemoConfig` object defining the input parameters, AOI and AOI name for the demo computation.
       The helper function `compose_demo_config` may be used to create this object with a default AOI.
-    :param sources: A list of sources that were used in the process or are related. Self-citations are welcome and
+    :param sources_library: A list of sources that were used in the process or are related. Self-citations are welcome and
       even preferred! Provide a [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
       file. You can extract such a file from most common bibliography management systems.
+    :param info_sources: A list of IDs to optionally subset the sources library to only include the base sources for the
+      plugin. Defaults to all sources.
     :return: An _Info object that can be used to announce the plugin on the platform.
     """
-    assets = Assets(icon=str(icon))
-    sources = _convert_bib(sources)
+    sources_library = _convert_bib(sources_library)
+    # noinspection PyTypeChecker
+    # the type of the sources will be validated in the following line, until then they are just dicts
+    assets = Assets(icon=str(icon), sources_library=sources_library)
+
+    if info_sources is None:
+        info_sources = {}
+    subset_sources = filter_sources(sources_library=assets.sources_library, source_keys=info_sources)
 
     with open('pyproject.toml', 'rb') as pyproject_toml:
         pyproject = tomllib.load(pyproject_toml)
@@ -331,7 +371,7 @@ def generate_plugin_info(
         teaser=teaser,
         purpose=purpose.read_text(),
         methodology=methodology.read_text(),
-        sources=sources,
+        sources=subset_sources,
         assets=assets,
         demo_config=demo_config,
         computation_shelf_life=computation_shelf_life,

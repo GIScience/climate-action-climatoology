@@ -15,7 +15,6 @@ from climatoology.base.artifact import (
     Legend,
     RasterInfo,
     _Artifact,
-    colormap_type,
     create_geotiff_artifact,
 )
 
@@ -64,7 +63,7 @@ def test_create_extensive_geotiff_artifact_2d(
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
     legend = Legend(legend_data={'1': Color('#0f0')}, title='Custom Legend Title')
     method_input_copy = method_input.model_copy(deep=True)
@@ -97,7 +96,6 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
         filename='test_artifact_file.tiff',
         summary='Test summary',
         attachments=Attachments(legend=Legend(legend_data={'1': Color('#00ff00fe')})),
-        correlation_uuid=general_uuid,
     )
 
     method_input = RasterInfo(
@@ -111,7 +109,7 @@ def test_create_geotiff_artifact_2d_rgba(default_computation_resources, general_
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0, 254)}),
+        colormap={1: (0, 255, 0, 254)},
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -140,7 +138,7 @@ def test_create_geotiff_artifact_masked_array(default_computation_resources, def
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -162,7 +160,6 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
         filename='test_artifact_file.tiff',
         summary='Test summary',
         attachments=Attachments(legend=Legend(legend_data={'A': Color('#f00')})),
-        correlation_uuid=general_uuid,
     )
 
     method_input = RasterInfo(
@@ -176,7 +173,7 @@ def test_create_geotiff_with_legend_data(default_computation_resources, general_
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -200,7 +197,6 @@ def test_create_geotiff_without_legend(default_computation_resources, general_uu
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         filename='test_artifact_file.tiff',
         summary='Test summary',
-        correlation_uuid=general_uuid,
     )
 
     method_input = RasterInfo(
@@ -237,7 +233,6 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid,
         filename='test_artifact_file.tiff',
         summary='Test summary',
         attachments=Attachments(legend=Legend(legend_data={'1': Color('#0f0')})),
-        correlation_uuid=general_uuid,
     )
 
     method_input = RasterInfo(
@@ -251,7 +246,7 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid,
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -280,7 +275,7 @@ def test_geotiff_creation_option_warnings(default_computation_resources, caplog,
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     with caplog.at_level(logging.INFO):
@@ -331,7 +326,7 @@ def test_geotiff_created_with_overviews(default_computation_resources, default_a
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -358,7 +353,7 @@ def test_geotiff_tiled(default_computation_resources, default_artifact_metadata)
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     generated_artifact = create_geotiff_artifact(
@@ -387,7 +382,7 @@ def test_disallow_colormap_for_incompatible_dtype(default_computation_resources,
             d=0.0,
             e=0.1,
         ),
-        colormap=colormap_type({1: (0, 255, 0)}),
+        colormap={1: (0, 255, 0)},
     )
 
     with pytest.raises(AssertionError, match='Colormaps are not allowed for dtype float.'):
@@ -400,9 +395,7 @@ def test_disallow_colormap_for_incompatible_dtype(default_computation_resources,
 
 def test_rasterinfo_from_rasterio(default_computation_resources):
     with rasterio.open(f'{os.path.dirname(__file__)}/../../resources/test_raster_a.tiff') as raster:
-        # the Colormap type is the correct type for rasterio colormaps
-        # noinspection PyTypeChecker
-        colormap: colormap_type = raster.colormap(1)
+        colormap = raster.colormap(1)
         generated_info = RasterInfo(
             data=raster.read(), crs=raster.crs, transformation=raster.transform, colormap=colormap
         )

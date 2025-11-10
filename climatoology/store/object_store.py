@@ -12,7 +12,7 @@ from minio import Minio, S3Error
 from pydantic import BaseModel, ConfigDict, Field
 from semver import Version
 
-from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.event import ComputationState
 from climatoology.base.info import Assets, PluginBaseInfo, _convert_icon_to_thumbnail
@@ -70,15 +70,16 @@ class ComputationInfo(BaseModel):
             )
         ],
     )
-    artifacts: List[_Artifact] = Field(
+    artifacts: List[ArtifactEnriched] = Field(
         description='List of artifacts produced by this computation.',
         examples=[
-            _Artifact(
+            ArtifactEnriched(
                 name='Artifact One',
                 modality=ArtifactModality.MARKDOWN,
                 filename='example_file.md',
                 summary='An example artifact.',
                 correlation_uuid=uuid.uuid4(),
+                rank=0,
             )
         ],
         default=[],
@@ -127,7 +128,7 @@ class Storage(ABC):
         return object_name
 
     @abstractmethod
-    def save(self, artifact: _Artifact, file_dir: Path) -> str:
+    def save(self, artifact: ArtifactEnriched, file_dir: Path) -> str:
         """Save a single artifact in the object store.
 
         :param artifact: Operators' report creation process result
@@ -137,7 +138,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def save_all(self, artifacts: List[_Artifact], file_dir: Path) -> List[str]:
+    def save_all(self, artifacts: List[ArtifactEnriched], file_dir: Path) -> List[str]:
         """Save multiple artifacts in the object store.
 
         :param artifacts: Operators' report creation process results
@@ -202,7 +203,7 @@ class MinioStorage(Storage):
         self.__bucket = bucket
         self.__file_cache = file_cache
 
-    def save(self, artifact: _Artifact, file_dir: Path) -> str:
+    def save(self, artifact: ArtifactEnriched, file_dir: Path) -> str:
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} from {file_dir}/{artifact.filename}')
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id=artifact.filename)
@@ -222,7 +223,7 @@ class MinioStorage(Storage):
 
         return artifact.filename
 
-    def save_all(self, artifacts: List[_Artifact], file_dir: Path) -> List[str]:
+    def save_all(self, artifacts: List[ArtifactEnriched], file_dir: Path) -> List[str]:
         return [self.save(artifact, file_dir=file_dir) for artifact in artifacts]
 
     def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:

@@ -104,7 +104,6 @@ def test_create_geojson_artifact_continuous_legend(
                 )
             )
         ),
-        correlation_uuid=general_uuid,
     )
 
     method_input = GeoDataFrame(
@@ -216,7 +215,6 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
         attachments=Attachments(
             legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')})
         ),
-        correlation_uuid=general_uuid,
     )
 
     index = pd.MultiIndex.from_tuples(

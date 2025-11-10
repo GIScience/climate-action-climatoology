@@ -10,9 +10,9 @@ from climatoology.store.object_store import AssetType, DataGroup, Storage
 TEST_RESOURCES_DIR = Path(__file__).parent.parent / 'resources'
 
 
-def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifact):
+def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifact_enriched):
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket'))) == 0
-    store_id = mocked_object_store.save(default_artifact, file_dir=TEST_RESOURCES_DIR)
+    store_id = mocked_object_store.save(default_artifact_enriched, file_dir=TEST_RESOURCES_DIR)
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket', recursive=True))) == 1
     with tempfile.TemporaryDirectory() as tmpdirname:
         fetched_file = mocked_object_store.fetch(
@@ -21,18 +21,18 @@ def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifac
         assert fetched_file.read_text() == '# Test'
 
 
-def test_minio_save_content_type(mocked_object_store, default_artifact, mocker):
+def test_minio_save_content_type(mocked_object_store, default_artifact_enriched, mocker):
     save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
-    mocked_object_store.save(default_artifact, file_dir=TEST_RESOURCES_DIR)
+    mocked_object_store.save(default_artifact_enriched, file_dir=TEST_RESOURCES_DIR)
 
     save_info_spy.assert_called_once_with(
         bucket_name=ANY, content_type='text/markdown', file_path=ANY, metadata=ANY, object_name=ANY
     )
 
 
-def test_minio_save_all(mocked_object_store, general_uuid, default_artifact, mocker):
-    second_artifact = default_artifact.model_copy()
-    saved_artifacts = [default_artifact, second_artifact]
+def test_minio_save_all(mocked_object_store, general_uuid, default_artifact_enriched, mocker):
+    second_artifact = default_artifact_enriched.model_copy()
+    saved_artifacts = [default_artifact_enriched, second_artifact]
     save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
     mocked_object_store.save_all(saved_artifacts, file_dir=TEST_RESOURCES_DIR)
 

@@ -15,7 +15,7 @@ from sqlalchemy import NullPool, column, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
-from climatoology.base.artifact import _Artifact
+from climatoology.base.artifact import ArtifactEnriched
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.info import PluginBaseInfo, _Info
 from climatoology.base.logging import get_climatoology_logger
@@ -220,7 +220,7 @@ class BackendDatabase:
                 log.warning(f'Correlation {correlation_uuid} does not exist in database')
                 return None
 
-    def list_artifacts(self, correlation_uuid: UUID) -> List[_Artifact]:
+    def list_artifacts(self, correlation_uuid: UUID) -> List[ArtifactEnriched]:
         computation_info = self.read_computation(correlation_uuid=correlation_uuid)
         return computation_info.artifacts
 
@@ -252,7 +252,6 @@ class BackendDatabase:
             updated_values['valid_until'] = computation_info.timestamp
 
         artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
-        artifacts = [{**artifact, 'rank': rank} for rank, artifact in enumerate(artifacts)]
         artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
 
         computation_update_stmt = (

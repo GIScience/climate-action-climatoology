@@ -3,14 +3,14 @@ import uuid
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import cached_property
-from typing import Any, ContextManager, Dict, Generic, List, Optional, Type, TypeVar, final, get_args, get_origin
+from typing import Any, Dict, Generator, Generic, List, Optional, Type, TypeVar, final, get_args, get_origin
 
 import shapely
 from pydantic import BaseModel, Field, ValidationError
 
 import climatoology
 from climatoology.base import T_co
-from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.artifact import ArtifactEnriched, ArtifactModality, _Artifact, enrich_artifacts
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import _Info
 from climatoology.base.logging import get_climatoology_logger
@@ -111,7 +111,7 @@ class BaseOperator(ABC, Generic[T_co]):
         aoi: shapely.MultiPolygon,
         aoi_properties: AoiProperties,
         params: BaseModel,
-    ) -> List[_Artifact]:
+    ) -> List[ArtifactEnriched]:
         """
         Runs the compute procedure, checks and filters the returned artifacts.
 
@@ -124,23 +124,33 @@ class BaseOperator(ABC, Generic[T_co]):
         log.info(f'Handling compute request for area: {aoi_properties.model_dump()} with params: {params.model_dump()}')
 
         artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params)
-        artifacts = list(filter(None, artifacts))
 
-        if len(artifacts) < 1:
-            if resources.artifact_errors:
+        artifacts_filtered = self.filter_artifacts(artifacts=artifacts, artifact_errors=resources.artifact_errors)
+
+        artifacts_enriched = enrich_artifacts(
+            artifacts=artifacts_filtered,
+            correlation_uuid=resources.correlation_uuid,
+            sources_library=self.info_enriched.assets.sources_library,
+        )
+
+        return artifacts_enriched
+
+    @staticmethod
+    def filter_artifacts(artifacts: list[_Artifact], artifact_errors: dict[str, str]) -> list[_Artifact]:
+        artifacts_filtered = list(filter(None, artifacts))
+        if len(artifacts_filtered) < 1:
+            if artifact_errors:
                 raise ClimatoologyUserError(
-                    'Failed to create any indicators due to the following errors: '
-                    + json.dumps(resources.artifact_errors)
+                    'Failed to create any indicators due to the following errors: ' + json.dumps(artifact_errors)
                 )
             else:
                 raise AssertionError('The computation returned no results')
 
-        for artifact in artifacts:
+        for artifact in artifacts_filtered:
             assert artifact.modality != ArtifactModality.COMPUTATION_INFO, (
                 'Computation-info files are not allowed as plugin result'
             )
-
-        return artifacts
+        return artifacts_filtered
 
     @abstractmethod
     def compute(
@@ -165,7 +175,7 @@ class BaseOperator(ABC, Generic[T_co]):
     @final
     @staticmethod
     @contextmanager
-    def catch_exceptions(indicator_name: str, resources: ComputationResources) -> ContextManager[Any]:
+    def catch_exceptions(indicator_name: str, resources: ComputationResources) -> Generator[None]:
         """Catch any errors in the statements within this context manager, without failing. If the inner code fails,
         update the dictionary of `resources.artifact_errors` to include an item with:
         - key: `indicator_name`
