@@ -213,7 +213,6 @@ def test_operator_compute_unsafe_results_no_computation_info(
         modality=ArtifactModality.COMPUTATION_INFO,
         filename='metadata.json',
         summary='Computation information of correlation_uuid {general_uuid}',
-        correlation_uuid=general_uuid,
     )
 
     compute_mock = Mock(return_value=[computation_info_artifact])
@@ -229,7 +228,12 @@ def test_operator_compute_unsafe_results_no_computation_info(
 
 
 def test_operator_create_artifact_safely_with_only_good_artifact(
-    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties, general_uuid
+    default_info,
+    default_artifact,
+    default_artifact_enriched,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+    general_uuid,
 ):
     def good_fn():
         return default_artifact
@@ -258,7 +262,7 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
         aoi_properties=default_aoi_properties,
         params=TestModel(id=1),
     )
-    assert computed_artifacts == [default_artifact]
+    assert computed_artifacts == [default_artifact_enriched]
     assert input_resources.artifact_errors == {}
 
 
@@ -310,7 +314,13 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
 
 
 def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
-    default_info, default_artifact, default_aoi_geom_shapely, default_aoi_properties, caplog, general_uuid
+    default_info,
+    default_artifact,
+    default_artifact_enriched,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+    caplog,
+    general_uuid,
 ):
     def bad_fn():
         raise ValueError('Test artifact computation failed')
@@ -346,8 +356,8 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
             return artifacts
 
     expected_log_msgs = [
-        f'First Indicator computation failed for correlation id {default_artifact.correlation_uuid}',
-        f'Second Indicator computation failed for correlation_id {default_artifact.correlation_uuid}',
+        f'First Indicator computation failed for correlation id {general_uuid}',
+        f'Second Indicator computation failed for correlation_id {general_uuid}',
     ]
 
     operator = TestOperator()
@@ -360,7 +370,7 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
             params=TestModel(id=1),
         )
 
-    assert computed_artifacts == [default_artifact]
+    assert computed_artifacts == [default_artifact_enriched]
     assert input_resources.artifact_errors == {
         'First Indicator': '',
         'Second Indicator': 'Error message to store for the user',

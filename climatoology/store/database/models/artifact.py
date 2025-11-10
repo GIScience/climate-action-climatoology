@@ -15,7 +15,7 @@ class ArtifactTable(ClimatoologyTableBase):
     __tablename__ = 'artifact'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    rank: Mapped[Optional[int]]
+    rank: Mapped[int]
     correlation_uuid: Mapped[UUID] = mapped_column(
         ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.computation.correlation_uuid')
     )

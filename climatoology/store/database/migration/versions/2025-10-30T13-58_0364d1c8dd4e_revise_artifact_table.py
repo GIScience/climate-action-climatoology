@@ -25,10 +25,13 @@ def upgrade() -> None:
     op.drop_column('artifact', 'file_path', schema='ca_base')
     op.execute(sa.text('update ca_base.artifact set tags=ARRAY[]::text[] where tags is NULL'))
     op.alter_column('artifact', 'tags', existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=False, schema='ca_base')
+    op.execute(sa.text('update ca_base.artifact set rank=-1 where rank is NULL'))
+    op.alter_column('artifact', 'rank', existing_type=sa.Integer(), nullable=False, schema='ca_base')
 
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.alter_column('artifact', 'rank', existing_type=sa.Integer(), nullable=True, schema='ca_base')
     op.alter_column('artifact', 'tags', existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=True, schema='ca_base')
     op.add_column(
         'artifact', sa.Column('file_path', sa.String(), nullable=False, default='/tmp/dummy_filename'), schema='ca_base'

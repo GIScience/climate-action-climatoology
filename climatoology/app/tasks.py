@@ -1,3 +1,4 @@
+import sys
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,7 +10,7 @@ from celery import Task
 from celery.signals import task_revoked
 from shapely import set_srid
 
-from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactModality, _Artifact
+from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
 from climatoology.base.logging import get_climatoology_logger
@@ -44,8 +45,9 @@ class CAPlatformComputeTask(Task):
 
                 out_file.write(computation_info.model_dump_json(indent=None))
 
-                result = _Artifact(
+                result = ArtifactEnriched(
                     name='Computation Info',
+                    rank=sys.maxsize,
                     modality=ArtifactModality.COMPUTATION_INFO,
                     filename=COMPUTATION_INFO_FILENAME,
                     summary=f'Computation information of correlation_uuid {computation_info.correlation_uuid}',

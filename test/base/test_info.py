@@ -11,10 +11,12 @@ from semver import Version
 from climatoology.base.info import (
     Concern,
     DemoConfig,
+    IncollectionSource,
     PluginAuthor,
     PluginState,
     _Info,
     compose_demo_config,
+    filter_sources,
     generate_plugin_info,
 )
 from test.conftest import TestModel
@@ -58,7 +60,17 @@ def test_operator_info(default_info):
     assert default_info.id == 'test_plugin'
     assert default_info.version == Version(3, 1, 0)
     assert default_info.teaser == 'Test teaser that is meant to do nothing.'
-    assert default_info.sources[0].ENTRYTYPE == 'article'
+    # TODO: when implementing the info stages, this is optional so it might go to the extensive info
+
+    assert default_info.assets.sources_library['CitekeyInbook'] == IncollectionSource(
+        ENTRYTYPE='inbook',
+        ID='CitekeyInbook',
+        title='Photosynthesis',
+        author='Lisa A. Urry and Michael L. Cain and Steven A. Wasserman and Peter V. Minorsky and Jane B. Reece',
+        year='2016',
+        booktitle='Campbell Biology',
+        pages='187--221',
+    )
     assert Path(default_info.assets.icon).is_file()
 
 
@@ -83,9 +95,45 @@ def test_plugin_id_special_characters():
         purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
         demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
-        sources=Path(__file__).parent.parent / 'resources/test.bib',
+        sources_library=Path(__file__).parent.parent / 'resources/test.bib',
     )
     assert computed_info.id == 'test_plugin_with_pecial_characters_co'
+
+
+def test_filter_sources_with_invalid_key():
+    test_sources_library = {}
+    invalid_source_key = {'test_source'}
+    with pytest.raises(
+        ValueError,
+        match='The sources library does not contain a source with the id: test_source. '
+        'Check the keys in your sources bib file provided to the generate_plugin_info '
+        'method.',
+    ):
+        filter_sources(sources_library=test_sources_library, source_keys=invalid_source_key)
+
+
+def test_sources_subsetting(default_aoi_feature_geojson_pydantic, default_sources):
+    generated_info = generate_plugin_info(
+        name='Test Plugin',
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        version=Version.parse('3.1.0'),
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
+        purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
+        methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
+        demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
+        sources_library=Path(__file__).parent.parent / 'resources/test.bib',
+        info_sources={'CitekeyMisc'},
+    )
+
+    assert generated_info.sources == default_sources
 
 
 def test_sources_are_optional(default_aoi_feature_geojson_pydantic):
@@ -125,7 +173,7 @@ def test_invalid_sources(default_aoi_feature_geojson_pydantic):
             teaser='Test teaser that is meant to do nothing.',
             purpose=Path(__file__).parent.parent / 'resources/test_purpose.md',
             methodology=Path(__file__).parent.parent / 'resources/test_methodology.md',
-            sources=Path(__file__).parent.parent / 'resources/invalid_test.bib',
+            sources_library=Path(__file__).parent.parent / 'resources/invalid_test.bib',
             demo_config=compose_demo_config(input_parameters=TestModel(id=1)),
         )
 

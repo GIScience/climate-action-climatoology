@@ -227,10 +227,11 @@ def test_update_successful_computation_with_validated_params(
 
 
 def test_computation_artifact_order_is_preserved(
-    backend_with_computation_registered, default_computation_info, default_artifact
+    backend_with_computation_registered, default_computation_info, default_artifact_enriched
 ):
     info = default_computation_info.model_copy(deep=True)
-    second_artifact = default_artifact.model_copy(deep=True)
+    second_artifact = default_artifact_enriched.model_copy(deep=True)
+    second_artifact.rank = 1
     second_artifact.name = 'second'
 
     info.artifacts.append(second_artifact)
