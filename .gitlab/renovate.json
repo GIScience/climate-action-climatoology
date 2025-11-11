@@ -23,6 +23,16 @@
         "* 0-3 1 * *"
       ],
       "groupName": "dependency feature release updates"
+    },
+    {
+      "matchDepNames": [
+        "python"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "minimumReleaseAge": "12 months"
     }
   ]
 }
