@@ -84,7 +84,7 @@ class ComputationsSummaryView(ClimatoologyTableBase):
                     sqlalchemy.Float,
                 )
             ).label('percent_failed'),
-            func.min(ComputationTable.timestamp).label('since'),
+            func.min(CeleryTaskMeta.date_done).label('since'),
             (count().filter(CeleryTaskMeta.traceback.contains('InputValidationError'))).label(
                 'no_of_input_validation_fails'
             ),
@@ -118,10 +118,10 @@ class UsageView(ClimatoologyTableBase):
             ComputationTable.plugin_id,
             count().label('no_of_requested_computations'),
             cast(
-                func.round(count() / (cast(db_now(), Date) - cast(func.min(ComputationTable.timestamp), Date)), 2),
+                func.round(count() / (cast(db_now(), Date) - cast(func.min(ComputationLookup.request_ts), Date)), 2),
                 sqlalchemy.Float,
             ).label('avg_computations_per_day'),
-            func.min(ComputationTable.timestamp).label('since'),
+            func.min(ComputationLookup.request_ts).label('since'),
         )
         .join(ComputationLookup, ComputationTable.correlation_uuid == ComputationLookup.computation_id)
         .group_by(ComputationTable.plugin_id)
@@ -146,7 +146,7 @@ class FailedComputationsView(ClimatoologyTableBase):
             ComputationTable.plugin_id,
             count().label(f'no_of_failures_in_last_{FAILURE_REPORTING_DAYS}_days'),
             cause_extraction.label('cause'),
-            array_agg(distinct(cast(ComputationTable.timestamp, Date)), type_=ARRAY(Date, as_tuple=True)).label(
+            array_agg(distinct(cast(CeleryTaskMeta.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label(
                 'on_days'
             ),
             array_agg(distinct(ComputationTable.plugin_version), type_=ARRAY(DbSemver, as_tuple=True)).label(
@@ -167,7 +167,7 @@ class FailedComputationsView(ClimatoologyTableBase):
         )
         .group_by(ComputationTable.plugin_id)
         .group_by(cause_extraction)
-        .where(ComputationTable.timestamp > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
+        .where(CeleryTaskMeta.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
         .order_by(ComputationTable.plugin_id, count().desc())
     )
 
@@ -188,7 +188,7 @@ class ArtifactErrorsView(ClimatoologyTableBase):
             ComputationTable.plugin_id,
             aliased_json_values.c.key.label('artifact'),
             count().label(f'no_of_computations_with_errors_in_last_{FAILURE_REPORTING_DAYS}_days'),
-            array_agg(distinct(cast(ComputationTable.timestamp, Date)), type_=ARRAY(Date, as_tuple=True)).label(
+            array_agg(distinct(cast(CeleryTaskMeta.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label(
                 'on_days'
             ),
             array_agg(distinct(ComputationTable.plugin_version), type_=ARRAY(DbSemver, as_tuple=True)).label(
@@ -198,9 +198,14 @@ class ArtifactErrorsView(ClimatoologyTableBase):
                 'with_messages'
             ),
         )
+        .join(
+            CeleryTaskMeta,
+            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == CeleryTaskMeta.task_id,
+            isouter=True,
+        )
         .group_by(ComputationTable.plugin_id)
         .group_by(aliased_json_values.c.key)
-        .where(ComputationTable.timestamp > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
+        .where(CeleryTaskMeta.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
         .order_by(ComputationTable.plugin_id, aliased_json_values.c.key, count().desc())
     )
 

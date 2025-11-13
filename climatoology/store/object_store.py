@@ -26,7 +26,9 @@ class ComputationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra='forbid')
 
     correlation_uuid: UUID = Field(description='The unique identifier of the computation.', examples=[uuid.uuid4()])
-    timestamp: datetime = Field(description='The timestamp of the computation.', examples=[datetime.now()])
+    request_ts: datetime = Field(
+        description='The timestamp at which the computation was requested.', examples=[datetime.now()]
+    )
     deduplication_key: UUID = Field(
         description='A key identifying unique contributions in terms of content. It is a combination of multiple '
         'fields of the info that are used to deduplicate computations in combination with the '

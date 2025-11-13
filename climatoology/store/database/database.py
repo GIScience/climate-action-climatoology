@@ -141,7 +141,6 @@ class BackendDatabase:
 
             computation = {
                 'correlation_uuid': correlation_uuid,
-                'timestamp': request_ts,
                 'cache_epoch': cache_epoch,
                 'valid_until': valid_until,
                 'requested_params': requested_params,
@@ -175,9 +174,7 @@ class BackendDatabase:
 
         return db_correlation_uuid
 
-    def read_computation(
-        self, correlation_uuid: UUID, state_actual_computation_time: bool = False
-    ) -> Optional[ComputationInfo]:
+    def read_computation(self, correlation_uuid: UUID) -> Optional[ComputationInfo]:
         with Session(self.engine) as session:
             computation_query = (
                 select(ComputationLookup)
@@ -189,20 +186,7 @@ class BackendDatabase:
 
             if result:
                 computation_info = result.computation
-                computation_info.message = (
-                    '\n'.join(
-                        filter(
-                            None,
-                            [
-                                computation_info.message,
-                                f'The results were computed on the {computation_info.timestamp}',
-                            ],
-                        )
-                    )
-                    if state_actual_computation_time
-                    else computation_info.message
-                )
-                computation_info.timestamp = result.request_ts
+                computation_info.request_ts = result.request_ts
                 computation_info.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
                     **{
                         'type': 'Feature',
@@ -243,13 +227,12 @@ class BackendDatabase:
 
     def update_successful_computation(self, computation_info: ComputationInfo, invalidate_cache: bool = False) -> None:
         updated_values = dict(
-            timestamp=computation_info.timestamp,
             artifact_errors=computation_info.artifact_errors,
             message=computation_info.message,
         )
         if invalidate_cache:
             updated_values['cache_epoch'] = None
-            updated_values['valid_until'] = computation_info.timestamp
+            updated_values['valid_until'] = computation_info.request_ts
 
         artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
         artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
@@ -270,7 +253,6 @@ class BackendDatabase:
             update(ComputationTable)
             .where(ComputationTable.correlation_uuid == correlation_uuid)
             .values(
-                timestamp=timestamp,
                 cache_epoch=0 if cache else None,
                 valid_until=datetime.max if cache else timestamp,
                 message=failure_message,

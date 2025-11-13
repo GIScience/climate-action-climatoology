@@ -1,6 +1,5 @@
 import sys
 import tempfile
-from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID
 
@@ -84,7 +83,6 @@ class CAPlatformComputeTask(Task):
                 self.storage.save_all(artifacts, file_dir=resources.computation_dir)
 
             computation_info = self.backend_db.read_computation(correlation_uuid=correlation_uuid)
-            computation_info.timestamp = datetime.now(UTC).replace(tzinfo=None)
             computation_info.params = validated_params.model_dump()
             computation_info.artifacts = artifacts
             computation_info.artifact_errors = artifact_errors

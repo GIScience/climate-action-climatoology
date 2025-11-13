@@ -352,7 +352,7 @@ def default_computation_info(
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
-        timestamp=datetime(2018, 1, 1, 12),
+        request_ts=datetime(2018, 1, 1, 12),
         deduplication_key=uuid.UUID('397e25df-3445-42a1-7e49-03466b3be5ca'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
@@ -501,7 +501,7 @@ def backend_with_computation_successful(backend_with_computation_registered, def
     with Session(backend_with_computation_registered.engine) as session:
         session.execute(
             update(CeleryTaskMeta)
-            .values(status=ComputationState.SUCCESS.value)
+            .values(status=ComputationState.SUCCESS.value, date_done=datetime.now())
             .where(CeleryTaskMeta.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update(ComputationTable).values(valid_until=datetime.now() + timedelta(hours=12)))

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from alembic.util.exc import CommandError
@@ -129,17 +129,6 @@ def test_register_computations(
     )
     deduplicated = db_correlation_uuid_original == db_correlation_uuid_duplicate
     assert deduplicated == expected_deduplication
-
-
-def test_read_computation_with_request_ts(backend_with_computation_registered, default_computation_info):
-    computation_info = default_computation_info.model_copy()
-    computation_info.timestamp = datetime(2025, 1, 1, 12)
-    backend_with_computation_registered.update_successful_computation(computation_info=computation_info)
-    db_computation_info = backend_with_computation_registered.read_computation(
-        correlation_uuid=computation_info.correlation_uuid, state_actual_computation_time=True
-    )
-    assert db_computation_info.timestamp == datetime(2018, 1, 1, 12)
-    assert db_computation_info.message == 'The results were computed on the 2025-01-01 12:00:00'
 
 
 def test_read_duplicate_computation(

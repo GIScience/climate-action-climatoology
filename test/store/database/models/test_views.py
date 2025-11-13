@@ -289,13 +289,13 @@ def test_failed_computations_view(backend_with_computation_registered, default_c
         update_stmt = (
             update(CeleryTaskMeta)
             .values(
+                date_done=db_now(),
                 status=ComputationState.FAILURE.value,
                 traceback='Very long traceback',
             )
             .where(CeleryTaskMeta.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update_stmt)
-        session.execute(update(ComputationTable).values(timestamp=db_now()))
 
         usage_select = select(FailedComputationsView)
         result_scalars = session.scalars(usage_select)
@@ -351,6 +351,7 @@ def test_failed_computations_view_multiple_and_traceback(
     )
     with Session(backend_with_computation_registered.engine) as session:
         update_stmt = update(CeleryTaskMeta).values(
+            date_done=db_now(),
             status=ComputationState.FAILURE.value,
             traceback='Very long traceback',
         )
@@ -360,12 +361,11 @@ def test_failed_computations_view_multiple_and_traceback(
             insert(CeleryTaskMeta).values(
                 id='2',
                 task_id=other_correlation_uuid,
+                date_done=db_now(),
                 status=ComputationState.FAILURE.value,
                 traceback='Other traceback',
             )
         )
-
-        session.execute(update(ComputationTable).values(timestamp=db_now()))
 
         usage_select = select(FailedComputationsView)
         result_scalars = session.scalars(usage_select)
@@ -386,10 +386,9 @@ def test_artifact_errors_view(backend_with_computation_registered, default_compu
     }
 
     with Session(backend_with_computation_registered.engine) as session:
+        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
         session.execute(
-            update(ComputationTable).values(
-                timestamp=db_now(), artifact_errors={'artifact one': 'Artifact could not be computed'}
-            )
+            update(ComputationTable).values(artifact_errors={'artifact one': 'Artifact could not be computed'})
         )
 
         usage_select = select(ArtifactErrorsView)
@@ -408,7 +407,7 @@ def test_artifact_errors_view_empty_on_none(
     backend_with_computation_registered, default_computation_info, default_info_final
 ):
     with Session(backend_with_computation_registered.engine) as session:
-        session.execute(update(ComputationTable).values(timestamp=db_now()))
+        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
 
         usage_select = select(ArtifactErrorsView)
         result_scalars = session.scalars(usage_select)
@@ -440,9 +439,9 @@ def test_artifact_errors_view_multiple_errors(
     ]
 
     with Session(backend_with_computation_registered.engine) as session:
+        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
         session.execute(
             update(ComputationTable).values(
-                timestamp=db_now(),
                 artifact_errors={
                     'artifact one': 'Artifact could not be computed',
                     'artifact two': 'Artifact could not be computed',
@@ -480,9 +479,10 @@ def test_failed_computations_view_multiple_computations(
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     with Session(backend_with_computation_registered.engine) as session:
+        session.execute(insert(CeleryTaskMeta).values(id='2', task_id=other_correlation_uuid))
+        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
         session.execute(
             update(ComputationTable).values(
-                timestamp=db_now(),
                 artifact_errors={
                     'artifact one': 'Artifact could not be computed',
                 },
@@ -532,14 +532,15 @@ def test_failed_computations_view_multiple_computations_different(
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     with Session(backend_with_computation_registered.engine) as session:
+        session.execute(insert(CeleryTaskMeta).values(id='2', task_id=other_correlation_uuid))
         session.execute(
             update(ComputationTable)
-            .values(timestamp=db_now(), artifact_errors={'artifact one': 'Artifact could not be computed'})
+            .values(artifact_errors={'artifact one': 'Artifact could not be computed'})
             .where(ComputationTable.correlation_uuid == default_computation_info.correlation_uuid)
         )
         session.execute(
             update(ComputationTable)
-            .values(timestamp=db_now(), artifact_errors={'artifact two': 'Artifact could not be computed'})
+            .values(artifact_errors={'artifact two': 'Artifact could not be computed'})
             .where(ComputationTable.correlation_uuid == other_correlation_uuid)
         )
 
