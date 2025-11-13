@@ -63,7 +63,7 @@ SELECT
         )
     ) AS no_of_failures,
     CAST(round(((count(*) FILTER (WHERE public.celery_taskmeta.status = 'FAILURE' AND (COALESCE(public.celery_taskmeta.traceback, '') NOT LIKE '%%' || 'InputValidationError' || '%%'))) / CAST((count(*) FILTER (WHERE public.celery_taskmeta.status = 'SUCCESS' OR public.celery_taskmeta.status = 'FAILURE' AND (COALESCE(public.celery_taskmeta.traceback, '') NOT LIKE '%%' || 'InputValidationError' || '%%'))) AS NUMERIC)) * 100.0, 2) AS FLOAT) AS percent_failed,
-    min(ca_base.computation.timestamp) AS since,
+    min(public.celery_taskmeta.date_done) AS since,
     count(*) FILTER (
     WHERE
         public.celery_taskmeta.traceback LIKE '%%' || 'InputValidationError' || '%%'
@@ -97,8 +97,8 @@ ORDER BY
 SELECT
     ca_base.computation.plugin_id,
     count(*) AS no_of_requested_computations,
-    cast(round(count(*) / cast((cast(now() as DATE) - cast(min(ca_base.computation.timestamp) as DATE)) as numeric), 2) as FLOAT) as avg_computations_per_day,
-    min(ca_base.computation.timestamp) AS since
+    cast(round(count(*) / cast((cast(now() as DATE) - cast(min(ca_base.computation_lookup.request_ts) as DATE)) as numeric), 2) as FLOAT) as avg_computations_per_day,
+    min(ca_base.computation_lookup.request_ts) AS since
 FROM
     ca_base.computation
 JOIN ca_base.computation_lookup ON
@@ -124,7 +124,7 @@ SELECT
     ca_base.computation.plugin_id,
     count(*) AS no_of_failures_in_last_30_days,
     LEFT(COALESCE(ca_base.computation.message, public.celery_taskmeta.traceback), 10) AS cause,
-    array_agg(DISTINCT CAST(ca_base.computation.timestamp AS DATE)) AS on_days,
+    array_agg(DISTINCT CAST(public.celery_taskmeta.date_done AS DATE)) AS on_days,
     array_agg(DISTINCT ca_base.computation.plugin_version) AS in_versions,
     array_agg(DISTINCT ca_base.computation.message) AS with_messages,
     array_agg(DISTINCT public.celery_taskmeta.traceback) AS with_tracebacks
@@ -137,7 +137,7 @@ WHERE
     AND (
         COALESCE(public.celery_taskmeta.traceback, '') NOT LIKE '%%' || 'InputValidationError' || '%%'
     )
-    AND ca_base.computation.timestamp > now() - CAST(make_interval(secs =>2592000.0) AS INTERVAL)
+    AND public.celery_taskmeta.date_done > now() - make_interval(secs =>2592000.0)
 GROUP BY
     ca_base.computation.plugin_id,
     LEFT(COALESCE(ca_base.computation.message, public.celery_taskmeta.traceback), 10)
@@ -156,14 +156,16 @@ SELECT
     ca_base.computation.plugin_id,
     artifact_errors.key as artifact,
     count(*) AS no_of_computations_with_errors_in_last_30_days,
-    array_agg(DISTINCT CAST(ca_base.computation.timestamp AS DATE)) AS on_days,
+    array_agg(DISTINCT CAST(public.celery_taskmeta.date_done AS DATE)) AS on_days,
     array_agg(DISTINCT ca_base.computation.plugin_version) AS in_versions,
     array_agg(DISTINCT artifact_errors.value) AS with_messages
 FROM
-    ca_base.computation,
+    ca_base.computation
+LEFT OUTER JOIN public.celery_taskmeta ON
+    CAST(ca_base.computation.correlation_uuid as VARCHAR) = public.celery_taskmeta.task_id,
     json_each_text(ca_base.computation.artifact_errors) AS artifact_errors
 WHERE
-    ca_base.computation.timestamp > now() - CAST(make_interval(secs =>2592000.0) AS INTERVAL)
+    public.celery_taskmeta.date_done > now() - make_interval(secs =>2592000.0)
 GROUP BY
     ca_base.computation.plugin_id,
     artifact_errors.key

@@ -28,7 +28,6 @@ class ComputationTable(ClimatoologyTableBase):
     )
 
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
-    timestamp: Mapped[datetime]
     deduplication_key: Mapped[UUID] = mapped_column(
         Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid')
     )

@@ -52,6 +52,11 @@ TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
   below) ([#224](https://gitlab.heigit.org/climate-action/climatoology/-/issues/224))
 - the different stages of the `_Artifact` are now more visible through different class names that also present the
   enrichment cycle through inheritance.
+- The `timestamp` attribute of a computation is no longer stored in the database, in favour of directly using
+  `computation_lookup.request_ts` and `celery_taskmeta.date_done` as appropriate. Accordingly, `ComputationInfo` now
+  returns `request_ts` (the timestamp when the computation was requested) instead of
+  `timestamp` ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176))
+
 
 ### Fix
 
