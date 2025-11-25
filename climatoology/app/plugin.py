@@ -5,6 +5,7 @@ from kombu.entity import Exchange, Queue
 from sqlalchemy.orm import Session
 
 import climatoology
+from climatoology.app.exception import VersionMismatchError
 from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
@@ -13,7 +14,6 @@ from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.info import InfoTable
 from climatoology.store.object_store import MinioStorage, Storage
-from climatoology.utility.exception import VersionMismatchError
 
 log = get_climatoology_logger(__name__)
 

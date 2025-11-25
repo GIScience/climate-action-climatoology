@@ -15,7 +15,11 @@ TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
 - renamed
     - `LULC` utility module to `lulc`
     - `Naturalness` utility module to `naturalness`
-    - `...Exception`s to `...Error`s
+    - `PlatformUtilityException` -> `PlatformUtilityError`
+- moved `ClimatoologyUserError` and `InputValidationError` to the `climatoology.base.exception` module ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243))
+- moved and renamed ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243)):
+    - `climatoology.utility.exception.VersionMismatchException` -> `climatoology.app.exception.VersionMismatchError`
+    - `climatoology.utility.exception.InfoNotReceivedException` -> `climatoology.store.exception.InfoNotReceivedError`
 - de-deprecated basic chart artifact creation and use plotly for it
   (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
 - queues are created explicitly using the plugin id, enabling multiple workers to be online and to consume from the same

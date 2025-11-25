@@ -5,8 +5,9 @@ import pytest
 from celery import Celery
 from semver import Version
 
+from climatoology.app.exception import VersionMismatchError
 from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id
-from climatoology.utility.exception import InputValidationError, VersionMismatchError
+from climatoology.base.exception import InputValidationError
 
 
 def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):

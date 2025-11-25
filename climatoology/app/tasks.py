@@ -12,10 +12,10 @@ from shapely import set_srid
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationScope
+from climatoology.base.exception import InputValidationError
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import ComputationInfo, Storage
-from climatoology.utility.exception import InputValidationError
 
 log = get_climatoology_logger(__name__)
 
