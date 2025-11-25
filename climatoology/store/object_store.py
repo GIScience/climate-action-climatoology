@@ -130,17 +130,17 @@ class Storage(ABC):
         return object_name
 
     @abstractmethod
-    def save(self, artifact: ArtifactEnriched, file_dir: Path) -> str:
+    def save(self, artifact: ArtifactEnriched, file_dir: Path) -> list[str]:
         """Save a single artifact in the object store.
 
         :param artifact: Operators' report creation process result
         :param file_dir: the path of the file to be saved
-        :return: object id in the underlying object store
+        :return: object ids in the underlying object store
         """
         pass
 
     @abstractmethod
-    def save_all(self, artifacts: List[ArtifactEnriched], file_dir: Path) -> List[str]:
+    def save_all(self, artifacts: List[ArtifactEnriched], file_dir: Path) -> list[str]:
         """Save multiple artifacts in the object store.
 
         :param artifacts: Operators' report creation process results
@@ -205,7 +205,7 @@ class MinioStorage(Storage):
         self.__bucket = bucket
         self.__file_cache = file_cache
 
-    def save(self, artifact: ArtifactEnriched, file_dir: Path) -> str:
+    def save(self, artifact: ArtifactEnriched, file_dir: Path) -> list[str]:
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} from {file_dir}/{artifact.filename}')
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id=artifact.filename)
@@ -222,11 +222,29 @@ class MinioStorage(Storage):
             metadata=metadata,
             content_type=content_type,
         )
+        store_ids = [artifact.filename]
 
-        return artifact.filename
+        if artifact.attachments and artifact.attachments.display_filename:
+            display_object_name = Storage.generate_object_name(
+                artifact.correlation_uuid, store_id=artifact.attachments.display_filename
+            )
+            display_content_type = mimetypes.guess_type(artifact.attachments.display_filename)[0]
+            self.client.fput_object(
+                bucket_name=self.__bucket,
+                object_name=display_object_name,
+                file_path=str(file_dir / artifact.attachments.display_filename),
+                metadata=metadata,
+                content_type=display_content_type,
+            )
+            store_ids.append(artifact.attachments.display_filename)
 
-    def save_all(self, artifacts: List[ArtifactEnriched], file_dir: Path) -> List[str]:
-        return [self.save(artifact, file_dir=file_dir) for artifact in artifacts]
+        return store_ids
+
+    def save_all(self, artifacts: List[ArtifactEnriched], file_dir: Path) -> list[str]:
+        store_ids = []
+        for artifact in artifacts:
+            store_ids.extend(self.save(artifact=artifact, file_dir=file_dir))
+        return store_ids
 
     def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
         if not file_name:

@@ -54,7 +54,8 @@ class CAPlatformComputeTask(Task):
                 )
                 log.debug(f'Returning Artifact: {result.model_dump()}.')
 
-            return self.storage.save(result, file_dir=Path(temp_dir))
+            (computation_info_store_id,) = self.storage.save(result, file_dir=Path(temp_dir))
+            return computation_info_store_id
 
     def run(self, aoi: dict, params: dict) -> dict:
         correlation_uuid: UUID = self.request.correlation_id  # Typing seems wrong

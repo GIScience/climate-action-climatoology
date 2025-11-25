@@ -1,6 +1,8 @@
 import uuid
+from copy import deepcopy
 from enum import Enum
 from numbers import Number
+from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Union
 from uuid import UUID
 
@@ -12,6 +14,7 @@ import rasterio
 import shapely
 from affine import Affine
 from geopandas import GeoDataFrame
+from numpy.ma.core import MaskedArray
 from numpy.typing import ArrayLike
 from pandas import DataFrame, MultiIndex
 from PIL.Image import Image
@@ -32,6 +35,7 @@ from pydantic_extra_types.color import Color
 from rasterio import CRS
 from rasterio.enums import OverviewResampling
 from rasterio.rio.overview import get_maximum_overview_level
+from rasterio.warp import Resampling, calculate_default_transform, reproject
 
 from climatoology.base.computation import ComputationResources
 from climatoology.base.info import ArticleSource, Source, filter_sources
@@ -40,6 +44,7 @@ from climatoology.base.logging import get_climatoology_logger
 log = get_climatoology_logger(__name__)
 
 COMPUTATION_INFO_FILENAME: str = 'metadata.json'
+DISPLAY_FILENAME_SUFFIX = '-display'
 
 plotly_template = pio.templates['plotly_white']
 plotly_template.layout.colorway = px.colors.qualitative.Safe
@@ -150,6 +155,11 @@ class Attachments(BaseModel):
     legend: Optional[Legend] = Field(
         description='The legend attachment.',
         examples=[Legend(legend_data={'The red object': Color('red')})],
+        default=None,
+    )
+    display_filename: Optional[str] = Field(
+        description='The name of the file that stores the data optimised for front-end display.',
+        examples=['my_first_artifact-display'],
         default=None,
     )
 
@@ -625,6 +635,7 @@ def create_geotiff_artifact(
     raster_info: RasterInfo,
     metadata: ArtifactMetadata,
     resources: ComputationResources,
+    display_square_pixels: bool = False,
     legend: Optional[Legend] = None,
 ) -> _Artifact:
     """Create a raster data artifact.
@@ -634,16 +645,32 @@ def create_geotiff_artifact(
     :param raster_info: The RasterInfo object.
     :param legend: Can be used to display a custom legend. If not provided, a distinct legend will be created from the
       colormap, if it exists.
+    :param display_square_pixels: By default, the display pixels will match the input pixels as close as possible.
+      Because the display raster is a reprojected version of the original, this can mean that the display pixels are
+      not squared. Set this variable to `True` to get square display pixels but potentially lose/alter the data in
+      display.
     :param metadata: Standard Artifact attributes
     :param resources: The computation resources of the plugin.
     :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{metadata.filename}.tiff'
+    display_file_path = resources.computation_dir / f'{metadata.filename}{DISPLAY_FILENAME_SUFFIX}.tiff'
     log.debug(f'Writing raster dataset {file_path}.')
 
     resampling = 'nearest'
 
-    data_array = np.ma.masked_array(raster_info.data)
+    data_array = raster_info.data
+    if not isinstance(data_array, np.ma.MaskedArray):
+        if np.issubdtype(data_array.dtype, np.integer):
+            fill_value = np.iinfo(data_array.dtype).max
+        else:
+            fill_value = np.finfo(data_array.dtype).max
+        data_array = np.ma.masked_array(data_array, fill_value=fill_value)
+
+    # Numpy may set a fill_value that is incompatible with the dtype of the data_array, so we check this
+    assert data_array.dtype.type(data_array.fill_value) == data_array.fill_value, (
+        'Array fill_value must be compatible with the dtype of the data'
+    )
 
     assert np.issubdtype(data_array.dtype, np.number), 'Array must be numeric'
     assert min(data_array.shape) > 0, 'Input array cannot have zero length dimensions.'
@@ -663,7 +690,10 @@ def create_geotiff_artifact(
     else:
         raise ValueError('Only 2 and 3 dimensional arrays are supported.')
 
-    profile = {
+    if raster_info.colormap:
+        assert data_array.dtype in (np.uint8, np.uint16), f'Colormaps are not allowed for dtype {data_array.dtype}.'
+
+    raw_profile = {
         'driver': 'COG',
         'height': height,
         'width': width,
@@ -671,34 +701,120 @@ def create_geotiff_artifact(
         'dtype': data_array.dtype,
         'crs': raster_info.crs,
         'transform': raster_info.transformation,
+        'nodata': data_array.fill_value,
     }
-
-    with rasterio.open(file_path, mode='w', **profile) as out_map_file:
-        out_map_file.write(data_array, indexes=indexes)
-
-        max_overview_level = get_maximum_overview_level(width, height)
-        overview_levels = [2**j for j in range(1, max_overview_level + 1)]
-        out_map_file.build_overviews(overview_levels, OverviewResampling[resampling])
-        out_map_file.update_tags(ns='rio_overview', resampling=resampling)
-
-        if raster_info.colormap:
-            assert data_array.dtype in (np.uint8, np.uint16), f'Colormaps are not allowed for dtype {data_array.dtype}.'
-            out_map_file.write_colormap(1, raster_info.colormap)
+    max_overview_level = get_maximum_overview_level(width, height)
+    overview_levels = [2**j for j in range(1, max_overview_level + 1)]
 
     if not legend and raster_info.colormap:
         legend_data = legend_data_from_colormap(raster_info.colormap)
         legend = Legend(legend_data=legend_data)
 
+    write_raw_data(
+        data_array=data_array,
+        file_path=file_path,
+        indexes=indexes,
+        overview_levels=overview_levels,
+        colormap=raster_info.colormap,
+        raw_profile=raw_profile,
+        resampling=resampling,
+    )
+
+    if display_square_pixels:
+        dst_width = None
+        dst_height = None
+    else:
+        dst_width = width
+        dst_height = height
+    write_display_raster(
+        file_path=file_path,
+        display_file_path=display_file_path,
+        raw_profile=raw_profile,
+        dst_width=dst_width,
+        dst_height=dst_height,
+        overview_levels=overview_levels,
+        colormap=raster_info.colormap,
+        resampling=resampling,
+    )
+
     result = _Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         filename=file_path.name,
-        attachments=Attachments(legend=legend) if legend else None,
+        attachments=Attachments(legend=legend, display_filename=display_file_path.name),
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
+
+
+def write_raw_data(
+    data_array: MaskedArray,
+    file_path: Path,
+    raw_profile: dict,
+    indexes: int | list[int],
+    colormap: Optional[Colormap],
+    overview_levels: list[int],
+    resampling: str,
+) -> None:
+    with rasterio.open(file_path, mode='w', **raw_profile) as out_map_file:
+        if colormap:
+            out_map_file.write_colormap(1, colormap)
+
+        out_map_file.write(data_array, indexes=indexes)
+
+        out_map_file.build_overviews(overview_levels, OverviewResampling[resampling])
+        out_map_file.update_tags(ns='rio_overview', resampling=resampling)
+
+
+def write_display_raster(
+    file_path: Path,
+    display_file_path: Path,
+    raw_profile: dict,
+    dst_width: int,
+    dst_height: int,
+    overview_levels: list[int],
+    colormap: Optional[Colormap],
+    resampling: str,
+) -> None:
+    dst_crs = CRS({'init': 'epsg:3857'})
+    with rasterio.open(file_path, mode='r') as src:
+        left, bottom, right, top = src.bounds
+        display_transform, display_width, display_height = calculate_default_transform(
+            src_crs=src.crs,
+            dst_crs=dst_crs,
+            width=src.width,
+            height=src.height,
+            left=left,
+            bottom=bottom,
+            right=right,
+            top=top,
+            dst_width=dst_width,
+            dst_height=dst_height,
+        )
+        display_profile = deepcopy(raw_profile)
+        display_profile.update(
+            {'crs': dst_crs, 'transform': display_transform, 'width': display_width, 'height': display_height}
+        )
+
+        with rasterio.open(display_file_path, 'w', **display_profile) as dst:
+            if colormap:
+                dst.write_colormap(1, colormap)
+
+            for i in range(1, src.count + 1):
+                reproject(
+                    source=rasterio.band(src, i),
+                    destination=rasterio.band(dst, i),
+                    src_transform=src.transform,
+                    src_crs=src.crs,
+                    dst_transform=display_transform,
+                    dst_crs=dst_crs,
+                    resampling=Resampling[resampling],
+                )
+
+            dst.build_overviews(overview_levels, OverviewResampling[resampling])
+            dst.update_tags(ns='rio_overview', resampling=resampling)
 
 
 def legend_data_from_colormap(colormap: Colormap) -> Dict[str, Color]:

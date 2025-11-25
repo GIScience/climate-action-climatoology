@@ -127,16 +127,11 @@ def test_computation_task_run_input_validated(
 
 
 def test_save_computation_info(
-    default_operator,
-    mocked_object_store,
-    general_uuid,
-    default_backend_db,
-    default_computation_info,
+    default_operator, mocked_object_store, general_uuid, default_backend_db, default_computation_info, mocker
 ):
     task = CAPlatformComputeTask(operator=default_operator, storage=mocked_object_store, backend_db=default_backend_db)
 
-    save_mock = Mock()
-    mocked_object_store.save = save_mock
+    save_spy = mocker.spy(mocked_object_store, 'save')
 
     with tempfile.TemporaryDirectory() as temp_dir:
         expected_save_artifact = ArtifactEnriched(
@@ -150,7 +145,7 @@ def test_save_computation_info(
         with patch('climatoology.app.tasks.tempfile.TemporaryDirectory.__enter__', return_value=temp_dir):
             task._save_computation_info(computation_info=default_computation_info)
 
-            save_mock.assert_called_once_with(expected_save_artifact, file_dir=Path(temp_dir))
+            save_spy.assert_called_once_with(expected_save_artifact, file_dir=Path(temp_dir))
 
             with open(Path(temp_dir) / expected_save_artifact.filename, 'r') as metadata_file:
                 assert metadata_file.read() == default_computation_info.model_dump_json()
