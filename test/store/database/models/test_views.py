@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime, timedelta
 
+from celery.backends.database import TaskExtended
 from geoalchemy2.shape import to_shape
 from semver import Version
 from sqlalchemy import String, cast, insert, select, update
@@ -9,7 +10,6 @@ from sqlalchemy.sql.functions import now as db_now
 
 from climatoology.base.event import ComputationState
 from climatoology.store.database.database import DEMO_SUFFIX, row_to_dict
-from climatoology.store.database.models.celery import CeleryTaskMeta
 from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
@@ -62,9 +62,7 @@ def test_valid_computations_view_multiple(
     )
 
     with Session(backend_with_computation_successful.engine) as session:
-        session.execute(
-            insert(CeleryTaskMeta).values(id='2', task_id=correlation_uuid, status=ComputationState.SUCCESS.value)
-        )
+        session.execute(insert(TaskExtended).values(id='2', task_id=correlation_uuid, status=ComputationState.SUCCESS))
         session.execute(update(ComputationTable).values(valid_until=db_now() + timedelta(hours=1)))
 
         valid_computation_select = select(ValidComputationsView)
@@ -89,9 +87,7 @@ def test_valid_computations_view_plugin_version(
     )
 
     with Session(backend_with_computation_successful.engine) as session:
-        session.execute(
-            insert(CeleryTaskMeta).values(id='2', task_id=correlation_uuid, status=ComputationState.SUCCESS.value)
-        )
+        session.execute(insert(TaskExtended).values(id='2', task_id=correlation_uuid, status=ComputationState.SUCCESS))
         session.execute(update(ComputationTable).values(valid_until=db_now() + timedelta(hours=1)))
 
         valid_computation_select = select(ValidComputationsView)
@@ -120,9 +116,9 @@ def test_valid_computations_view_only_successful(
 ):
     with Session(backend_with_computation_registered.engine) as session:
         update_stmt = (
-            update(CeleryTaskMeta)
-            .values(status=ComputationState.FAILURE.value)
-            .where(CeleryTaskMeta.task_id == cast(default_computation_info.correlation_uuid, String))
+            update(TaskExtended)
+            .values(status=ComputationState.FAILURE)
+            .where(TaskExtended.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update_stmt)
         valid_computation_select = select(ValidComputationsView)
@@ -177,22 +173,18 @@ def test_computation_summary_view(backend_with_computation_successful, default_c
 
     with Session(backend_with_computation_successful.engine) as session:
         session.execute(
-            insert(CeleryTaskMeta).values(
-                id='2', task_id=correlation_uuid_failure, status=ComputationState.FAILURE.value
-            )
+            insert(TaskExtended).values(id='2', task_id=correlation_uuid_failure, status=ComputationState.FAILURE)
         )
         session.execute(
-            insert(CeleryTaskMeta).values(
+            insert(TaskExtended).values(
                 id='3',
                 task_id=correlation_uuid_validation_failure,
-                status=ComputationState.FAILURE.value,
+                status=ComputationState.FAILURE,
                 traceback='climatoology.utility.exception.InputValidationError: Start: Field required. You provided: {}. End: Field required. You provided: {}.',
             )
         )
         session.execute(
-            insert(CeleryTaskMeta).values(
-                id='4', task_id=correlation_uuid_pending, status=ComputationState.PENDING.value
-            )
+            insert(TaskExtended).values(id='4', task_id=correlation_uuid_pending, status=ComputationState.PENDING)
         )
 
         computations_summary = select(ComputationsSummaryView)
@@ -287,13 +279,13 @@ def test_failed_computations_view(backend_with_computation_registered, default_c
     )
     with Session(backend_with_computation_registered.engine) as session:
         update_stmt = (
-            update(CeleryTaskMeta)
+            update(TaskExtended)
             .values(
                 date_done=db_now(),
-                status=ComputationState.FAILURE.value,
+                status=ComputationState.FAILURE,
                 traceback='Very long traceback',
             )
-            .where(CeleryTaskMeta.task_id == cast(default_computation_info.correlation_uuid, String))
+            .where(TaskExtended.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update_stmt)
 
@@ -350,19 +342,19 @@ def test_failed_computations_view_multiple_and_traceback(
         correlation_uuid=other_correlation_uuid, failure_message=None, cache=False
     )
     with Session(backend_with_computation_registered.engine) as session:
-        update_stmt = update(CeleryTaskMeta).values(
+        update_stmt = update(TaskExtended).values(
             date_done=db_now(),
-            status=ComputationState.FAILURE.value,
+            status=ComputationState.FAILURE,
             traceback='Very long traceback',
         )
         session.execute(update_stmt)
 
         session.execute(
-            insert(CeleryTaskMeta).values(
+            insert(TaskExtended).values(
                 id='2',
                 task_id=other_correlation_uuid,
                 date_done=db_now(),
-                status=ComputationState.FAILURE.value,
+                status=ComputationState.FAILURE,
                 traceback='Other traceback',
             )
         )
@@ -386,7 +378,7 @@ def test_artifact_errors_view(backend_with_computation_registered, default_compu
     }
 
     with Session(backend_with_computation_registered.engine) as session:
-        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
+        session.execute(update(TaskExtended).values(date_done=db_now()))
         session.execute(
             update(ComputationTable).values(artifact_errors={'artifact one': 'Artifact could not be computed'})
         )
@@ -407,7 +399,7 @@ def test_artifact_errors_view_empty_on_none(
     backend_with_computation_registered, default_computation_info, default_info_final
 ):
     with Session(backend_with_computation_registered.engine) as session:
-        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
+        session.execute(update(TaskExtended).values(date_done=db_now()))
 
         usage_select = select(ArtifactErrorsView)
         result_scalars = session.scalars(usage_select)
@@ -439,7 +431,7 @@ def test_artifact_errors_view_multiple_errors(
     ]
 
     with Session(backend_with_computation_registered.engine) as session:
-        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
+        session.execute(update(TaskExtended).values(date_done=db_now()))
         session.execute(
             update(ComputationTable).values(
                 artifact_errors={
@@ -479,8 +471,8 @@ def test_failed_computations_view_multiple_computations(
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     with Session(backend_with_computation_registered.engine) as session:
-        session.execute(insert(CeleryTaskMeta).values(id='2', task_id=other_correlation_uuid))
-        session.execute(update(CeleryTaskMeta).values(date_done=db_now()))
+        session.execute(insert(TaskExtended).values(id='2', task_id=other_correlation_uuid))
+        session.execute(update(TaskExtended).values(date_done=db_now()))
         session.execute(
             update(ComputationTable).values(
                 artifact_errors={
@@ -532,7 +524,7 @@ def test_failed_computations_view_multiple_computations_different(
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     with Session(backend_with_computation_registered.engine) as session:
-        session.execute(insert(CeleryTaskMeta).values(id='2', task_id=other_correlation_uuid))
+        session.execute(insert(TaskExtended).values(id='2', task_id=other_correlation_uuid))
         session.execute(
             update(ComputationTable)
             .values(artifact_errors={'artifact one': 'Artifact could not be computed'})

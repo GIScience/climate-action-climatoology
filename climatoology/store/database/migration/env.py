@@ -3,23 +3,14 @@ from typing import Optional, Type
 from alembic import context
 from alembic_utils.pg_view import PGView
 from alembic_utils.replaceable_entity import register_entities
+from celery.backends.database.session import ResultModelBase
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.schema import SchemaItem
 from sqlalchemy_utils.view import CreateView
 
-from climatoology.store.database.models import base
-
-# The following table imports assert that the tables will be monitored by alembic
-from climatoology.store.database.models.artifact import ArtifactTable  # noqa: F401
 from climatoology.store.database.models.base import ClimatoologyTableBase
-from climatoology.store.database.models.celery import CeleryTaskSetMeta  # noqa: F401
-from climatoology.store.database.models.computation import (  # noqa: F401
-    ComputationLookup,
-    ComputationTable,
-)
-from climatoology.store.database.models.info import InfoTable, PluginAuthorTable, author_info_link_table  # noqa: F401
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
     ComputationsSummaryView,
@@ -75,7 +66,7 @@ class MigrationSettings(BaseSettings):
         return f'postgresql+psycopg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_database}'
 
 
-target_metadata = base.ClimatoologyTableBase.metadata
+target_metadata = [ClimatoologyTableBase.metadata, ResultModelBase.metadata]
 
 
 def run_migrations_offline() -> None:
