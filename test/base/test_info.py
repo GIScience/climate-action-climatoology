@@ -1,4 +1,3 @@
-import logging
 from datetime import timedelta
 from pathlib import Path
 
@@ -48,12 +47,9 @@ def test_demo_config_custom_aoi_and_no_name(default_aoi_feature_geojson_pydantic
         _ = compose_demo_config(input_parameters=TestModel(id=1), aoi_path=DEMO_AOI_PATH)
 
 
-def test_demo_config_no_aoi_but_custom_name(caplog):
-    expected_warning = 'You provided a `aoi_name` but not `aoi_path`. The default demo AOI and name will be used'
-    with caplog.at_level(logging.WARNING):
+def test_demo_config_no_aoi_but_custom_name():
+    with pytest.raises(AssertionError, match='You provided an `aoi_name` but no `aoi_path`, provide both or none.'):
         _ = compose_demo_config(input_parameters=TestModel(id=1), aoi_name='custom_demo')
-
-    assert expected_warning in caplog.messages
 
 
 def test_operator_info(default_info):
