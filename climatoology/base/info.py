@@ -392,8 +392,7 @@ def compose_demo_config(input_parameters: BaseModel, aoi_path: Path = None, aoi_
     """
     if not aoi_path:
         aoi_path = DEMO_AOI_PATH
-        if aoi_name:
-            log.warning('You provided a `aoi_name` but not `aoi_path`. The default demo AOI and name will be used')
+        assert aoi_name is None, 'You provided an `aoi_name` but no `aoi_path`, provide both or none.'
         aoi_name = 'Heidelberg Demo'
 
     if aoi_path and not aoi_name:
