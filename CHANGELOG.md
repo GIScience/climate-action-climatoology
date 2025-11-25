@@ -7,7 +7,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
-TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
+TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-dev relevant
 
 ### Changed
 
@@ -16,7 +16,8 @@ TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
     - `LULC` utility module to `lulc`
     - `Naturalness` utility module to `naturalness`
     - `PlatformUtilityException` -> `PlatformUtilityError`
-- moved `ClimatoologyUserError` and `InputValidationError` to the `climatoology.base.exception` module ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243))
+- moved `ClimatoologyUserError` and `InputValidationError` to the `climatoology.base.exception`
+  module ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243))
 - moved and renamed ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243)):
     - `climatoology.utility.exception.VersionMismatchException` -> `climatoology.app.exception.VersionMismatchError`
     - `climatoology.utility.exception.InfoNotReceivedException` -> `climatoology.store.exception.InfoNotReceivedError`
@@ -61,7 +62,6 @@ TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
   returns `request_ts` (the timestamp when the computation was requested) instead of
   `timestamp` ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176))
 
-
 ### Fix
 
 - the database being in an inconsistent state in the brief moments between a task finishing on the worker and the
@@ -74,6 +74,7 @@ TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
 - plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
 - artifacts now have a rank attribute to assert their order is
   preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
+- the geotiff creation by correctly writing the nodata value of masked arrays
 
 ### Removed
 
@@ -111,6 +112,8 @@ TODO: split changelog by plugin-dev relevant and climatoology-dev relevant
   computation ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
 - a custom logger that injects the celery task name and task id before log
   messages ([#153](https://gitlab.heigit.org/climate-action/climatoology/-/issues/153))
+- the functionality to write dedicated raster files for the front-end optimised for
+  display ([#216](https://gitlab.heigit.org/climate-action/climatoology/-/issues/216))
 
 ## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.4) - 2025-10-08
 
