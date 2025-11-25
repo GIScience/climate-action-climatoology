@@ -1,8 +1,9 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Optional
 from uuid import UUID
 
+from celery.states import FAILURE, PENDING, RETRY, REVOKED, STARTED, SUCCESS
 from pydantic import BaseModel
 
 
@@ -13,19 +14,18 @@ class InfoCommand(BaseModel):
     correlation_uuid: UUID
 
 
-class ComputationState(Enum):
+class ComputationState(StrEnum):
     """Available stati of computations.
 
-    Based on the Celery states (https://docs.celeryq.dev/en/stable/userguide/tasks.html#built-in-states) plus some
-    custom states.
+    Based on the Celery states (https://docs.celeryq.dev/en/stable/userguide/tasks.html#built-in-states)
     """
 
-    PENDING = 'PENDING'
-    STARTED = 'STARTED'
-    SUCCESS = 'SUCCESS'
-    FAILURE = 'FAILURE'
-    RETRY = 'RETRY'
-    REVOKED = 'REVOKED'
+    PENDING = PENDING
+    STARTED = STARTED
+    SUCCESS = SUCCESS
+    FAILURE = FAILURE
+    RETRY = RETRY
+    REVOKED = REVOKED
 
 
 class ComputeCommandResult(BaseModel):

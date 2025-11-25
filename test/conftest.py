@@ -13,6 +13,7 @@ import responses
 import shapely
 import sqlalchemy
 from celery import Celery, signals
+from celery.backends.database import TaskExtended
 from celery.utils.threads import LocalStack
 from freezegun import freeze_time
 from pydantic import BaseModel, Field, HttpUrl
@@ -48,7 +49,6 @@ from climatoology.base.info import (
     generate_plugin_info,
 )
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.database.models.celery import CeleryTaskMeta
 from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.object_store import ComputationInfo, MinioStorage
 from climatoology.utility.api import HealthCheck
@@ -488,8 +488,8 @@ def backend_with_computation_registered(
     )
     with Session(default_backend_db.engine) as session:
         session.execute(
-            insert(CeleryTaskMeta).values(
-                id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.PENDING.value
+            insert(TaskExtended).values(
+                id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.PENDING
             )
         )
         session.commit()
@@ -500,9 +500,9 @@ def backend_with_computation_registered(
 def backend_with_computation_successful(backend_with_computation_registered, default_computation_info):
     with Session(backend_with_computation_registered.engine) as session:
         session.execute(
-            update(CeleryTaskMeta)
-            .values(status=ComputationState.SUCCESS.value, date_done=datetime.now())
-            .where(CeleryTaskMeta.task_id == cast(default_computation_info.correlation_uuid, String))
+            update(TaskExtended)
+            .values(status=ComputationState.SUCCESS, date_done=datetime.now())
+            .where(TaskExtended.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update(ComputationTable).values(valid_until=datetime.now() + timedelta(hours=12)))
         session.commit()

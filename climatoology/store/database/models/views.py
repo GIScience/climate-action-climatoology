@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import sqlalchemy
+from celery.backends.database import TaskExtended
 from geoalchemy2 import Geometry
 from sqlalchemy import Date, and_, cast, distinct, not_, or_, select, type_coerce
 from sqlalchemy.dialects.postgresql import ARRAY, array_agg
@@ -12,7 +13,6 @@ from climatoology.base.event import ComputationState
 from climatoology.store.database.database import DEMO_SUFFIX
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
-from climatoology.store.database.models.celery import CeleryTaskMeta
 from climatoology.store.database.models.computation import ComputationLookup, ComputationTable
 from climatoology.store.database.models.info import InfoTable
 
@@ -41,10 +41,10 @@ class ValidComputationsView(ClimatoologyTableBase):
             ComputationTable.params,
         )
         .join(InfoTable, ComputationTable.plugin_id == InfoTable.id)
-        .join(CeleryTaskMeta, cast(ComputationTable.correlation_uuid, sqlalchemy.String) == CeleryTaskMeta.task_id)
+        .join(TaskExtended, cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id)
         .where(ComputationTable.plugin_version == InfoTable.version)
         .where(ComputationTable.valid_until > db_now())
-        .where(CeleryTaskMeta.status == ComputationState.SUCCESS.value)
+        .where(TaskExtended.status == ComputationState.SUCCESS)
     )
 
     __table__ = create_view(
@@ -54,8 +54,8 @@ class ValidComputationsView(ClimatoologyTableBase):
 
 
 real_failure_filter = and_(
-    CeleryTaskMeta.status == ComputationState.FAILURE.value,
-    not_(coalesce(CeleryTaskMeta.traceback, '').contains('InputValidationError')),
+    TaskExtended.status == ComputationState.FAILURE,
+    not_(coalesce(TaskExtended.traceback, '').contains('InputValidationError')),
 )
 
 
@@ -67,36 +67,30 @@ class ComputationsSummaryView(ClimatoologyTableBase):
             ComputationTable.plugin_id,
             ComputationTable.plugin_version,
             count().label('no_of_computations'),
-            (count().filter(CeleryTaskMeta.status == ComputationState.SUCCESS.value)).label('no_of_successes'),
+            (count().filter(TaskExtended.status == ComputationState.SUCCESS)).label('no_of_successes'),
             (count().filter(real_failure_filter)).label('no_of_failures'),
             (
                 cast(
                     func.round(
                         count().filter(real_failure_filter)
-                        / (
-                            count().filter(
-                                or_(CeleryTaskMeta.status == ComputationState.SUCCESS.value, real_failure_filter)
-                            )
-                        )
+                        / (count().filter(or_(TaskExtended.status == ComputationState.SUCCESS, real_failure_filter)))
                         * 100.0,
                         2,
                     ),
                     sqlalchemy.Float,
                 )
             ).label('percent_failed'),
-            func.min(CeleryTaskMeta.date_done).label('since'),
-            (count().filter(CeleryTaskMeta.traceback.contains('InputValidationError'))).label(
+            func.min(TaskExtended.date_done).label('since'),
+            (count().filter(TaskExtended.traceback.contains('InputValidationError'))).label(
                 'no_of_input_validation_fails'
             ),
-            (
-                count().filter(
-                    not_(CeleryTaskMeta.status.in_([ComputationState.SUCCESS.value, ComputationState.FAILURE.value]))
-                )
-            ).label('no_of_other_states'),
+            (count().filter(not_(TaskExtended.status.in_([ComputationState.SUCCESS, ComputationState.FAILURE])))).label(
+                'no_of_other_states'
+            ),
         )
         .join(
-            CeleryTaskMeta,
-            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == CeleryTaskMeta.task_id,
+            TaskExtended,
+            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
             isouter=True,
         )
         .group_by(ComputationTable.plugin_id)
@@ -135,7 +129,7 @@ class UsageView(ClimatoologyTableBase):
 
 FAILURE_REPORTING_DAYS = 30
 
-cause_extraction = func.left(coalesce(ComputationTable.message, CeleryTaskMeta.traceback), 10)
+cause_extraction = func.left(coalesce(ComputationTable.message, TaskExtended.traceback), 10)
 
 
 class FailedComputationsView(ClimatoologyTableBase):
@@ -146,28 +140,26 @@ class FailedComputationsView(ClimatoologyTableBase):
             ComputationTable.plugin_id,
             count().label(f'no_of_failures_in_last_{FAILURE_REPORTING_DAYS}_days'),
             cause_extraction.label('cause'),
-            array_agg(distinct(cast(CeleryTaskMeta.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label(
-                'on_days'
-            ),
+            array_agg(distinct(cast(TaskExtended.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label('on_days'),
             array_agg(distinct(ComputationTable.plugin_version), type_=ARRAY(DbSemver, as_tuple=True)).label(
                 'in_versions'
             ),
             array_agg(distinct(ComputationTable.message), type_=ARRAY(sqlalchemy.String, as_tuple=True)).label(
                 'with_messages'
             ),
-            array_agg(distinct(CeleryTaskMeta.traceback), type_=ARRAY(sqlalchemy.String, as_tuple=True)).label(
+            array_agg(distinct(TaskExtended.traceback), type_=ARRAY(sqlalchemy.String, as_tuple=True)).label(
                 'with_tracebacks'
             ),
         )
         .where(real_failure_filter)
         .join(
-            CeleryTaskMeta,
-            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == CeleryTaskMeta.task_id,
+            TaskExtended,
+            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
             isouter=True,
         )
         .group_by(ComputationTable.plugin_id)
         .group_by(cause_extraction)
-        .where(CeleryTaskMeta.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
+        .where(TaskExtended.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
         .order_by(ComputationTable.plugin_id, count().desc())
     )
 
@@ -188,9 +180,7 @@ class ArtifactErrorsView(ClimatoologyTableBase):
             ComputationTable.plugin_id,
             aliased_json_values.c.key.label('artifact'),
             count().label(f'no_of_computations_with_errors_in_last_{FAILURE_REPORTING_DAYS}_days'),
-            array_agg(distinct(cast(CeleryTaskMeta.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label(
-                'on_days'
-            ),
+            array_agg(distinct(cast(TaskExtended.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label('on_days'),
             array_agg(distinct(ComputationTable.plugin_version), type_=ARRAY(DbSemver, as_tuple=True)).label(
                 'in_versions'
             ),
@@ -199,13 +189,13 @@ class ArtifactErrorsView(ClimatoologyTableBase):
             ),
         )
         .join(
-            CeleryTaskMeta,
-            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == CeleryTaskMeta.task_id,
+            TaskExtended,
+            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
             isouter=True,
         )
         .group_by(ComputationTable.plugin_id)
         .group_by(aliased_json_values.c.key)
-        .where(CeleryTaskMeta.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
+        .where(TaskExtended.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
         .order_by(ComputationTable.plugin_id, aliased_json_values.c.key, count().desc())
     )
 
