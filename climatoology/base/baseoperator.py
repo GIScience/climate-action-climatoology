@@ -12,9 +12,9 @@ import climatoology
 from climatoology.base import T_co
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality, _Artifact, enrich_artifacts
 from climatoology.base.computation import ComputationResources
+from climatoology.base.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 from climatoology.base.info import _Info
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.utility.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 
 log = get_climatoology_logger(__name__)
 

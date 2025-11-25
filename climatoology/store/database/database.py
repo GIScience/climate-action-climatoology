@@ -32,8 +32,8 @@ from climatoology.store.database.models.info import (
     PluginAuthorTable,
     author_info_link_table,
 )
+from climatoology.store.exception import InfoNotReceivedError
 from climatoology.store.object_store import ComputationInfo
-from climatoology.utility.exception import InfoNotReceivedError
 
 log = get_climatoology_logger(__name__)
 

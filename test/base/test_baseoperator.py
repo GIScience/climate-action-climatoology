@@ -15,8 +15,8 @@ from shapely import get_srid
 from climatoology.base.artifact import ArtifactModality, _Artifact
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
+from climatoology.base.exception import ClimatoologyUserError, InputValidationError
 from climatoology.base.info import _Info
-from climatoology.utility.exception import ClimatoologyUserError, InputValidationError
 from test.conftest import TestModel
 
 
