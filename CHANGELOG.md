@@ -112,8 +112,9 @@ TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-d
   computation ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
 - a custom logger that injects the celery task name and task id before log
   messages ([#153](https://gitlab.heigit.org/climate-action/climatoology/-/issues/153))
-- the functionality to write dedicated raster files for the front-end optimised for
-  display ([#216](https://gitlab.heigit.org/climate-action/climatoology/-/issues/216))
+- the functionality to write dedicated raster and vector files for the front-end optimised for
+  display ([#216](https://gitlab.heigit.org/climate-action/climatoology/-/issues/216),
+  [#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102))
 
 ## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.4) - 2025-10-08
 

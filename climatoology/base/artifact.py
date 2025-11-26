@@ -533,6 +533,7 @@ def create_geojson_artifact(
     color: str = 'color',
     label: str = 'label',
     legend: Optional[Legend] = None,
+    pmtiles_lco: dict = None,
 ) -> _Artifact:
     """Create a vector data artifact.
 
@@ -544,6 +545,8 @@ def create_geojson_artifact(
     :param label: Column name for the labels of the features, defaults to `'label'`.
     :param legend: Can be used to display a custom legend. If not provided, a distinct legend will be created from the
       unique combinations of labels and colors.
+    :param pmtiles_lco: Layer creation options forwarded to the PMTile creation, see
+      https://gdal.org/en/stable/drivers/vector/pmtiles.html
     :param metadata: Standard Artifact attributes
     :param resources: The computation resources of the plugin.
     :return: The artifact that contains a path-pointer to the created file.
@@ -551,6 +554,7 @@ def create_geojson_artifact(
     data = data.copy(deep=True)
 
     file_path = resources.computation_dir / f'{metadata.filename}.geojson'
+    display_file_path = resources.computation_dir / f'{metadata.filename}{DISPLAY_FILENAME_SUFFIX}.pmtiles'
     assert not file_path.exists(), (
         'The target artifact data file already exists. Make sure to choose a unique filename.'
     )
@@ -569,8 +573,8 @@ def create_geojson_artifact(
     data = data.rename(columns={color: 'color', label: 'label'})
 
     if isinstance(data.index, MultiIndex):
-        # Format the index the same way a tuple index would be rendered in `to_file()`
-        data.index = "('" + data.index.map("', '".join) + "')"
+        data.index = data.index.to_flat_index()
+    data.index = data.index.astype(str)
 
     data = data.to_crs(4326)
     data.geometry = shapely.set_precision(data.geometry, grid_size=0.0000001)
@@ -581,6 +585,24 @@ def create_geojson_artifact(
         driver='GeoJSON',
         engine='pyogrio',
         layer_options={'SIGNIFICANT_FIGURES': 7, 'RFC7946': 'YES', 'WRITE_NAME': 'NO'},
+        use_arrow=True,
+    )
+    lco = {
+        'NAME': metadata.name,
+        'DESCRIPTION': metadata.summary,
+        'MINZOOM': 0,
+        'MAXZOOM': 15,
+    }
+    lco.update(pmtiles_lco or {})
+    dsco = deepcopy(lco)
+    dsco['TYPE'] = 'overlay'
+    data.to_file(
+        display_file_path,
+        driver='PMTiles',
+        engine='pyogrio',
+        dataset_options=dsco,
+        layer_options=lco,
+        use_arrow=True,
     )
 
     if not legend:
@@ -593,7 +615,7 @@ def create_geojson_artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         filename=file_path.name,
-        attachments=Attachments(legend=legend),
+        attachments=Attachments(legend=legend, display_filename=display_file_path.name),
     )
 
     log.debug(f'Returning Artifact: {result.model_dump()}.')
