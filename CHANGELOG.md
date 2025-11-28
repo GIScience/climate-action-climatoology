@@ -7,126 +7,161 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
-TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-dev relevant
+## [7.0.0rc1(https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.0rc1) - 2025-11-28
+
+This release candidate contains most of the breaking changes for v7.
+V7 will contain the full changelog with respect to V6.4.4.
+The changelog contains subsections for changes that affect a dedicated domain.
 
 ### Changed
 
 - the project now requires python >=3.13.5 <3.14.0
+
+#### Plugin
+
+- `_Info` object is renamed to `PluginInfo` and `_Artifact` object is renamed back to
+  `Artifact` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
+- moved all Artifact creation methods to a dedicated module
+  `artifact_creators` ([#245](https://gitlab.heigit.org/climate-action/climatoology/-/issues/245))
+- renamed functions `create_geojson_artifact` and `create_geotiff_artifact` to `create_vector_artifact` and
+  `create_raster_artifact` respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
+- the `Artifact` creation helper methods now bundle their common input variables into a common `ArtifactMetadata`
+  object ([#240](https://gitlab.heigit.org/climate-action/climatoology/-/issues/240))
+-
+    - `climatoology.base.info` module is renamed to
+      `climatoology.base.plugin_info` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
 - renamed
     - `LULC` utility module to `lulc`
     - `Naturalness` utility module to `naturalness`
-    - `PlatformUtilityException` -> `PlatformUtilityError`
+
+- `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact
+  result ([#205](https://gitlab.heigit.org/climate-action/climatoology/-/issues/205))
+- `create_geojson_artifact` and `create_geotiff_artifact` now accept `legend: Legend` instead
+  of `legend_data: Union[ContinuousLegendData, Dict[str, Color]]` to enable users to provide a custom
+  title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+
+- de-deprecated basic chart artifact creation and use plotly for it
+  (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
+- `teaser` and `demo_config` are now required for the plugin info
+- `generate_plugin_info` now accepts a `DemoConfig` object and includes `name` so a descriptive demo name can be
+  used ([#218](https://gitlab.heigit.org/climate-action/climatoology/-/issues/218))
+- the plugin info now takes in a library that can be subsetted for the info-sources (general sources of the plugin) but
+  will also be reused for the artifact sources (see
+  [Added](#Added)) ([#224](https://gitlab.heigit.org/climate-action/climatoology/-/issues/224))
+- LULC and Naturalness utility now accept polygonal geometries instead of bboxes. This allows them to limit their
+  requests and save resources ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
+
+#### API
+
+- allowed PNG icons and made PNG the default for
+  icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
+- the `_Artifact.store_id` field was removed in favour of the `_Artifact.filename` which in turn replaces
+  `_Artifact.file_path`.
+- The `timestamp` attribute of a computation is no longer stored in the database, in favour of directly using
+  `computation_lookup.request_ts` and `celery_taskmeta.date_done` as appropriate. Accordingly, `ComputationInfo` now
+  returns `request_ts` (the timestamp when the computation was requested) instead of
+  `timestamp` ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176))
+- renamed `ArtifactModality.MAP_LAYER_GEOJSON` and`ArtifactModality.MAP_LAYER_GEOTIFF` to
+  `ArtifactModality.VECTOR_MAP_LAYER` and `ArtifactModality.RASTER_MAP_LAYER`
+  respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
+
+#### Library
+
 - moved `ClimatoologyUserError` and `InputValidationError` to the `climatoology.base.exception`
   module ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243))
 - moved and renamed ([#243](https://gitlab.heigit.org/climate-action/climatoology/-/issues/243)):
     - `climatoology.utility.exception.VersionMismatchException` -> `climatoology.app.exception.VersionMismatchError`
     - `climatoology.utility.exception.InfoNotReceivedException` -> `climatoology.store.exception.InfoNotReceivedError`
-- de-deprecated basic chart artifact creation and use plotly for it
-  (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
+- renamed `PlatformUtilityException` -> `PlatformUtilityError`
 - queues are created explicitly using the plugin id, enabling multiple workers to be online and to consume from the same
   queue ([#189](https://gitlab.heigit.org/climate-action/climatoology/-/issues/189))
 - worker names now include the hostname (instead of `@_`), enabling multiple workers to be online yet still
   differentiated from each other
-- `create_geojson_artifact` now requires a GeoDataFrame as input data and includes extra data columns in the artifact
-  result ([#205](https://gitlab.heigit.org/climate-action/climatoology/-/issues/205))
-- allowed PNG icons and made PNG the default for
-  icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
-- `teaser` and `demo_config` are now required for the plugin info
 - moved from [psycopg2 to psycopg3](https://www.psycopg.org) as db
   engine ([#222](https://gitlab.heigit.org/climate-action/climatoology/-/issues/222))
 - `Info` models (pydantic and DB) where augmented with adapters to accept `semver.Version` natively
-- rename plugin info object `plugin_id` to `id` (the object should have the _Plugin_ name-part)
-- `generate_plugin_info` now accepts a `DemoConfig` object and includes `name` so a descriptive demo name can be
-  used ([#218](https://gitlab.heigit.org/climate-action/climatoology/-/issues/218))
-- `create_geojson_artifact` and `create_geotiff_artifact` now accept `legend: Legend` instead
-  of `legend_data: Union[ContinuousLegendData, Dict[str, Color]]` to enable users to provide a custom
-  title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+- rename plugin info object `plugin_id` to `id`
 - renamed `adjust_bounds` to `generate_bounds` and accept a GeoSeries as input instead of a bounding box,
   which enables ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
     - If the resulting bounds would have a dimension of 0, instead extend the bounds to the east/north to ensure valid
       bounds are returned.
     - Filter the returned bounds to drop any bounds that do not intersect the input geometry space.
-- LULC and Naturalness utility now accept polygonal geometries instead of bboxes. This allows them to limit their
-  requests and save resources ([#200](https://gitlab.heigit.org/climate-action/climatoology/-/issues/200))
-- the `_Artifact.store_id` field was removed in favour of the `_Artifact.filename` which in turn replaces
-  `_Artifact.file_path`.
-- the `Artifact` creation helper methods now bundle their common input variables into a common `ArtifactMetadata`
-  object ([#240](https://gitlab.heigit.org/climate-action/climatoology/-/issues/240))
-- the plugin info now takes in a library that can be subsetted for the info-sources (general sources of the plugin) but
-  will also be reused for the artifact sources (see
-  below) ([#224](https://gitlab.heigit.org/climate-action/climatoology/-/issues/224))
 - the different stages of the `_Artifact` are now more visible through different class names that also present the
   enrichment cycle through inheritance.
-- The `timestamp` attribute of a computation is no longer stored in the database, in favour of directly using
-  `computation_lookup.request_ts` and `celery_taskmeta.date_done` as appropriate. Accordingly, `ComputationInfo` now
-  returns `request_ts` (the timestamp when the computation was requested) instead of
-  `timestamp` ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176))
-- `_Info` object is renamed to `PluginInfo` and `_Artifact` object is renamed back to
-  `Artifact` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
-- `climatoology.base.info` module is renamed to
-  `climatoology.base.plugin_info` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
-- renamed functions `create_geojson_artifact` and `create_geotiff_artifact` to `create_vector_artifact` and
-  `create_raster_artifact` respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
-- renamed `ArtifactModality.MAP_LAYER_GEOJSON` and`ArtifactModality.MAP_LAYER_GEOTIFF` to
-  `ArtifactModality.VECTOR_MAP_LAYER` and `ArtifactModality.RASTER_MAP_LAYER`
-  respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
-- moved all Artifact creation methods to a dedicated module
-  `artifact_creators` ([#245](https://gitlab.heigit.org/climate-action/climatoology/-/issues/245))
+- moved columns `aoi_name`, `aoi_id` and `status` from computation
+  table to lookup ([#197](https://gitlab.heigit.org/climate-action/climatoology/-/issues/197))
 
 ### Fix
+
+#### Plugin
+
+- the geotiff creation by correctly writing the nodata value of masked arrays
+
+#### API
+
+- plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
+- artifacts now have a rank attribute to assert their order is
+  preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
+
+#### Library
 
 - the database being in an inconsistent state in the brief moments between a task finishing on the worker and the
   subsequent `on_success` or `on_failure` callbacks. This
   caused [#201](https://gitlab.heigit.org/climate-action/climatoology/-/issues/201) but also random
   test-failures.
-- update all dependencies
 - elements are uploaded to the object store with a more precise content
   type ([#165](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/issues/165))
-- plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
-- artifacts now have a rank attribute to assert their order is
-  preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
-- the geotiff creation by correctly writing the nodata value of masked arrays
 
 ### Removed
+
+#### API
 
 - the `platform` module, which is now implemented in
   the [API Gateway](https://gitlab.heigit.org/climate-action/api-gateway)
   ([#184](https://gitlab.heigit.org/climate-action/climatoology/-/issues/184))
 - `deduplicate_computations` from `CABaseSettings`, which is now available within `SenderSettings` in
   the [API Gateway](https://gitlab.heigit.org/climate-action/api-gateway)
-- the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
-- deprecated columns `aoi_name`, `aoi_id` and `status` from computation
-  table ([#197](https://gitlab.heigit.org/climate-action/climatoology/-/issues/197))
 - `MinioStorage.list_all()` function, which is replaced
   by `BackendDatabase.list_artifacts()` ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
+- the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
 
 ### Added
 
-- a dead letter queue to store expired
-  messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
 - the functionality to automatically up- and downgrade the
   database including celery tables ([#170](https://gitlab.heigit.org/climate-action/climatoology/-/issues/170))
-- a set of overVIEWs in the database for monitoring and
-  reporting ([#187](https://gitlab.heigit.org/climate-action/climatoology/-/issues/187),
-  [#215](https://gitlab.heigit.org/climate-action/climatoology/-/issues/215))
+
+#### Plugin
+
+- a custom logger that injects the celery task name and task id before log
+  messages ([#153](https://gitlab.heigit.org/climate-action/climatoology/-/issues/153))
+- `Info` now has the repository attribute that is automatically read from the pyproject.toml
 - sources given in the plugin info are now checked for completeness and compatibility with the
   front-end ([#118](https://gitlab.heigit.org/climate-action/climatoology/-/issues/118))
-- `Info` now has the repository attribute that is automatically read from he pyproject.toml
-- CI triggers for canary builds in downstream projects
 - Artifacts can now have dedicated sources that are read from the central library defined during plugin info
   generation ([#202](https://gitlab.heigit.org/climate-action/climatoology/-/issues/202))
 - Users can provide a custom title in the `Legend`
   object ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 - Users can create legend data from a colormap using the `legend_data_from_colormap`
   function ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
+
+#### API
+
+- a dead letter queue to store expired
+  messages ([#48](https://gitlab.heigit.org/climate-action/climatoology/-/issues/48))
 - `BackendDatabase` now has `list_artifacts()` to return a list of the artifacts for a
   computation ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
-- a custom logger that injects the celery task name and task id before log
-  messages ([#153](https://gitlab.heigit.org/climate-action/climatoology/-/issues/153))
 - the functionality to write dedicated raster and vector files for the front-end optimised for
   display ([#216](https://gitlab.heigit.org/climate-action/climatoology/-/issues/216),
   [#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102))
-- the `info` table in the database now stores info for different plugin versions ([#168](https://gitlab.heigit.org/climate-action/climatoology/-/issues/168))
+- the `info` table in the database now stores info for different plugin
+  versions ([#168](https://gitlab.heigit.org/climate-action/climatoology/-/issues/168))
+
+#### Library
+
+- CI triggers for canary builds in downstream projects
+- a set of overVIEWs in the database for monitoring and
+  reporting ([#187](https://gitlab.heigit.org/climate-action/climatoology/-/issues/187),
+  [#215](https://gitlab.heigit.org/climate-action/climatoology/-/issues/215))
 
 ## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.4) - 2025-10-08
 
