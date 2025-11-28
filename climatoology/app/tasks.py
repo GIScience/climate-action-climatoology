@@ -10,12 +10,12 @@ from celery.signals import task_revoked
 from shapely import set_srid
 
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
-from climatoology.base.baseoperator import AoiProperties, BaseOperator
-from climatoology.base.computation import ComputationScope
+from climatoology.base.baseoperator import BaseOperator
+from climatoology.base.computation import AoiProperties, ComputationInfo, ComputationScope
 from climatoology.base.exception import InputValidationError
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.object_store import ComputationInfo, Storage
+from climatoology.store.object_store import Storage
 
 log = get_climatoology_logger(__name__)
 
