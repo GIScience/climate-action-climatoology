@@ -95,6 +95,11 @@ def frozen_time():
 
 
 @pytest.fixture
+def default_plugin_key() -> str:
+    return 'test_plugin;3.1.0'
+
+
+@pytest.fixture
 def default_info() -> _Info:
     info = generate_plugin_info(
         name='Test Plugin',
@@ -353,7 +358,7 @@ def default_computation_info(
     return ComputationInfo(
         correlation_uuid=general_uuid,
         request_ts=datetime(2018, 1, 1, 12),
-        deduplication_key=uuid.UUID('397e25df-3445-42a1-7e49-03466b3be5ca'),
+        deduplication_key=uuid.UUID('24209215-3397-e96c-2bf2-084116c66532'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
@@ -472,15 +477,14 @@ def default_backend_db(db_with_tables) -> BackendDatabase:
 
 @pytest.fixture
 def backend_with_computation_registered(
-    default_backend_db, default_computation_info, default_info_final, set_basic_envs, frozen_time
+    default_backend_db, default_computation_info, default_info_final, default_plugin_key, set_basic_envs, frozen_time
 ) -> BackendDatabase:
     default_backend_db.write_info(info=default_info_final)
     default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
-        plugin_id=default_computation_info.plugin_info.id,
-        plugin_version=default_computation_info.plugin_info.version,
+        plugin_key=default_plugin_key,
         computation_shelf_life=default_info_final.computation_shelf_life,
     )
     default_backend_db.add_validated_params(
@@ -512,7 +516,31 @@ def backend_with_computation_successful(backend_with_computation_registered, def
 
 @pytest.fixture
 def alembic_config() -> Config:
-    return Config(config_options={'script_location': 'climatoology/store/database/migration'})
+    return Config(
+        config_options={'script_location': 'climatoology/store/database/migration'},
+        at_revision_data={
+            '3d4313578291': [
+                {
+                    '__tablename__': 'info',
+                    'plugin_id': 'prefilled_test_plugin',
+                    'name': 'Prefilled Test Plugin',
+                    'version': '1.0.0',
+                    'concerns': [],
+                    'purpose': 'No Purpose',
+                    'methodology': 'No Methods',
+                    'assets': {},
+                    'operator_schema': {},
+                    'library_version': '0.0.1',
+                },
+                {'__tablename__': 'pluginauthor', 'name': 'Waldemar'},
+                {
+                    '__tablename__': 'author_info_link_table',
+                    'info_id': 'prefilled_test_plugin',
+                    'author_id': 'Waldemar',
+                },
+            ],
+        },
+    )
 
 
 @pytest.fixture

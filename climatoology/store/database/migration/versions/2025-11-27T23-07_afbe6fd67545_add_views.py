@@ -1,8 +1,10 @@
 """add_views
 
 Revision ID: afbe6fd67545
-Revises: 6c56a2ce5490
+Revises: 9ba5a3807edb
 Create Date: 2025-09-27 23:07:27.435189
+
+Note: this revision was previously earlier but due to major rehaul of the db structure was moved to be last.
 
 """
 
@@ -13,7 +15,7 @@ from alembic_utils.pg_view import PGView
 
 # revision identifiers, used by Alembic.
 revision: str = 'afbe6fd67545'
-down_revision: Union[str, None] = '6c56a2ce5490'
+down_revision: Union[str, None] = '9ba5a3807edb'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -32,11 +34,11 @@ SELECT
 FROM
     ca_base.computation
 JOIN ca_base.info ON
-    ca_base.computation.plugin_id = ca_base.info.id
+    ca_base.computation.plugin_key = ca_base.info.key
 JOIN public.celery_taskmeta ON
     CAST(ca_base.computation.correlation_uuid AS VARCHAR) = public.celery_taskmeta.task_id
 WHERE
-    ca_base.computation.plugin_version = ca_base.info.version
+    ca_base.info.latest
     AND ca_base.computation.valid_until > now()
     AND public.celery_taskmeta.status = 'SUCCESS'
 """,
@@ -48,8 +50,8 @@ WHERE
         signature='computations_summary',
         definition="""
 SELECT
-    ca_base.computation.plugin_id,
-    ca_base.computation.plugin_version,
+    ca_base.info.id AS plugin_id,
+    ca_base.info.version AS plugin_version,
     count(*) AS no_of_computations,
     count(*) FILTER (
     WHERE
@@ -77,15 +79,17 @@ SELECT
         )
     ) AS no_of_other_states
 FROM
-    ca_base.computation
+    ca_base.info
+JOIN ca_base.computation ON
+    ca_base.computation.plugin_key = ca_base.info.key
 LEFT OUTER JOIN public.celery_taskmeta ON
     CAST(ca_base.computation.correlation_uuid AS VARCHAR) = public.celery_taskmeta.task_id
 GROUP BY
-    ca_base.computation.plugin_id,
-    ca_base.computation.plugin_version
+    ca_base.info.id,
+    ca_base.info.version
 ORDER BY
-    ca_base.computation.plugin_id,
-    ca_base.computation.plugin_version DESC
+    ca_base.info.id,
+    ca_base.info.version DESC
 """,
     )
     op.create_entity(ca_base_computations_summary)
@@ -95,12 +99,14 @@ ORDER BY
         signature='usage_summary',
         definition="""
 SELECT
-    ca_base.computation.plugin_id,
+    ca_base.info.id as plugin_id,
     count(*) AS no_of_requested_computations,
     cast(round(count(*) / cast((cast(now() as DATE) - cast(min(ca_base.computation_lookup.request_ts) as DATE)) as numeric), 2) as FLOAT) as avg_computations_per_day,
     min(ca_base.computation_lookup.request_ts) AS since
 FROM
-    ca_base.computation
+    ca_base.info
+JOIN ca_base.computation ON
+    ca_base.computation.plugin_key = ca_base.info.key
 JOIN ca_base.computation_lookup ON
     ca_base.computation.correlation_uuid = ca_base.computation_lookup.computation_id
 WHERE
@@ -108,10 +114,10 @@ WHERE
         ca_base.computation_lookup.aoi_id NOT LIKE '%%' || '-demo' || '%%'
     )
 GROUP BY
-    ca_base.computation.plugin_id
+    ca_base.info.id
 ORDER BY
     count(*) DESC,
-    ca_base.computation.plugin_id
+    ca_base.info.id
 """,
     )
     op.create_entity(ca_base_usage_summary)
@@ -121,15 +127,17 @@ ORDER BY
         signature='failed_computations',
         definition="""
 SELECT
-    ca_base.computation.plugin_id,
+    ca_base.info.id AS plugin_id,
     count(*) AS no_of_failures_in_last_30_days,
     LEFT(COALESCE(ca_base.computation.message, public.celery_taskmeta.traceback), 10) AS cause,
     array_agg(DISTINCT CAST(public.celery_taskmeta.date_done AS DATE)) AS on_days,
-    array_agg(DISTINCT ca_base.computation.plugin_version) AS in_versions,
+    array_agg(DISTINCT ca_base.info.version) AS in_versions,
     array_agg(DISTINCT ca_base.computation.message) AS with_messages,
     array_agg(DISTINCT public.celery_taskmeta.traceback) AS with_tracebacks
 FROM
-    ca_base.computation
+    ca_base.info
+JOIN ca_base.computation ON
+    ca_base.computation.plugin_key = ca_base.info.key
 LEFT OUTER JOIN public.celery_taskmeta ON
     CAST(ca_base.computation.correlation_uuid AS VARCHAR) = public.celery_taskmeta.task_id
 WHERE
@@ -139,10 +147,10 @@ WHERE
     )
     AND public.celery_taskmeta.date_done > now() - make_interval(secs =>2592000.0)
 GROUP BY
-    ca_base.computation.plugin_id,
+    ca_base.info.id,
     LEFT(COALESCE(ca_base.computation.message, public.celery_taskmeta.traceback), 10)
 ORDER BY
-    ca_base.computation.plugin_id,
+    ca_base.info.id,
     count(*) DESC
 """,
     )
@@ -153,24 +161,26 @@ ORDER BY
         signature='artifact_errors',
         definition="""
 SELECT
-    ca_base.computation.plugin_id,
+    ca_base.info.id AS plugin_id,
     artifact_errors.key as artifact,
     count(*) AS no_of_computations_with_errors_in_last_30_days,
     array_agg(DISTINCT CAST(public.celery_taskmeta.date_done AS DATE)) AS on_days,
-    array_agg(DISTINCT ca_base.computation.plugin_version) AS in_versions,
+    array_agg(DISTINCT ca_base.info.version) AS in_versions,
     array_agg(DISTINCT artifact_errors.value) AS with_messages
 FROM
-    ca_base.computation
+    ca_base.info
+JOIN ca_base.computation ON
+    ca_base.computation.plugin_key = ca_base.info.key
 LEFT OUTER JOIN public.celery_taskmeta ON
     CAST(ca_base.computation.correlation_uuid as VARCHAR) = public.celery_taskmeta.task_id,
     json_each_text(ca_base.computation.artifact_errors) AS artifact_errors
 WHERE
     public.celery_taskmeta.date_done > now() - make_interval(secs =>2592000.0)
 GROUP BY
-    ca_base.computation.plugin_id,
+    ca_base.info.id,
     artifact_errors.key
 ORDER BY
-    ca_base.computation.plugin_id,
+    ca_base.info.id,
     artifact_errors.key,
     count(*) DESC
 """,

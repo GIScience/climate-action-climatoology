@@ -115,6 +115,7 @@ TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-d
 - the functionality to write dedicated raster and vector files for the front-end optimised for
   display ([#216](https://gitlab.heigit.org/climate-action/climatoology/-/issues/216),
   [#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102))
+- the `info` table in the database now stores info for different plugin versions ([#168](https://gitlab.heigit.org/climate-action/climatoology/-/issues/168))
 
 ## [6.4.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.4.4) - 2025-10-08
 

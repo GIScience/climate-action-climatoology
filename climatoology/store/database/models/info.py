@@ -4,7 +4,7 @@ from typing import List, Optional, Set
 import sqlalchemy
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
-from sqlalchemy import JSON, Column, ForeignKey, Integer, Table, asc
+from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, Table, asc
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,9 +15,9 @@ from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, Cl
 author_info_link_table = Table(
     'author_info_link_table',
     ClimatoologyTableBase.metadata,
-    Column('info_id', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.id')),
-    Column('author_id', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.pluginauthor.name')),
-    Column('author_seat', Integer),
+    Column('info_key', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.key'), primary_key=True),
+    Column('author_id', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.pluginauthor.name'), primary_key=True),
+    Column('author_seat', Integer, nullable=False),
     schema=CLIMATOOLOGY_SCHEMA_NAME,
 )
 
@@ -35,7 +35,8 @@ class InfoTable(ClimatoologyTableBase):
     __tablename__ = 'info'
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
-    id: Mapped[str] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(Computed("id::text || ';'::text || version::text"), primary_key=True)
+    id: Mapped[str]
     version: Mapped[Version] = mapped_column(DbSemver)
     name: Mapped[str]
     authors: Mapped[List[PluginAuthorTable]] = relationship(
@@ -53,3 +54,4 @@ class InfoTable(ClimatoologyTableBase):
     assets: Mapped[Assets] = mapped_column(JSON)
     operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
     library_version: Mapped[Version] = mapped_column(DbSemver)
+    latest: Mapped[bool] = mapped_column(default=False)

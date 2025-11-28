@@ -24,9 +24,11 @@ def upgrade() -> None:
     plugin_state.create(op.get_bind())
     op.add_column(
         'info',
-        sa.Column('state', plugin_state, nullable=False),
+        sa.Column('state', plugin_state, nullable=True),
         schema='ca-base',
     )
+    op.execute(sa.text('update "ca-base".info set state=\'ACTIVE\' where state is null'))
+    op.alter_column('info', 'state', nullable=False, schema='ca-base')
 
 
 def downgrade() -> None:

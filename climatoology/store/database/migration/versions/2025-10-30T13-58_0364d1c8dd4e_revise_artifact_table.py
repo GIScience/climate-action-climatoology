@@ -1,8 +1,11 @@
 """revise-artifact-table
 
 Revision ID: 0364d1c8dd4e
-Revises: afbe6fd67545
+Revises: 6c56a2ce5490
 Create Date: 2025-10-30 13:58:27.616746
+
+Note: this revision previously revised the `add views` change, but due to major rehaul of the db structure, that
+revision was moved to be later.
 
 """
 
@@ -14,7 +17,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '0364d1c8dd4e'
-down_revision: Union[str, None] = 'afbe6fd67545'
+down_revision: Union[str, None] = '6c56a2ce5490'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
