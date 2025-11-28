@@ -146,8 +146,8 @@ class ArtifactModality(Enum):
     TABLE = 'TABLE'
     IMAGE = 'IMAGE'
     CHART_PLOTLY = 'CHART_PLOTLY'
-    MAP_LAYER_GEOJSON = 'MAP_LAYER_GEOJSON'
-    MAP_LAYER_GEOTIFF = 'MAP_LAYER_GEOTIFF'
+    VECTOR_MAP_LAYER = 'VECTOR_MAP_LAYER'
+    RASTER_MAP_LAYER = 'RASTER_MAP_LAYER'
     COMPUTATION_INFO = 'COMPUTATION_INFO'
 
 
@@ -526,7 +526,7 @@ def create_plotly_chart_artifact(
     return result
 
 
-def create_geojson_artifact(
+def create_vector_artifact(
     data: GeoDataFrame,
     metadata: ArtifactMetadata,
     resources: ComputationResources,
@@ -613,7 +613,7 @@ def create_geojson_artifact(
 
     result = Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        modality=ArtifactModality.VECTOR_MAP_LAYER,
         filename=file_path.name,
         attachments=Attachments(legend=legend, display_filename=display_file_path.name),
     )
@@ -653,7 +653,7 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
     )
 
 
-def create_geotiff_artifact(
+def create_raster_artifact(
     raster_info: RasterInfo,
     metadata: ArtifactMetadata,
     resources: ComputationResources,
@@ -761,7 +761,7 @@ def create_geotiff_artifact(
 
     result = Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
-        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        modality=ArtifactModality.RASTER_MAP_LAYER,
         filename=file_path.name,
         attachments=Attachments(legend=legend, display_filename=display_file_path.name),
     )

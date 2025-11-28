@@ -15,11 +15,11 @@ from climatoology.base.artifact import (
     Attachments,
     Legend,
     RasterInfo,
-    create_geotiff_artifact,
+    create_raster_artifact,
 )
 
 
-def test_create_concise_geotiff_artifact_2d(default_computation_resources, default_artifact, default_artifact_metadata):
+def test_create_concise_raster_artifact_2d(default_computation_resources, default_artifact, default_artifact_metadata):
     method_input = RasterInfo(
         data=np.ones(shape=(4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
@@ -34,11 +34,11 @@ def test_create_concise_geotiff_artifact_2d(default_computation_resources, defau
     )
 
     default_artifact_copy = default_artifact.model_copy(deep=True)
-    default_artifact_copy.modality = ArtifactModality.MAP_LAYER_GEOTIFF
+    default_artifact_copy.modality = ArtifactModality.RASTER_MAP_LAYER
     default_artifact_copy.filename = f'{default_artifact_metadata.filename}.tiff'
     default_artifact_copy.attachments = Attachments(display_filename='test_artifact_file-display.tiff')
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         raster_info=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -50,7 +50,7 @@ def test_create_concise_geotiff_artifact_2d(default_computation_resources, defau
     assert_array_equal(generated_content, [method_input.data])
 
 
-def test_create_extensive_geotiff_artifact_2d(
+def test_create_extensive_raster_artifact_2d(
     default_computation_resources, extensive_artifact, extensive_artifact_metadata
 ):
     method_input = RasterInfo(
@@ -70,11 +70,11 @@ def test_create_extensive_geotiff_artifact_2d(
     method_input_copy = method_input.model_copy(deep=True)
 
     extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
-    extensive_artifact_copy.modality = ArtifactModality.MAP_LAYER_GEOTIFF
+    extensive_artifact_copy.modality = ArtifactModality.RASTER_MAP_LAYER
     extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.tiff'
     extensive_artifact_copy.attachments = Attachments(legend=legend, display_filename='test_artifact_file-display.tiff')
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         raster_info=method_input,
         metadata=extensive_artifact_metadata,
         resources=default_computation_resources,
@@ -90,7 +90,7 @@ def test_create_extensive_geotiff_artifact_2d(
     assert generated_artifact == extensive_artifact_copy
 
 
-def test_create_geotiff_artifact_generates_display_raster_square_pixels(
+def test_create_raster_artifact_generates_display_raster_square_pixels(
     default_artifact_metadata, default_computation_resources
 ):
     method_input = RasterInfo(
@@ -107,7 +107,7 @@ def test_create_geotiff_artifact_generates_display_raster_square_pixels(
         colormap={1: (0, 255, 0)},
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         raster_info=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -120,12 +120,12 @@ def test_create_geotiff_artifact_generates_display_raster_square_pixels(
         assert_array_equal(generated_content.read(), [np.ones(shape=(5, 4))])
 
 
-def test_create_geotiff_artifact_2d_colormap_rgba(
+def test_create_raster_artifact_2d_colormap_rgba(
     default_computation_resources, general_uuid, default_artifact_metadata
 ):
     expected_artifact = Artifact(
         name='test_name',
-        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        modality=ArtifactModality.RASTER_MAP_LAYER,
         filename='test_artifact_file.tiff',
         summary='Test summary',
         attachments=Attachments(
@@ -147,7 +147,7 @@ def test_create_geotiff_artifact_2d_colormap_rgba(
         colormap={1: (0, 255, 0, 254)},
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -156,9 +156,7 @@ def test_create_geotiff_artifact_2d_colormap_rgba(
     assert generated_artifact == expected_artifact
 
 
-def test_create_geotiff_artifact_masked_array_and_nodata_value(
-    default_computation_resources, default_artifact_metadata
-):
+def test_create_raster_artifact_masked_array_and_nodata_value(default_computation_resources, default_artifact_metadata):
     method_input = RasterInfo(
         data=np.ma.masked_array([[1, 2], [3, 4]], dtype=np.uint8, mask=[[0, 0], [0, 1]], fill_value=5),
         crs=CRS({'init': 'epsg:4326'}),
@@ -173,7 +171,7 @@ def test_create_geotiff_artifact_masked_array_and_nodata_value(
         colormap={1: (0, 255, 0)},
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -197,10 +195,10 @@ def test_create_geotiff_artifact_masked_array_and_nodata_value(
         assert display_data.fill_value == method_input.data.fill_value
 
 
-def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid, default_artifact_metadata):
+def test_create_raster_artifact_3d(default_computation_resources, general_uuid, default_artifact_metadata):
     expected_artifact = Artifact(
         name='test_name',
-        modality=ArtifactModality.MAP_LAYER_GEOTIFF,
+        modality=ArtifactModality.RASTER_MAP_LAYER,
         filename='test_artifact_file.tiff',
         summary='Test summary',
         attachments=Attachments(
@@ -222,7 +220,7 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid,
         colormap={1: (0, 255, 0)},
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -240,7 +238,7 @@ def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid,
         assert_array_equal(display_content.read(), np.flip(method_input.data, axis=1))
 
 
-def test_geotiff_creation_option_warnings(default_computation_resources, caplog, default_artifact_metadata):
+def test_raster_creation_option_warnings(default_computation_resources, caplog, default_artifact_metadata):
     method_input = RasterInfo(
         data=np.ones(shape=(4, 5), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
@@ -256,7 +254,7 @@ def test_geotiff_creation_option_warnings(default_computation_resources, caplog,
     )
 
     with caplog.at_level(logging.INFO):
-        create_geotiff_artifact(
+        create_raster_artifact(
             method_input,
             metadata=default_artifact_metadata,
             resources=default_computation_resources,
@@ -265,7 +263,7 @@ def test_geotiff_creation_option_warnings(default_computation_resources, caplog,
     assert caplog.messages == []
 
 
-def test_small_geotiff_created_without_overviews(default_computation_resources, default_artifact_metadata):
+def test_small_raster_created_without_overviews(default_computation_resources, default_artifact_metadata):
     method_input = RasterInfo(
         data=np.ones(shape=(10, 10), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
@@ -279,7 +277,7 @@ def test_small_geotiff_created_without_overviews(default_computation_resources, 
         ),
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -295,7 +293,7 @@ def test_small_geotiff_created_without_overviews(default_computation_resources, 
         assert display_content.overviews(1) == []
 
 
-def test_geotiff_created_with_overviews(default_computation_resources, default_artifact_metadata):
+def test_raster_created_with_overviews(default_computation_resources, default_artifact_metadata):
     method_input = RasterInfo(
         data=np.ones(shape=(1000, 1000), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
@@ -310,7 +308,7 @@ def test_geotiff_created_with_overviews(default_computation_resources, default_a
         colormap={1: (0, 255, 0)},
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -326,7 +324,7 @@ def test_geotiff_created_with_overviews(default_computation_resources, default_a
         assert display_content.overviews(1) == [2, 4]
 
 
-def test_geotiff_tiled(default_computation_resources, default_artifact_metadata):
+def test_raster_tiled(default_computation_resources, default_artifact_metadata):
     method_input = RasterInfo(
         data=np.ones(shape=(1000, 1000), dtype=np.uint8),
         crs=CRS({'init': 'epsg:4326'}),
@@ -341,7 +339,7 @@ def test_geotiff_tiled(default_computation_resources, default_artifact_metadata)
         colormap={1: (0, 255, 0)},
     )
 
-    generated_artifact = create_geotiff_artifact(
+    generated_artifact = create_raster_artifact(
         method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -377,7 +375,7 @@ def test_disallow_colormap_for_incompatible_dtype(default_computation_resources,
     )
 
     with pytest.raises(AssertionError, match='Colormaps are not allowed for dtype float.'):
-        create_geotiff_artifact(
+        create_raster_artifact(
             method_input,
             metadata=default_artifact_metadata,
             resources=default_computation_resources,
