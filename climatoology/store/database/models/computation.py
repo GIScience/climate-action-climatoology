@@ -3,12 +3,10 @@ from typing import List, Optional
 from uuid import UUID
 
 from geoalchemy2 import Geometry, WKTElement
-from semver import Version
 from sqlalchemy import JSON, Computed, ForeignKey, UniqueConstraint, asc
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 from climatoology.store.database.models.info import InfoTable
@@ -20,6 +18,7 @@ class ComputationTable(ClimatoologyTableBase):
     __tablename__ = 'computation'
     __table_args__ = (
         UniqueConstraint(
+            'plugin_key',
             'deduplication_key',  # using an md5 hash creates the possibility for cash collisions but raw columns will exceed the cache entry size
             'cache_epoch',
             name=COMPUTATION_DEDUPLICATION_CONSTRAINT,
@@ -28,17 +27,14 @@ class ComputationTable(ClimatoologyTableBase):
     )
 
     correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
-    deduplication_key: Mapped[UUID] = mapped_column(
-        Computed('md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid')
-    )
+    deduplication_key: Mapped[UUID] = mapped_column(Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid'))
     cache_epoch: Mapped[Optional[int]]
     valid_until: Mapped[datetime]
     params: Mapped[Optional[dict]] = mapped_column(JSONB)
     requested_params: Mapped[dict] = mapped_column(JSONB)
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
-    plugin_id: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.id'))
-    plugin_version: Mapped[Version] = mapped_column(DbSemver)
+    plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.key'))
     plugin: Mapped[InfoTable] = relationship()
     message: Mapped[Optional[str]]
     artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)

@@ -40,9 +40,9 @@ class ValidComputationsView(ClimatoologyTableBase):
             type_coerce(ComputationTable.aoi_geom, type_=RawGeometry).label('aoi'),
             ComputationTable.params,
         )
-        .join(InfoTable, ComputationTable.plugin_id == InfoTable.id)
+        .join(InfoTable, ComputationTable.plugin_key == InfoTable.key)
         .join(TaskExtended, cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id)
-        .where(ComputationTable.plugin_version == InfoTable.version)
+        .where(InfoTable.latest)
         .where(ComputationTable.valid_until > db_now())
         .where(TaskExtended.status == ComputationState.SUCCESS)
     )
@@ -64,8 +64,8 @@ class ComputationsSummaryView(ClimatoologyTableBase):
 
     select_statement = (
         select(
-            ComputationTable.plugin_id,
-            ComputationTable.plugin_version,
+            InfoTable.id.label('plugin_id'),
+            InfoTable.version.label('plugin_version'),
             count().label('no_of_computations'),
             (count().filter(TaskExtended.status == ComputationState.SUCCESS)).label('no_of_successes'),
             (count().filter(real_failure_filter)).label('no_of_failures'),
@@ -88,14 +88,15 @@ class ComputationsSummaryView(ClimatoologyTableBase):
                 'no_of_other_states'
             ),
         )
+        .join(ComputationTable, ComputationTable.plugin_key == InfoTable.key)
         .join(
             TaskExtended,
             cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
             isouter=True,
         )
-        .group_by(ComputationTable.plugin_id)
-        .group_by(ComputationTable.plugin_version)
-        .order_by(ComputationTable.plugin_id, ComputationTable.plugin_version.desc())
+        .group_by(InfoTable.id)
+        .group_by(InfoTable.version)
+        .order_by(InfoTable.id, InfoTable.version.desc())
     )
 
     __table__ = create_view(
@@ -109,7 +110,7 @@ class UsageView(ClimatoologyTableBase):
 
     select_statement = (
         select(
-            ComputationTable.plugin_id,
+            InfoTable.id.label('plugin_id'),
             count().label('no_of_requested_computations'),
             cast(
                 func.round(count() / (cast(db_now(), Date) - cast(func.min(ComputationLookup.request_ts), Date)), 2),
@@ -117,10 +118,11 @@ class UsageView(ClimatoologyTableBase):
             ).label('avg_computations_per_day'),
             func.min(ComputationLookup.request_ts).label('since'),
         )
+        .join(ComputationTable, ComputationTable.plugin_key == InfoTable.key)
         .join(ComputationLookup, ComputationTable.correlation_uuid == ComputationLookup.computation_id)
-        .group_by(ComputationTable.plugin_id)
+        .group_by(InfoTable.id)
         .where(not_(ComputationLookup.aoi_id.contains(DEMO_SUFFIX)))
-        .order_by(count().desc(), ComputationTable.plugin_id)
+        .order_by(count().desc(), InfoTable.id)
     )
 
     __table__ = create_view(name='usage_summary', selectable=select_statement, metadata=ClimatoologyTableBase.metadata)
@@ -137,13 +139,11 @@ class FailedComputationsView(ClimatoologyTableBase):
 
     select_statement = (
         select(
-            ComputationTable.plugin_id,
+            InfoTable.id.label('plugin_id'),
             count().label(f'no_of_failures_in_last_{FAILURE_REPORTING_DAYS}_days'),
             cause_extraction.label('cause'),
             array_agg(distinct(cast(TaskExtended.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label('on_days'),
-            array_agg(distinct(ComputationTable.plugin_version), type_=ARRAY(DbSemver, as_tuple=True)).label(
-                'in_versions'
-            ),
+            array_agg(distinct(InfoTable.version), type_=ARRAY(DbSemver, as_tuple=True)).label('in_versions'),
             array_agg(distinct(ComputationTable.message), type_=ARRAY(sqlalchemy.String, as_tuple=True)).label(
                 'with_messages'
             ),
@@ -152,15 +152,16 @@ class FailedComputationsView(ClimatoologyTableBase):
             ),
         )
         .where(real_failure_filter)
+        .join(ComputationTable, ComputationTable.plugin_key == InfoTable.key)
         .join(
             TaskExtended,
             cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
             isouter=True,
         )
-        .group_by(ComputationTable.plugin_id)
+        .group_by(InfoTable.id)
         .group_by(cause_extraction)
         .where(TaskExtended.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
-        .order_by(ComputationTable.plugin_id, count().desc())
+        .order_by(InfoTable.id, count().desc())
     )
 
     __table__ = create_view(
@@ -177,26 +178,25 @@ class ArtifactErrorsView(ClimatoologyTableBase):
     )
     select_statement = (
         select(
-            ComputationTable.plugin_id,
+            InfoTable.id.label('plugin_id'),
             aliased_json_values.c.key.label('artifact'),
             count().label(f'no_of_computations_with_errors_in_last_{FAILURE_REPORTING_DAYS}_days'),
             array_agg(distinct(cast(TaskExtended.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label('on_days'),
-            array_agg(distinct(ComputationTable.plugin_version), type_=ARRAY(DbSemver, as_tuple=True)).label(
-                'in_versions'
-            ),
+            array_agg(distinct(InfoTable.version), type_=ARRAY(DbSemver, as_tuple=True)).label('in_versions'),
             array_agg(distinct(aliased_json_values.c.value), type_=ARRAY(sqlalchemy.String, as_tuple=True)).label(
                 'with_messages'
             ),
         )
+        .join(ComputationTable, ComputationTable.plugin_key == InfoTable.key)
         .join(
             TaskExtended,
             cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
             isouter=True,
         )
-        .group_by(ComputationTable.plugin_id)
+        .group_by(InfoTable.id)
         .group_by(aliased_json_values.c.key)
         .where(TaskExtended.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
-        .order_by(ComputationTable.plugin_id, aliased_json_values.c.key, count().desc())
+        .order_by(InfoTable.id, aliased_json_values.c.key, count().desc())
     )
 
     __table__ = create_view(

@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from climatoology.base.artifact import ArtifactEnriched
 from climatoology.base.baseoperator import AoiProperties
-from climatoology.base.info import PluginBaseInfo, _Info
+from climatoology.base.info import PluginAuthor, PluginBaseInfo, _Info
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
@@ -28,10 +28,7 @@ from climatoology.store.database.models.computation import (
     ComputationTable,
     InfoTable,
 )
-from climatoology.store.database.models.info import (
-    PluginAuthorTable,
-    author_info_link_table,
-)
+from climatoology.store.database.models.info import PluginAuthorTable, author_info_link_table
 from climatoology.store.exception import InfoNotReceivedError
 from climatoology.store.object_store import ComputationInfo
 
@@ -71,59 +68,87 @@ class BackendDatabase:
     def write_info(self, info: _Info) -> str:
         log.debug(f'Connecting to the database and writing info for {info.id}')
         with Session(self.engine) as session:
-            self._synch_info_to_db(info, session)
+            info_key = self._synch_info_to_db(info, session)
             session.commit()
-            log.info(f'Info written to database for {info.id}')
-            return info.id
+            log.info(f'Info written to database for {info_key}')
+            return info_key
 
-    def _synch_info_to_db(self, info: _Info, session: Session) -> None:
-        self._upload_authors(info, session)
-        self._upload_info(info, session)
-        self._update_info_author_relation_table(info, session)
+    def _synch_info_to_db(self, info: _Info, session: Session) -> str:
+        self._upload_authors(authors=info.authors, session=session)
+        info_key = self._upload_info(info=info, session=session)
+        self._update_info_author_relation_table(info_key=info_key, authors=info.authors, session=session)
+        return info_key
 
-    def _upload_info(self, info: _Info, session: Session) -> None:
+    def _upload_info(self, info: _Info, session: Session) -> str:
+        info_update_stmt = update(InfoTable).where(InfoTable.id == info.id, InfoTable.latest).values(latest=False)
+        session.execute(info_update_stmt)
+
         info_dict = info.model_dump(mode='json', exclude={'authors'})
+        info_dict['latest'] = True
         info_insert_stmt = (
-            insert(InfoTable).values(**info_dict).on_conflict_do_update(index_elements=[InfoTable.id], set_=info_dict)
+            insert(InfoTable)
+            .values(**info_dict)
+            .on_conflict_do_update(index_elements=[InfoTable.key], set_=info_dict)
+            .returning(column('key'))
         )
-        session.execute(info_insert_stmt)
+        insert_return = session.execute(info_insert_stmt)
+        info_key = insert_return.scalar_one()
+        return info_key
 
-    def _upload_authors(self, info: _Info, session: Session) -> None:
-        authors = [author.model_dump(mode='json') for author in info.authors]
+    def _upload_authors(self, authors: list[PluginAuthor], session: Session) -> None:
+        authors = [author.model_dump(mode='json') for author in authors]
         author_insert_stmt = insert(PluginAuthorTable).values(authors).on_conflict_do_nothing()
         session.execute(author_insert_stmt)
 
-    def _update_info_author_relation_table(self, info: _Info, session: Session) -> None:
-        session.query(author_info_link_table).filter_by(info_id=info.id).delete()
+    def _update_info_author_relation_table(self, info_key: str, authors: list[PluginAuthor], session: Session) -> None:
+        # In development, where the same version may be written again and an update may be preferred:
+        # - we delete old author-info-links for the current info_key to ensure the author seats are created correctly
+        # - authors will be accumulated IF they EVER change during a development cycle
+        session.query(author_info_link_table).filter_by(info_key=info_key).delete()
         info_author_link = [
-            {'info_id': info.id, 'author_id': author.name, 'author_seat': seat}
-            for seat, author in enumerate(info.authors)
+            {'info_key': info_key, 'author_id': author.name, 'author_seat': seat} for seat, author in enumerate(authors)
         ]
         link_insert_stmt = insert(author_info_link_table).values(info_author_link).on_conflict_do_nothing()
         session.execute(link_insert_stmt)
 
-    def read_info(self, plugin_id: str) -> _Info:
-        log.debug(f'Connecting to the database and reading info for {plugin_id}')
+    def read_info_key(self, plugin_id: str, plugin_version: Optional[Version] = None) -> Optional[str]:
+        key_stmt = select(InfoTable.key).where(InfoTable.id == plugin_id)
+        if plugin_version:
+            key_stmt = key_stmt.where(InfoTable.version == plugin_version)
+        else:
+            key_stmt = key_stmt.where(InfoTable.latest)
         with Session(self.engine) as session:
-            info_query = select(InfoTable).where(InfoTable.id == plugin_id)
-            result_scalars = session.scalars(info_query)
-            result = result_scalars.first()
+            result = session.execute(key_stmt).scalar_one_or_none()
+        return result
 
-            if result:
-                retrieved_info = _Info.model_validate(result)
-                log.debug(f'Info for plugin {plugin_id} read from database')
-                return retrieved_info
-            else:
-                log.error(f'Info for {plugin_id} not available in database')
-                raise InfoNotReceivedError()
+    def read_info(self, plugin_id: str, plugin_version: Version = None) -> _Info:
+        """Read the plugin info from the database.
+
+        :param plugin_id: the id for the plugin of interest
+        :param plugin_version: the plugin version to query the info for. Defaults to the latest version
+        :return: An _Info object for the plugin
+        """
+        log.debug(f'Connecting to the database and reading info for {plugin_id}')
+
+        info_key = self.read_info_key(plugin_id=plugin_id, plugin_version=plugin_version)
+        if not info_key:
+            log.error(f'Info for {plugin_id} not available in database')
+            raise InfoNotReceivedError()
+
+        with Session(self.engine) as session:
+            info_query = select(InfoTable).where(InfoTable.key == info_key)
+            result_scalars = session.scalars(info_query)
+            result = result_scalars.one()
+            retrieved_info = _Info.model_validate(result)
+            log.debug(f'Info for plugin {plugin_id} read from database')
+            return retrieved_info
 
     def register_computation(
         self,
         correlation_uuid: UUID,
         requested_params: dict,
         aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
-        plugin_id: str,
-        plugin_version: Version,
+        plugin_key: str,
         computation_shelf_life: Optional[timedelta],
     ) -> UUID:
         with Session(self.engine) as session:
@@ -145,8 +170,7 @@ class BackendDatabase:
                 'valid_until': valid_until,
                 'requested_params': requested_params,
                 'aoi_geom': aoi.geometry.wkt,
-                'plugin_id': plugin_id,
-                'plugin_version': plugin_version,
+                'plugin_key': plugin_key,
                 'artifact_errors': {},
             }
             computation_insert_stmt = (
@@ -155,7 +179,7 @@ class BackendDatabase:
                 .on_conflict_do_update(
                     constraint=COMPUTATION_DEDUPLICATION_CONSTRAINT,
                     # this is a hack (with currently irrelevant side effects) due to https://stackoverflow.com/questions/34708509/how-to-use-returning-with-on-conflict-in-postgresql:
-                    set_={'plugin_id': plugin_id},
+                    set_={'plugin_key': plugin_key},
                 )
                 .returning(column('correlation_uuid'))
             )
@@ -195,7 +219,8 @@ class BackendDatabase:
                     }
                 )
                 computation_info.plugin_info = PluginBaseInfo(
-                    id=computation_info.plugin_id, version=computation_info.plugin.version
+                    id=computation_info.plugin.id,
+                    version=computation_info.plugin.version,
                 )
                 computation_info = ComputationInfo.model_validate(computation_info)
                 log.debug(f'Computation {correlation_uuid} read from database')
