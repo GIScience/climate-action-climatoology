@@ -11,8 +11,8 @@ from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality
-from climatoology.base.baseoperator import AoiProperties, BaseOperator
-from climatoology.base.computation import ComputationResources
+from climatoology.base.baseoperator import BaseOperator
+from climatoology.base.computation import AoiProperties, ComputationResources
 from climatoology.base.plugin_info import PluginInfo
 
 

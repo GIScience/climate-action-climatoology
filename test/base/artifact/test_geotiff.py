@@ -15,8 +15,8 @@ from climatoology.base.artifact import (
     Attachments,
     Legend,
     RasterInfo,
-    create_raster_artifact,
 )
+from climatoology.base.artifact_creators import create_raster_artifact, legend_data_from_colormap
 
 
 def test_create_concise_raster_artifact_2d(default_computation_resources, default_artifact, default_artifact_metadata):
@@ -390,3 +390,21 @@ def test_rasterinfo_from_rasterio(default_computation_resources):
         )
 
     assert generated_info
+
+
+def test_legend_data_from_colormap():
+    expected_legend_data = {'1': Color((255, 255, 255))}
+
+    colormap = {1: (255, 255, 255)}
+    computed_legend_data = legend_data_from_colormap(colormap=colormap)
+
+    assert computed_legend_data == expected_legend_data
+
+
+def test_legend_data_from_colormap_with_alpha():
+    expected_legend_data = {'1': Color((255, 255, 255, 0.2))}
+
+    colormap = {1: (255, 255, 255, 51)}
+    computed_legend_data = legend_data_from_colormap(colormap=colormap)
+
+    assert computed_legend_data == expected_legend_data

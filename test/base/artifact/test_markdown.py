@@ -1,4 +1,4 @@
-from climatoology.base.artifact import create_markdown_artifact
+from climatoology.base.artifact_creators import create_markdown_artifact
 
 
 def test_create_concise_markdown_artifact(default_computation_resources, default_artifact, default_artifact_metadata):

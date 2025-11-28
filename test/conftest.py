@@ -34,10 +34,10 @@ from climatoology.base.artifact import (
     ArtifactEnriched,
     ArtifactMetadata,
     ArtifactModality,
-    create_markdown_artifact,
 )
-from climatoology.base.baseoperator import AoiProperties, BaseOperator
-from climatoology.base.computation import ComputationResources, ComputationScope
+from climatoology.base.artifact_creators import create_markdown_artifact
+from climatoology.base.baseoperator import BaseOperator
+from climatoology.base.computation import AoiProperties, ComputationInfo, ComputationResources, ComputationScope
 from climatoology.base.event import ComputationState
 from climatoology.base.plugin_info import (
     Concern,
@@ -50,7 +50,7 @@ from climatoology.base.plugin_info import (
 )
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.computation import ComputationTable
-from climatoology.store.object_store import ComputationInfo, MinioStorage
+from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
 pytest_plugins = ('celery.contrib.pytest',)

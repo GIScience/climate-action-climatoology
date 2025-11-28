@@ -70,6 +70,8 @@ TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-d
 - renamed `ArtifactModality.MAP_LAYER_GEOJSON` and`ArtifactModality.MAP_LAYER_GEOTIFF` to
   `ArtifactModality.VECTOR_MAP_LAYER` and `ArtifactModality.RASTER_MAP_LAYER`
   respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
+- moved all Artifact creation methods to a dedicated module
+  `artifact_creators` ([#245](https://gitlab.heigit.org/climate-action/climatoology/-/issues/245))
 
 ### Fix
 

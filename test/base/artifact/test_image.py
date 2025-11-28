@@ -1,6 +1,7 @@
 from PIL import Image
 
-from climatoology.base.artifact import ArtifactModality, create_image_artifact
+from climatoology.base.artifact import ArtifactModality
+from climatoology.base.artifact_creators import create_image_artifact
 
 
 def test_create_concise_image_artifact(default_computation_resources, default_artifact, default_artifact_metadata):

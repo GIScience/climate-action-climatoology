@@ -13,8 +13,8 @@ from climatoology.base.artifact import (
     Attachments,
     ContinuousLegendData,
     Legend,
-    create_vector_artifact,
 )
+from climatoology.base.artifact_creators import create_vector_artifact
 
 
 def test_create_concise_vector_artifact(default_computation_resources, default_artifact, default_artifact_metadata):

@@ -1,7 +1,8 @@
 import numpy as np
 from pandas import DataFrame
 
-from climatoology.base.artifact import ArtifactModality, create_table_artifact
+from climatoology.base.artifact import ArtifactModality
+from climatoology.base.artifact_creators import create_table_artifact
 
 
 def test_create_concise_table_artifact(default_computation_resources, default_artifact, default_artifact_metadata):

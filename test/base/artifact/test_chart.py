@@ -10,9 +10,8 @@ from climatoology.base.artifact import (
     ArtifactModality,
     Chart2dData,
     ChartType,
-    create_chart_artifact,
-    create_plotly_chart_artifact,
 )
+from climatoology.base.artifact_creators import create_chart_artifact, create_plotly_chart_artifact
 
 
 def test_chart_check_length():

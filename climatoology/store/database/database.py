@@ -16,7 +16,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
 from climatoology.base.artifact import ArtifactEnriched
-from climatoology.base.baseoperator import AoiProperties
+from climatoology.base.computation import AoiProperties, ComputationInfo
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import PluginAuthor, PluginBaseInfo, PluginInfo
 from climatoology.store.database import migration
@@ -33,7 +33,6 @@ from climatoology.store.database.models.info import (
     plugin_info_author_link_table,
 )
 from climatoology.store.exception import InfoNotReceivedError
-from climatoology.store.object_store import ComputationInfo
 
 log = get_climatoology_logger(__name__)
 

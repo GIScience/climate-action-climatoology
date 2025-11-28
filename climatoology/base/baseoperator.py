@@ -1,35 +1,21 @@
 import json
-import uuid
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import cached_property
 from typing import Any, Dict, Generator, Generic, List, Optional, Type, TypeVar, final, get_args, get_origin
 
 import shapely
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 import climatoology
 from climatoology.base import T_co
 from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, enrich_artifacts
-from climatoology.base.computation import ComputationResources
+from climatoology.base.computation import AoiProperties, ComputationResources
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import PluginInfo
 
 log = get_climatoology_logger(__name__)
-
-
-class AoiProperties(BaseModel):
-    name: str = Field(
-        title='Name',
-        description='The name of the area of interest i.e. a human readable description.',
-        examples=['Heidelberg'],
-    )
-    id: str = Field(
-        title='ID',
-        description='A unique identifier of the area of interest.',
-        examples=[str(uuid.uuid4())],
-    )
 
 
 class BaseOperator(ABC, Generic[T_co]):

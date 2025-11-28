@@ -13,8 +13,8 @@ from semver import Version
 from shapely import get_srid
 
 from climatoology.base.artifact import Artifact, ArtifactModality
-from climatoology.base.baseoperator import AoiProperties, BaseOperator
-from climatoology.base.computation import ComputationResources, ComputationScope
+from climatoology.base.baseoperator import BaseOperator
+from climatoology.base.computation import AoiProperties, ComputationResources, ComputationScope
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError
 from climatoology.base.plugin_info import PluginInfo
 from test.conftest import TestModel
