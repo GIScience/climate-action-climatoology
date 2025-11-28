@@ -30,21 +30,21 @@ from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.artifact import (
     ARTIFACT_OVERWRITE_FIELDS,
+    Artifact,
     ArtifactEnriched,
     ArtifactMetadata,
     ArtifactModality,
-    _Artifact,
     create_markdown_artifact,
 )
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.event import ComputationState
-from climatoology.base.info import (
+from climatoology.base.plugin_info import (
     Concern,
     MiscSource,
     PluginAuthor,
     PluginBaseInfo,
-    _Info,
+    PluginInfo,
     compose_demo_config,
     generate_plugin_info,
 )
@@ -100,7 +100,7 @@ def default_plugin_key() -> str:
 
 
 @pytest.fixture
-def default_info() -> _Info:
+def default_plugin_info() -> PluginInfo:
     info = generate_plugin_info(
         name='Test Plugin',
         authors=[
@@ -130,8 +130,8 @@ def default_info() -> _Info:
 
 
 @pytest.fixture
-def default_info_enriched(default_info) -> _Info:
-    default_info_enriched = default_info.model_copy(deep=True)
+def default_plugin_info_enriched(default_plugin_info) -> PluginInfo:
+    default_info_enriched = default_plugin_info.model_copy(deep=True)
     default_info_enriched.library_version = climatoology.__version__
     default_info_enriched.operator_schema = {
         'properties': {
@@ -159,8 +159,8 @@ def default_info_enriched(default_info) -> _Info:
 
 
 @pytest.fixture
-def default_info_final(default_info_enriched) -> _Info:
-    default_info_final = default_info_enriched.model_copy(deep=True)
+def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfo:
+    default_info_final = default_plugin_info_enriched.model_copy(deep=True)
     default_info_final.assets.icon = 'assets/test_plugin/latest/ICON.png'
     return default_info_final
 
@@ -187,11 +187,11 @@ def extensive_artifact_metadata(default_association_tags) -> ArtifactMetadata:
 
 
 @pytest.fixture
-def default_artifact(general_uuid, default_artifact_metadata) -> _Artifact:
+def default_artifact(general_uuid, default_artifact_metadata) -> Artifact:
     """Note: this should only provide required fields (except filename, which would make testing very cumbersome).
     This way it automatically is a test that optional fields are in fact optional.
     """
-    return _Artifact(
+    return Artifact(
         **default_artifact_metadata.model_dump(exclude={'filename'}),
         modality=ArtifactModality.MARKDOWN,
         filename='test_artifact_file.md',
@@ -199,11 +199,11 @@ def default_artifact(general_uuid, default_artifact_metadata) -> _Artifact:
 
 
 @pytest.fixture
-def extensive_artifact(general_uuid, extensive_artifact_metadata) -> _Artifact:
+def extensive_artifact(general_uuid, extensive_artifact_metadata) -> Artifact:
     """Note: this should alter ALL fields (including optional ones,
     except rank and attachments, which would make testing very cumbersome).
     """
-    return _Artifact(
+    return Artifact(
         **extensive_artifact_metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.MARKDOWN,
         filename='test_artifact_file.md',
@@ -245,10 +245,10 @@ def default_input_model() -> TestModel:
 
 
 @pytest.fixture
-def default_operator(default_info, default_artifact_metadata) -> BaseOperator:
+def default_operator(default_plugin_info, default_artifact_metadata) -> BaseOperator:
     class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy(deep=True)
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy(deep=True)
 
         def compute(
             self,
@@ -256,7 +256,7 @@ def default_operator(default_info, default_artifact_metadata) -> BaseOperator:
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             time.sleep(params.execution_time)
             artifact_text = (Path(__file__).parent / 'resources/test_artifact_file.md').read_text()
             artifact = create_markdown_artifact(
@@ -353,7 +353,7 @@ def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
 
 @pytest.fixture
 def default_computation_info(
-    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact_enriched, default_info
+    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact_enriched, default_plugin_info
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
@@ -365,7 +365,7 @@ def default_computation_info(
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact_enriched],
-        plugin_info=PluginBaseInfo(id=default_info.id, version=default_info.version),
+        plugin_info=PluginBaseInfo(id=default_plugin_info.id, version=default_plugin_info.version),
     )
 
 
@@ -477,15 +477,20 @@ def default_backend_db(db_with_tables) -> BackendDatabase:
 
 @pytest.fixture
 def backend_with_computation_registered(
-    default_backend_db, default_computation_info, default_info_final, default_plugin_key, set_basic_envs, frozen_time
+    default_backend_db,
+    default_computation_info,
+    default_plugin_info_final,
+    default_plugin_key,
+    set_basic_envs,
+    frozen_time,
 ) -> BackendDatabase:
-    default_backend_db.write_info(info=default_info_final)
+    default_backend_db.write_info(info=default_plugin_info_final)
     default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
     default_backend_db.add_validated_params(
         correlation_uuid=default_computation_info.correlation_uuid, params=default_computation_info.params

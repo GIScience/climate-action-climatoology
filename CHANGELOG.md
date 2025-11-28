@@ -61,6 +61,10 @@ TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-d
   `computation_lookup.request_ts` and `celery_taskmeta.date_done` as appropriate. Accordingly, `ComputationInfo` now
   returns `request_ts` (the timestamp when the computation was requested) instead of
   `timestamp` ([#176](https://gitlab.heigit.org/climate-action/climatoology/-/issues/176))
+- `_Info` object is renamed to `PluginInfo` and `_Artifact` object is renamed back to
+  `Artifact` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
+- `climatoology.base.info` module is renamed to
+  `climatoology.base.plugin_info` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
 
 ### Fix
 

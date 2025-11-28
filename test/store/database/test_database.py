@@ -5,16 +5,16 @@ import pytest
 from alembic.util.exc import CommandError
 from semver import Version
 
-from climatoology.base.info import PluginAuthor
+from climatoology.base.plugin_info import PluginAuthor
 from climatoology.store.database.database import BackendDatabase
 
 
-def test_info_to_db_and_back(default_backend_db, default_info_final, default_plugin_key):
-    plugin_key = default_backend_db.write_info(info=default_info_final)
+def test_info_to_db_and_back(default_backend_db, default_plugin_info_final, default_plugin_key):
+    plugin_key = default_backend_db.write_info(info=default_plugin_info_final)
     assert plugin_key == default_plugin_key
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
-    assert read_info == default_info_final
+    read_info = default_backend_db.read_info(plugin_id=default_plugin_info_final.id)
+    assert read_info == default_plugin_info_final
 
 
 def test_get_info_key(backend_with_computation_registered):
@@ -31,11 +31,11 @@ def test_get_info_key(backend_with_computation_registered):
     assert key is None
 
 
-def test_info_is_recreated(default_info_final, default_backend_db):
+def test_info_is_recreated(default_plugin_info_final, default_backend_db):
     # In devel mode we need to rewrite the info to the database (and we actually do this in all states)
-    _ = default_backend_db.write_info(info=default_info_final)
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    changed_devel_info = default_info_final.model_copy(deep=True)
+    changed_devel_info = default_plugin_info_final.model_copy(deep=True)
     changed_devel_info.authors = [
         PluginAuthor(
             name='Adam',
@@ -54,8 +54,8 @@ def test_info_is_recreated(default_info_final, default_backend_db):
     assert read_info.model_dump_json(indent=4) == changed_devel_info.model_dump_json(indent=4)
 
 
-def test_author_order_is_preserved(default_backend_db, default_info_final):
-    default_info = default_info_final.model_copy(deep=True)
+def test_author_order_is_preserved(default_backend_db, default_plugin_info_final):
+    default_info = default_plugin_info_final.model_copy(deep=True)
     default_info.authors = [
         PluginAuthor(
             name='Adam',
@@ -69,7 +69,7 @@ def test_author_order_is_preserved(default_backend_db, default_info_final):
     ]
     _ = default_backend_db.write_info(info=default_info)
 
-    info = default_info_final.model_copy(deep=True)
+    info = default_plugin_info_final.model_copy(deep=True)
     info.authors = [
         PluginAuthor(
             name='Adam',
@@ -89,19 +89,19 @@ def test_author_order_is_preserved(default_backend_db, default_info_final):
         assert author_names[i] == read_info.authors[i].name
 
 
-def test_read_info_latest_version_by_default(default_backend_db, default_info_final):
-    _ = default_backend_db.write_info(info=default_info_final)
+def test_read_info_latest_version_by_default(default_backend_db, default_plugin_info_final):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    newer_plugin_info = default_info_final.model_copy(deep=True)
+    newer_plugin_info = default_plugin_info_final.model_copy(deep=True)
     newer_plugin_info.version = Version(3, 2, 0)
     _ = default_backend_db.write_info(info=newer_plugin_info)
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
+    read_info = default_backend_db.read_info(plugin_id=default_plugin_info_final.id)
     assert read_info == newer_plugin_info
 
 
-def test_read_info_latest_version_by_default_with_commit_hash(default_backend_db, default_info_final):
-    default_info = default_info_final.model_copy(deep=True)
+def test_read_info_latest_version_by_default_with_commit_hash(default_backend_db, default_plugin_info_final):
+    default_info = default_plugin_info_final.model_copy(deep=True)
     default_info.version = Version(1, 0, 0, build='zz')
     _ = default_backend_db.write_info(info=default_info)
 
@@ -113,40 +113,42 @@ def test_read_info_latest_version_by_default_with_commit_hash(default_backend_db
     assert str(read_info.version) == str(newer_plugin_info.version)
 
 
-def test_read_info_older_version_if_requested(default_backend_db, default_info_final):
-    _ = default_backend_db.write_info(info=default_info_final)
+def test_read_info_older_version_if_requested(default_backend_db, default_plugin_info_final):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    newer_plugin_info = default_info_final.model_copy(deep=True)
+    newer_plugin_info = default_plugin_info_final.model_copy(deep=True)
     newer_plugin_info.version = Version(3, 2, 0)
     _ = default_backend_db.write_info(info=newer_plugin_info)
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.id, plugin_version=default_info_final.version)
-    assert read_info == default_info_final
+    read_info = default_backend_db.read_info(
+        plugin_id=default_plugin_info_final.id, plugin_version=default_plugin_info_final.version
+    )
+    assert read_info == default_plugin_info_final
 
 
-def test_add_authors(default_backend_db, default_info_final):
-    _ = default_backend_db.write_info(info=default_info_final)
+def test_add_authors(default_backend_db, default_plugin_info_final):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    changed_plugin_info = default_info_final
+    changed_plugin_info = default_plugin_info_final
     changed_plugin_info.authors.append(PluginAuthor(name='anotherone'))
-    _ = default_backend_db.write_info(info=default_info_final)
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    read_info = default_backend_db.read_info(plugin_id=default_info_final.id)
+    read_info = default_backend_db.read_info(plugin_id=default_plugin_info_final.id)
     assert read_info == changed_plugin_info
 
 
-def test_add_authors_linked_to_plugin_versions(default_backend_db, default_info_final):
-    _ = default_backend_db.write_info(info=default_info_final)
+def test_add_authors_linked_to_plugin_versions(default_backend_db, default_plugin_info_final):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    changed_plugin_info = default_info_final.model_copy(deep=True)
+    changed_plugin_info = default_plugin_info_final.model_copy(deep=True)
     changed_plugin_info.version = Version(4, 1, 0)
     changed_plugin_info.authors = [PluginAuthor(name='different person')]
     _ = default_backend_db.write_info(info=changed_plugin_info)
 
     read_first_info = default_backend_db.read_info(
-        plugin_id=default_info_final.id, plugin_version=default_info_final.version
+        plugin_id=default_plugin_info_final.id, plugin_version=default_plugin_info_final.version
     )
-    assert read_first_info.authors == default_info_final.authors
+    assert read_first_info.authors == default_plugin_info_final.authors
 
     read_changed_info = default_backend_db.read_info(
         plugin_id=changed_plugin_info.id, plugin_version=changed_plugin_info.version
@@ -233,7 +235,7 @@ def test_list_artifacts(general_uuid, backend_with_computation_successful, defau
 
 
 def test_resolve_deduplicated_computation_id(
-    default_plugin, default_backend_db, default_computation_info, default_info, default_plugin_key
+    default_plugin, default_backend_db, default_computation_info, default_plugin_info, default_plugin_key
 ):
     duplicate_computation_id = uuid.uuid4()
     _ = default_backend_db.register_computation(
@@ -257,14 +259,14 @@ def test_resolve_deduplicated_computation_id(
 
 
 def test_update_successful_computation_with_validated_params(
-    default_plugin, default_backend_db, default_computation_info, default_info, default_plugin_key, frozen_time
+    default_plugin, default_backend_db, default_computation_info, default_plugin_info, default_plugin_key, frozen_time
 ):
     _ = default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info.computation_shelf_life,
+        computation_shelf_life=default_plugin_info.computation_shelf_life,
     )
 
     default_backend_db.add_validated_params(

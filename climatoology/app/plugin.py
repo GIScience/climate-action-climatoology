@@ -9,10 +9,10 @@ from climatoology.app.exception import VersionMismatchError
 from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.info import _Info
 from climatoology.base.logging import get_climatoology_logger
+from climatoology.base.plugin_info import PluginInfo
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.database.models.info import InfoTable
+from climatoology.store.database.models.info import PluginInfoTable
 from climatoology.store.object_store import MinioStorage, Storage
 
 log = get_climatoology_logger(__name__)
@@ -93,9 +93,9 @@ def extract_plugin_id(plugin_id_with_suffix: str) -> str:
     return plugin_id_with_suffix.split('@')[0]
 
 
-def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> bool:
+def _version_is_compatible(info: PluginInfo, db: BackendDatabase, celery: Celery) -> bool:
     with Session(db.engine) as session:
-        info_query = session.query(InfoTable).filter_by(id=info.id)
+        info_query = session.query(PluginInfoTable).filter_by(id=info.id)
         existing_info = info_query.first()
     if existing_info:
         existing_info_version = existing_info.version
@@ -123,7 +123,7 @@ def _version_is_compatible(info: _Info, db: BackendDatabase, celery: Celery) -> 
     return True
 
 
-def synch_info(info: _Info, db: BackendDatabase, storage: Storage) -> _Info:
+def synch_info(info: PluginInfo, db: BackendDatabase, storage: Storage) -> PluginInfo:
     info.assets = storage.write_assets(plugin_id=info.id, assets=info.assets)
 
     _ = db.write_info(info=info)

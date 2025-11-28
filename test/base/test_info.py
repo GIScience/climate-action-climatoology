@@ -7,13 +7,13 @@ import pytest
 from pydantic import HttpUrl, ValidationError
 from semver import Version
 
-from climatoology.base.info import (
+from climatoology.base.plugin_info import (
     Concern,
     DemoConfig,
     IncollectionSource,
     PluginAuthor,
+    PluginInfo,
     PluginState,
-    _Info,
     compose_demo_config,
     filter_sources,
     generate_plugin_info,
@@ -52,13 +52,13 @@ def test_demo_config_no_aoi_but_custom_name():
         _ = compose_demo_config(input_parameters=TestModel(id=1), aoi_name='custom_demo')
 
 
-def test_operator_info(default_info):
-    assert default_info.id == 'test_plugin'
-    assert default_info.version == Version(3, 1, 0)
-    assert default_info.teaser == 'Test teaser that is meant to do nothing.'
+def test_operator_info(default_plugin_info):
+    assert default_plugin_info.id == 'test_plugin'
+    assert default_plugin_info.version == Version(3, 1, 0)
+    assert default_plugin_info.teaser == 'Test teaser that is meant to do nothing.'
     # TODO: when implementing the info stages, this is optional so it might go to the extensive info
 
-    assert default_info.assets.sources_library['CitekeyInbook'] == IncollectionSource(
+    assert default_plugin_info.assets.sources_library['CitekeyInbook'] == IncollectionSource(
         ENTRYTYPE='inbook',
         ID='CitekeyInbook',
         title='Photosynthesis',
@@ -67,17 +67,17 @@ def test_operator_info(default_info):
         booktitle='Campbell Biology',
         pages='187--221',
     )
-    assert Path(default_info.assets.icon).is_file()
+    assert Path(default_plugin_info.assets.icon).is_file()
 
 
-def test_info_serialisable(default_info):
-    assert default_info.model_dump(mode='json')
+def test_info_serialisable(default_plugin_info):
+    assert default_plugin_info.model_dump(mode='json')
 
 
-def test_info_deserialisable(default_info_final):
-    serialised_info = default_info_final.model_dump(mode='json')
-    info = _Info(**serialised_info)
-    assert info == default_info_final
+def test_info_deserialisable(default_plugin_info_final):
+    serialised_info = default_plugin_info_final.model_dump(mode='json')
+    info = PluginInfo(**serialised_info)
+    assert info == default_plugin_info_final
 
 
 def test_plugin_id_special_characters():

@@ -10,11 +10,11 @@ from pydantic import BaseModel, Field, ValidationError
 
 import climatoology
 from climatoology.base import T_co
-from climatoology.base.artifact import ArtifactEnriched, ArtifactModality, _Artifact, enrich_artifacts
+from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, enrich_artifacts
 from climatoology.base.computation import ComputationResources
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
-from climatoology.base.info import _Info
 from climatoology.base.logging import get_climatoology_logger
+from climatoology.base.plugin_info import PluginInfo
 
 log = get_climatoology_logger(__name__)
 
@@ -71,7 +71,7 @@ class BaseOperator(ABC, Generic[T_co]):
 
     @final
     @cached_property
-    def info_enriched(self) -> _Info:
+    def info_enriched(self) -> PluginInfo:
         """Describe the operators' purpose, functionality, methodology and sources.
 
         :return: operator info
@@ -83,7 +83,7 @@ class BaseOperator(ABC, Generic[T_co]):
         return info
 
     @abstractmethod
-    def info(self) -> _Info:
+    def info(self) -> PluginInfo:
         """Describe the operators' purpose, functionality, methodology and sources.
 
         :return: operator info
@@ -136,7 +136,7 @@ class BaseOperator(ABC, Generic[T_co]):
         return artifacts_enriched
 
     @staticmethod
-    def filter_artifacts(artifacts: list[_Artifact], artifact_errors: dict[str, str]) -> list[_Artifact]:
+    def filter_artifacts(artifacts: list[Artifact], artifact_errors: dict[str, str]) -> list[Artifact]:
         artifacts_filtered = list(filter(None, artifacts))
         if len(artifacts_filtered) < 1:
             if artifact_errors:
@@ -159,7 +159,7 @@ class BaseOperator(ABC, Generic[T_co]):
         aoi: shapely.MultiPolygon,
         aoi_properties: AoiProperties,
         params: BaseModel,
-    ) -> List[_Artifact]:
+    ) -> List[Artifact]:
         """Generate an operator-specific report.
 
         A report is made up of a set of artifacts that can be displayed by a client.

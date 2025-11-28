@@ -17,18 +17,21 @@ from sqlalchemy.orm import Session, joinedload
 
 from climatoology.base.artifact import ArtifactEnriched
 from climatoology.base.baseoperator import AoiProperties
-from climatoology.base.info import PluginAuthor, PluginBaseInfo, _Info
 from climatoology.base.logging import get_climatoology_logger
+from climatoology.base.plugin_info import PluginAuthor, PluginBaseInfo, PluginInfo
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import ClimatoologyTableBase
 from climatoology.store.database.models.computation import (
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
-    ComputationLookup,
+    ComputationLookupTable,
     ComputationTable,
-    InfoTable,
+    PluginInfoTable,
 )
-from climatoology.store.database.models.info import PluginAuthorTable, author_info_link_table
+from climatoology.store.database.models.info import (
+    PluginAuthorTable,
+    plugin_info_author_link_table,
+)
 from climatoology.store.exception import InfoNotReceivedError
 from climatoology.store.object_store import ComputationInfo
 
@@ -65,7 +68,7 @@ class BackendDatabase:
             finally:
                 log.info(stdout_replacement.readlines())
 
-    def write_info(self, info: _Info) -> str:
+    def write_info(self, info: PluginInfo) -> str:
         log.debug(f'Connecting to the database and writing info for {info.id}')
         with Session(self.engine) as session:
             info_key = self._synch_info_to_db(info, session)
@@ -73,22 +76,23 @@ class BackendDatabase:
             log.info(f'Info written to database for {info_key}')
             return info_key
 
-    def _synch_info_to_db(self, info: _Info, session: Session) -> str:
+    def _synch_info_to_db(self, info: PluginInfo, session: Session) -> str:
         self._upload_authors(authors=info.authors, session=session)
         info_key = self._upload_info(info=info, session=session)
         self._update_info_author_relation_table(info_key=info_key, authors=info.authors, session=session)
         return info_key
 
-    def _upload_info(self, info: _Info, session: Session) -> str:
-        info_update_stmt = update(InfoTable).where(InfoTable.id == info.id, InfoTable.latest).values(latest=False)
+    def _upload_info(self, info: PluginInfo, session: Session) -> str:
+        info_update_stmt = (
+            update(PluginInfoTable).where(PluginInfoTable.id == info.id, PluginInfoTable.latest).values(latest=False)
+        )
         session.execute(info_update_stmt)
-
         info_dict = info.model_dump(mode='json', exclude={'authors'})
         info_dict['latest'] = True
         info_insert_stmt = (
-            insert(InfoTable)
+            insert(PluginInfoTable)
             .values(**info_dict)
-            .on_conflict_do_update(index_elements=[InfoTable.key], set_=info_dict)
+            .on_conflict_do_update(index_elements=[PluginInfoTable.key], set_=info_dict)
             .returning(column('key'))
         )
         insert_return = session.execute(info_insert_stmt)
@@ -104,24 +108,24 @@ class BackendDatabase:
         # In development, where the same version may be written again and an update may be preferred:
         # - we delete old author-info-links for the current info_key to ensure the author seats are created correctly
         # - authors will be accumulated IF they EVER change during a development cycle
-        session.query(author_info_link_table).filter_by(info_key=info_key).delete()
+        session.query(plugin_info_author_link_table).filter_by(info_key=info_key).delete()
         info_author_link = [
             {'info_key': info_key, 'author_id': author.name, 'author_seat': seat} for seat, author in enumerate(authors)
         ]
-        link_insert_stmt = insert(author_info_link_table).values(info_author_link).on_conflict_do_nothing()
+        link_insert_stmt = insert(plugin_info_author_link_table).values(info_author_link).on_conflict_do_nothing()
         session.execute(link_insert_stmt)
 
     def read_info_key(self, plugin_id: str, plugin_version: Optional[Version] = None) -> Optional[str]:
-        key_stmt = select(InfoTable.key).where(InfoTable.id == plugin_id)
+        key_stmt = select(PluginInfoTable.key).where(PluginInfoTable.id == plugin_id)
         if plugin_version:
-            key_stmt = key_stmt.where(InfoTable.version == plugin_version)
+            key_stmt = key_stmt.where(PluginInfoTable.version == plugin_version)
         else:
-            key_stmt = key_stmt.where(InfoTable.latest)
+            key_stmt = key_stmt.where(PluginInfoTable.latest)
         with Session(self.engine) as session:
             result = session.execute(key_stmt).scalar_one_or_none()
         return result
 
-    def read_info(self, plugin_id: str, plugin_version: Version = None) -> _Info:
+    def read_info(self, plugin_id: str, plugin_version: Version = None) -> PluginInfo:
         """Read the plugin info from the database.
 
         :param plugin_id: the id for the plugin of interest
@@ -136,10 +140,10 @@ class BackendDatabase:
             raise InfoNotReceivedError()
 
         with Session(self.engine) as session:
-            info_query = select(InfoTable).where(InfoTable.key == info_key)
+            info_query = select(PluginInfoTable).where(PluginInfoTable.key == info_key)
             result_scalars = session.scalars(info_query)
             result = result_scalars.one()
-            retrieved_info = _Info.model_validate(result)
+            retrieved_info = PluginInfo.model_validate(result)
             log.debug(f'Info for plugin {plugin_id} read from database')
             return retrieved_info
 
@@ -186,7 +190,7 @@ class BackendDatabase:
             insert_return = session.execute(computation_insert_stmt)
             (db_correlation_uuid,) = insert_return.first()
 
-            lookup_insert_stmt = insert(ComputationLookup).values(
+            lookup_insert_stmt = insert(ComputationLookupTable).values(
                 user_correlation_uuid=correlation_uuid,
                 request_ts=request_ts,
                 computation_id=db_correlation_uuid,
@@ -201,9 +205,9 @@ class BackendDatabase:
     def read_computation(self, correlation_uuid: UUID) -> Optional[ComputationInfo]:
         with Session(self.engine) as session:
             computation_query = (
-                select(ComputationLookup)
-                .where(ComputationLookup.user_correlation_uuid == correlation_uuid)
-                .options(joinedload(ComputationLookup.computation, innerjoin=True))
+                select(ComputationLookupTable)
+                .where(ComputationLookupTable.user_correlation_uuid == correlation_uuid)
+                .options(joinedload(ComputationLookupTable.computation, innerjoin=True))
             )
             result_scalars = session.scalars(computation_query)
             result = result_scalars.first()
@@ -236,8 +240,8 @@ class BackendDatabase:
     @lru_cache(maxsize=256)
     def resolve_computation_id(self, user_correlation_uuid: UUID) -> Optional[UUID]:
         with Session(self.engine) as session:
-            resolve_query = select(ComputationLookup.computation_id).where(
-                ComputationLookup.user_correlation_uuid == user_correlation_uuid
+            resolve_query = select(ComputationLookupTable.computation_id).where(
+                ComputationLookupTable.user_correlation_uuid == user_correlation_uuid
             )
             result_scalars = session.scalars(resolve_query)
             return result_scalars.first()

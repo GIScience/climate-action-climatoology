@@ -8,11 +8,11 @@ from pydantic_extra_types.color import Color
 from shapely import MultiPoint, Point
 
 from climatoology.base.artifact import (
+    Artifact,
     ArtifactModality,
     Attachments,
     ContinuousLegendData,
     Legend,
-    _Artifact,
     create_geojson_artifact,
 )
 
@@ -160,7 +160,7 @@ def test_create_geojson_artifact_can_overwrite_pmtile_config(default_computation
 def test_create_geojson_artifact_continuous_legend(
     default_computation_resources, general_uuid, default_artifact_metadata
 ):
-    expected_artifact = _Artifact(
+    expected_artifact = Artifact(
         name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         filename='test_artifact_file.geojson',
@@ -290,7 +290,7 @@ EXPECTED_MULTIINDEX_GEOJSON = """{
 
 
 def test_create_geojson_artifact_multiindex(default_computation_resources, general_uuid, default_artifact_metadata):
-    expected_artifact = _Artifact(
+    expected_artifact = Artifact(
         name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOJSON,
         filename='test_artifact_file.geojson',
