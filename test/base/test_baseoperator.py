@@ -12,11 +12,11 @@ from pydantic import BaseModel, Field, model_validator
 from semver import Version
 from shapely import get_srid
 
-from climatoology.base.artifact import ArtifactModality, _Artifact
+from climatoology.base.artifact import Artifact, ArtifactModality
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError
-from climatoology.base.info import _Info
+from climatoology.base.plugin_info import PluginInfo
 from test.conftest import TestModel
 
 
@@ -37,10 +37,10 @@ def test_operator_scope():
     assert not resources.computation_dir.exists()
 
 
-def test_operator_info_enrichment_does_not_change_given_input(default_info):
+def test_operator_info_enrichment_does_not_change_given_input(default_plugin_info):
     class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -48,25 +48,25 @@ def test_operator_info_enrichment_does_not_change_given_input(default_info):
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             return []
 
     operator = TestOperator()
 
-    expected_info = default_info.model_dump(exclude={'library_version', 'operator_schema'})
+    expected_info = default_plugin_info.model_dump(exclude={'library_version', 'operator_schema'})
     computed_info = operator.info_enriched.model_dump(exclude={'library_version', 'operator_schema'})
 
     assert computed_info == expected_info
 
 
 @patch('climatoology.__version__', Version(1, 0, 0))
-def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
+def test_operator_info_enrichment_does_overwrite_additional_parts(default_plugin_info):
     class MinimalTestModel(BaseModel):
         test: str
 
     class TestOperator(BaseOperator[MinimalTestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -74,7 +74,7 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             return []
 
     operator = TestOperator()
@@ -90,14 +90,14 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_info):
     }
 
 
-def test_operator_startup_checks_for_aoi_fields(default_info):
+def test_operator_startup_checks_for_aoi_fields(default_plugin_info):
     class TestModelAOI(BaseModel):
         aoi: str
         aoi_properties: str
 
     class TestOperator(BaseOperator[TestModelAOI]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -105,7 +105,7 @@ def test_operator_startup_checks_for_aoi_fields(default_info):
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModelAOI,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             return []
 
     with pytest.raises(
@@ -147,7 +147,7 @@ def test_operator_validate_params_missing_exception(default_operator):
         default_operator.validate_params(params={})
 
 
-def test_operator_validate_params_invalid_custom_validation_exception(default_info, default_artifact):
+def test_operator_validate_params_invalid_custom_validation_exception(default_plugin_info, default_artifact):
     class TestModelValidateParams(BaseModel):
         first_date: date = Field(title='Period Start')
         last_date: date = Field(title='Period End')
@@ -159,8 +159,8 @@ def test_operator_validate_params_invalid_custom_validation_exception(default_in
             return self
 
     class TestOperatorValidateParams(BaseOperator[TestModelValidateParams]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -168,7 +168,7 @@ def test_operator_validate_params_invalid_custom_validation_exception(default_in
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             return [default_artifact]
 
     operator = TestOperatorValidateParams()
@@ -208,7 +208,7 @@ def test_operator_compute_unsafe_results_no_computation_info(
     default_aoi_properties,
     default_computation_resources,
 ):
-    computation_info_artifact = _Artifact(
+    computation_info_artifact = Artifact(
         name='Computation Info',
         modality=ArtifactModality.COMPUTATION_INFO,
         filename='metadata.json',
@@ -228,7 +228,7 @@ def test_operator_compute_unsafe_results_no_computation_info(
 
 
 def test_operator_create_artifact_safely_with_only_good_artifact(
-    default_info,
+    default_plugin_info,
     default_artifact,
     default_artifact_enriched,
     default_aoi_geom_shapely,
@@ -239,8 +239,8 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
         return default_artifact
 
     class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -248,7 +248,7 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             artifacts = []
             with self.catch_exceptions(indicator_name='test_indicator', resources=resources):
                 artifacts.append(good_fn())
@@ -267,7 +267,7 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
 
 
 def test_operator_create_artifact_safely_with_only_bad_artifact(
-    default_info,
+    default_plugin_info,
     default_aoi_geom_shapely,
     default_aoi_properties,
 ):
@@ -278,8 +278,8 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
         raise ClimatoologyUserError('Error message to store for the user')
 
     class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -287,7 +287,7 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             artifacts = []
             with self.catch_exceptions(indicator_name='First Indicator', resources=resources):
                 artifacts.append(bad_fn())
@@ -314,7 +314,7 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
 
 
 def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
-    default_info,
+    default_plugin_info,
     default_artifact,
     default_artifact_enriched,
     default_aoi_geom_shapely,
@@ -332,8 +332,8 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
         return default_artifact
 
     class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -341,7 +341,7 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             artifacts = []
 
             with self.catch_exceptions(indicator_name='First Indicator', resources=resources):

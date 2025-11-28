@@ -158,7 +158,7 @@ class PluginBaseInfo(BaseModel):
     ]
 
 
-class _Info(PluginBaseInfo, extra='forbid'):
+class PluginInfo(PluginBaseInfo, extra='forbid'):
     """A dataclass to provide the basic information about a plugin."""
 
     model_config = ConfigDict(from_attributes=True)
@@ -255,7 +255,7 @@ class _Info(PluginBaseInfo, extra='forbid'):
     ]
 
     @model_validator(mode='after')
-    def create_id(self) -> '_Info':
+    def create_id(self) -> 'PluginInfo':
         plugin_id = self.name.lower()
         plugin_id = re.sub(r'[^a-zA-Z-\s]', '', plugin_id)
         plugin_id = re.sub(r'\s', '_', plugin_id)
@@ -314,7 +314,7 @@ def generate_plugin_info(
     computation_shelf_life: timedelta = timedelta(0),
     sources_library: Optional[Path] = None,
     info_sources: Optional[set[str]] = None,
-) -> _Info:
+) -> PluginInfo:
     """Generate a plugin info object.
 
     :param name: The full name of the plugin. Try to make it concise.
@@ -342,7 +342,7 @@ def generate_plugin_info(
       file. You can extract such a file from most common bibliography management systems.
     :param info_sources: A list of IDs to optionally subset the sources library to only include the base sources for the
       plugin. Defaults to all sources.
-    :return: An _Info object that can be used to announce the plugin on the platform.
+    :return: A PluginInfo object that can be used to announce the plugin on the platform.
     """
     sources_library = _convert_bib(sources_library)
     # noinspection PyTypeChecker
@@ -361,7 +361,7 @@ def generate_plugin_info(
                 'Your pyproject.toml does not contain a repository url or is not adhering to the latest pyproject.toml format: https://python-poetry.org/docs/pyproject/'
             )
 
-    return _Info(
+    return PluginInfo(
         name=name,
         authors=authors,
         repository=repository,

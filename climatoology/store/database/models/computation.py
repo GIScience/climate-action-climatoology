@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
-from climatoology.store.database.models.info import InfoTable
+from climatoology.store.database.models.info import PluginInfoTable
 
 COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'
 
@@ -34,13 +34,13 @@ class ComputationTable(ClimatoologyTableBase):
     requested_params: Mapped[dict] = mapped_column(JSONB)
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
-    plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.key'))
-    plugin: Mapped[InfoTable] = relationship()
+    plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'))
+    plugin: Mapped[PluginInfoTable] = relationship()
     message: Mapped[Optional[str]]
     artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)
 
 
-class ComputationLookup(ClimatoologyTableBase):
+class ComputationLookupTable(ClimatoologyTableBase):
     __tablename__ = 'computation_lookup'
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 

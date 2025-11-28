@@ -15,8 +15,8 @@ from semver import Version
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import AoiProperties
 from climatoology.base.event import ComputationState
-from climatoology.base.info import Assets, PluginBaseInfo, _convert_icon_to_thumbnail
 from climatoology.base.logging import get_climatoology_logger
+from climatoology.base.plugin_info import Assets, PluginBaseInfo, _convert_icon_to_thumbnail
 
 log = get_climatoology_logger(__name__)
 

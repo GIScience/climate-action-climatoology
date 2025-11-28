@@ -10,11 +10,11 @@ from pydantic_extra_types.color import Color
 from rasterio import CRS
 
 from climatoology.base.artifact import (
+    Artifact,
     ArtifactModality,
     Attachments,
     Legend,
     RasterInfo,
-    _Artifact,
     create_geotiff_artifact,
 )
 
@@ -123,7 +123,7 @@ def test_create_geotiff_artifact_generates_display_raster_square_pixels(
 def test_create_geotiff_artifact_2d_colormap_rgba(
     default_computation_resources, general_uuid, default_artifact_metadata
 ):
-    expected_artifact = _Artifact(
+    expected_artifact = Artifact(
         name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         filename='test_artifact_file.tiff',
@@ -198,7 +198,7 @@ def test_create_geotiff_artifact_masked_array_and_nodata_value(
 
 
 def test_create_geotiff_artifact_3d(default_computation_resources, general_uuid, default_artifact_metadata):
-    expected_artifact = _Artifact(
+    expected_artifact = Artifact(
         name='test_name',
         modality=ArtifactModality.MAP_LAYER_GEOTIFF,
         filename='test_artifact_file.tiff',

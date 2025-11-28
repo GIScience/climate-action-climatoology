@@ -8,22 +8,22 @@ from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, Table, asc
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.base.info import Assets, Concern, DemoConfig, PluginState
+from climatoology.base.plugin_info import Assets, Concern, DemoConfig, PluginState
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
-author_info_link_table = Table(
-    'author_info_link_table',
+plugin_info_author_link_table = Table(
+    'plugin_info_author_link',
     ClimatoologyTableBase.metadata,
-    Column('info_key', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.info.key'), primary_key=True),
-    Column('author_id', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.pluginauthor.name'), primary_key=True),
+    Column('info_key', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'), primary_key=True),
+    Column('author_id', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_author.name'), primary_key=True),
     Column('author_seat', Integer, nullable=False),
     schema=CLIMATOOLOGY_SCHEMA_NAME,
 )
 
 
 class PluginAuthorTable(ClimatoologyTableBase):
-    __tablename__ = 'pluginauthor'
+    __tablename__ = 'plugin_author'
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
     name: Mapped[str] = mapped_column(primary_key=True)
@@ -31,8 +31,8 @@ class PluginAuthorTable(ClimatoologyTableBase):
     website: Mapped[Optional[str]]
 
 
-class InfoTable(ClimatoologyTableBase):
-    __tablename__ = 'info'
+class PluginInfoTable(ClimatoologyTableBase):
+    __tablename__ = 'plugin_info'
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
     key: Mapped[str] = mapped_column(Computed("id::text || ';'::text || version::text"), primary_key=True)
@@ -40,7 +40,7 @@ class InfoTable(ClimatoologyTableBase):
     version: Mapped[Version] = mapped_column(DbSemver)
     name: Mapped[str]
     authors: Mapped[List[PluginAuthorTable]] = relationship(
-        secondary=author_info_link_table, order_by=asc(author_info_link_table.c.author_seat)
+        secondary=plugin_info_author_link_table, order_by=asc(plugin_info_author_link_table.c.author_seat)
     )
     repository: Mapped[str]
     state: Mapped[PluginState] = mapped_column(sqlalchemy.Enum(PluginState))

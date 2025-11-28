@@ -118,34 +118,34 @@ def test_failing_compute_updates_backend(
     assert updated_computation.message == 'ID: Field required. You provided: {}.'
 
 
-def test_version_matches_raises_on_lower(default_backend_db, default_info_final, celery_app):
-    _ = default_backend_db.write_info(info=default_info_final)
+def test_version_matches_raises_on_lower(default_backend_db, default_plugin_info_final, celery_app):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    older_plugin_info = default_info_final
+    older_plugin_info = default_plugin_info_final
     older_plugin_info.version = Version(2, 1, 0)
     with pytest.raises(VersionMismatchError, match=r'Refusing to register plugin*'):
         _version_is_compatible(info=older_plugin_info, db=default_backend_db, celery=celery_app)
 
 
-def test_version_matches_equal(default_backend_db, default_info_final, celery_app):
-    _ = default_backend_db.write_info(info=default_info_final)
-    assert _version_is_compatible(info=default_info_final, db=default_backend_db, celery=celery_app)
+def test_version_matches_equal(default_backend_db, default_plugin_info_final, celery_app):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
+    assert _version_is_compatible(info=default_plugin_info_final, db=default_backend_db, celery=celery_app)
 
 
-def test_version_matches_no_plugin_registered(default_backend_db, default_info_final, celery_app):
-    assert _version_is_compatible(info=default_info_final, db=default_backend_db, celery=celery_app)
+def test_version_matches_no_plugin_registered(default_backend_db, default_plugin_info_final, celery_app):
+    assert _version_is_compatible(info=default_plugin_info_final, db=default_backend_db, celery=celery_app)
 
 
-def test_version_matches_higher(default_backend_db, default_info_final, celery_app):
-    _ = default_backend_db.write_info(info=default_info_final)
+def test_version_matches_higher(default_backend_db, default_plugin_info_final, celery_app):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
 
-    newer_plugin_info = default_info_final
+    newer_plugin_info = default_plugin_info_final
     newer_plugin_info.version = Version(3, 1, 1)
     assert _version_is_compatible(info=newer_plugin_info, db=default_backend_db, celery=celery_app)
 
 
-def test_version_matches_higher_not_alone(default_plugin, default_backend_db, default_info_final, celery_app):
-    newer_plugin_info = default_info_final.model_copy(deep=True)
+def test_version_matches_higher_not_alone(default_plugin, default_backend_db, default_plugin_info_final, celery_app):
+    newer_plugin_info = default_plugin_info_final.model_copy(deep=True)
     newer_plugin_info.version = Version(3, 1, 1)
     with pytest.raises(
         AssertionError,

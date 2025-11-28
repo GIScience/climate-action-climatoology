@@ -10,10 +10,10 @@ from pydantic import BaseModel
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask
-from climatoology.base.artifact import ArtifactEnriched, ArtifactModality, _Artifact
+from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import AoiProperties, BaseOperator
 from climatoology.base.computation import ComputationResources
-from climatoology.base.info import _Info
+from climatoology.base.plugin_info import PluginInfo
 
 
 def test_computation_task_init(default_computation_task):
@@ -40,14 +40,14 @@ def test_computation_task_run(
 
 
 def test_computation_task_run_must_return_results(
-    default_info, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
+    default_plugin_info, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
 ):
     class TestModel(BaseModel):
         pass
 
     class TestOperator(BaseOperator[TestModel]):
-        def info(self) -> _Info:
-            return default_info.model_copy()
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
 
         def compute(
             self,
@@ -55,7 +55,7 @@ def test_computation_task_run_must_return_results(
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
-        ) -> List[_Artifact]:
+        ) -> List[Artifact]:
             return []
 
     with pytest.raises(AssertionError, match='The computation returned no results'):

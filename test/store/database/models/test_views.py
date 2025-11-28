@@ -47,7 +47,7 @@ def test_valid_computations_view(backend_with_computation_successful, general_uu
 
 
 def test_valid_computations_view_multiple(
-    backend_with_computation_successful, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_successful, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     correlation_uuid = uuid.uuid4()
     backend_with_computation_successful.register_computation(
@@ -55,7 +55,7 @@ def test_valid_computations_view_multiple(
         requested_params={},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 
     with Session(backend_with_computation_successful.engine) as session:
@@ -70,10 +70,10 @@ def test_valid_computations_view_multiple(
 
 
 def test_valid_computations_view_plugin_version(
-    backend_with_computation_successful, default_computation_info, default_info_final
+    backend_with_computation_successful, default_computation_info, default_plugin_info_final
 ):
     """A new computation with a different plugin version should not be listed"""
-    older_plugin_info = default_info_final.model_copy(deep=True)
+    older_plugin_info = default_plugin_info_final.model_copy(deep=True)
     older_plugin_info.version = Version(0, 1, 0)
     backend_with_computation_successful.write_info(info=older_plugin_info)
 
@@ -98,9 +98,9 @@ def test_valid_computations_view_plugin_version(
 
 
 def test_valid_computations_view_only_valid(
-    default_backend_db, default_info_final, default_computation_info, default_plugin_key
+    default_backend_db, default_plugin_info_final, default_computation_info, default_plugin_key
 ):
-    default_backend_db.write_info(info=default_info_final)
+    default_backend_db.write_info(info=default_plugin_info_final)
     default_backend_db.register_computation(
         correlation_uuid=uuid.uuid4(),
         requested_params=default_computation_info.requested_params,
@@ -132,7 +132,7 @@ def test_valid_computations_view_only_successful(backend_with_computation_regist
 
 
 def test_computation_summary_view(
-    backend_with_computation_successful, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_successful, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     expected_view = {
         'plugin_id': 'test_plugin',
@@ -152,7 +152,7 @@ def test_computation_summary_view(
         requested_params={'dont': 'deduplicate failure!'},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 
     correlation_uuid_validation_failure = uuid.uuid4()
@@ -161,7 +161,7 @@ def test_computation_summary_view(
         requested_params={'dont': 'deduplicate invalid input!'},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 
     correlation_uuid_pending = uuid.uuid4()
@@ -170,7 +170,7 @@ def test_computation_summary_view(
         requested_params={'dont': 'deduplicate pending!'},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 
     with Session(backend_with_computation_successful.engine) as session:
@@ -202,7 +202,7 @@ def test_computation_summary_view(
 
 
 def test_usage_view(
-    backend_with_computation_registered, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     expected_view = {
         'plugin_id': 'test_plugin',
@@ -217,7 +217,7 @@ def test_usage_view(
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 
     with Session(backend_with_computation_registered.engine) as session:
@@ -234,7 +234,7 @@ def test_usage_view(
 
 
 def test_usage_view_excludes_demo(
-    backend_with_computation_registered, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     loc_computation_info = default_computation_info.model_copy(deep=True)
     expected_view = {
@@ -251,7 +251,7 @@ def test_usage_view_excludes_demo(
         requested_params=loc_computation_info.requested_params,
         aoi=loc_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 
     with Session(backend_with_computation_registered.engine) as session:
@@ -267,7 +267,9 @@ def test_usage_view_excludes_demo(
     assert result_dict == expected_view
 
 
-def test_failed_computations_view(backend_with_computation_registered, default_computation_info, default_info_final):
+def test_failed_computations_view(
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final
+):
     expected_view = {
         'plugin_id': 'test_plugin',
         'no_of_failures_in_last_30_days': 1,
@@ -306,7 +308,7 @@ def test_failed_computations_view(backend_with_computation_registered, default_c
 
 
 def test_failed_computations_view_multiple_and_traceback(
-    backend_with_computation_registered, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     expected_view = [
         {
@@ -339,7 +341,7 @@ def test_failed_computations_view_multiple_and_traceback(
         requested_params={},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
     backend_with_computation_registered.update_failed_computation(
         correlation_uuid=other_correlation_uuid, failure_message=None, cache=False
@@ -370,7 +372,7 @@ def test_failed_computations_view_multiple_and_traceback(
     assert result_dict == expected_view
 
 
-def test_artifact_errors_view(backend_with_computation_registered, default_computation_info, default_info_final):
+def test_artifact_errors_view(backend_with_computation_registered, default_computation_info, default_plugin_info_final):
     expected_view = {
         'plugin_id': 'test_plugin',
         'no_of_computations_with_errors_in_last_30_days': 1,
@@ -399,7 +401,7 @@ def test_artifact_errors_view(backend_with_computation_registered, default_compu
 
 
 def test_artifact_errors_view_empty_on_none(
-    backend_with_computation_registered, default_computation_info, default_info_final
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final
 ):
     with Session(backend_with_computation_registered.engine) as session:
         session.execute(update(TaskExtended).values(date_done=db_now()))
@@ -412,7 +414,7 @@ def test_artifact_errors_view_empty_on_none(
 
 
 def test_artifact_errors_view_multiple_errors(
-    backend_with_computation_registered, default_computation_info, default_info_final
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final
 ):
     expected_view = [
         {
@@ -453,7 +455,7 @@ def test_artifact_errors_view_multiple_errors(
 
 
 def test_failed_computations_view_multiple_computations(
-    backend_with_computation_registered, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     expected_view = {
         'artifact': 'artifact one',
@@ -470,7 +472,7 @@ def test_failed_computations_view_multiple_computations(
         requested_params={},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
     with Session(backend_with_computation_registered.engine) as session:
         session.execute(insert(TaskExtended).values(id='2', task_id=other_correlation_uuid))
@@ -495,7 +497,7 @@ def test_failed_computations_view_multiple_computations(
 
 
 def test_failed_computations_view_multiple_computations_different(
-    backend_with_computation_registered, default_computation_info, default_info_final, default_plugin_key
+    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
 ):
     expected_view = [
         {
@@ -522,7 +524,7 @@ def test_failed_computations_view_multiple_computations_different(
         requested_params={},
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
-        computation_shelf_life=default_info_final.computation_shelf_life,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
     with Session(backend_with_computation_registered.engine) as session:
         session.execute(insert(TaskExtended).values(id='2', task_id=other_correlation_uuid))

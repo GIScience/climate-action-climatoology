@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 import pytest
 
 from climatoology.base.artifact import Attachments
-from climatoology.base.info import Assets, _convert_icon_to_thumbnail
+from climatoology.base.plugin_info import Assets, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
 
 TEST_RESOURCES_DIR = Path(__file__).parent.parent / 'resources'
