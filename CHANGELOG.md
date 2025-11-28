@@ -65,6 +65,11 @@ TODO: split changelog by plugin-dev relevant, FE-dev relevant and climatoology-d
   `Artifact` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
 - `climatoology.base.info` module is renamed to
   `climatoology.base.plugin_info` ([#223](https://gitlab.heigit.org/climate-action/climatoology/-/issues/223))
+- renamed functions `create_geojson_artifact` and `create_geotiff_artifact` to `create_vector_artifact` and
+  `create_raster_artifact` respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
+- renamed `ArtifactModality.MAP_LAYER_GEOJSON` and`ArtifactModality.MAP_LAYER_GEOTIFF` to
+  `ArtifactModality.VECTOR_MAP_LAYER` and `ArtifactModality.RASTER_MAP_LAYER`
+  respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
 
 ### Fix
 

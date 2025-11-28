@@ -13,11 +13,11 @@ from climatoology.base.artifact import (
     Attachments,
     ContinuousLegendData,
     Legend,
-    create_geojson_artifact,
+    create_vector_artifact,
 )
 
 
-def test_create_concise_geojson_artifact(default_computation_resources, default_artifact, default_artifact_metadata):
+def test_create_concise_vector_artifact(default_computation_resources, default_artifact, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -37,14 +37,14 @@ def test_create_concise_geojson_artifact(default_computation_resources, default_
 """
 
     default_artifact_copy = default_artifact.model_copy(deep=True)
-    default_artifact_copy.modality = ArtifactModality.MAP_LAYER_GEOJSON
+    default_artifact_copy.modality = ArtifactModality.VECTOR_MAP_LAYER
     default_artifact_copy.filename = f'{default_artifact_metadata.filename}.geojson'
     default_artifact_copy.attachments = Attachments(
         legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}),
         display_filename=f'{default_artifact_metadata.filename}-display.pmtiles',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -56,7 +56,7 @@ def test_create_concise_geojson_artifact(default_computation_resources, default_
     assert generated_content == expected_content
 
 
-def test_create_extensive_geojson_artifact(
+def test_create_extensive_vector_artifact(
     default_computation_resources, extensive_artifact, extensive_artifact_metadata
 ):
     method_input = GeoDataFrame(
@@ -74,13 +74,13 @@ def test_create_extensive_geojson_artifact(
     method_input_copy = method_input.copy(deep=True)
 
     extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
-    extensive_artifact_copy.modality = ArtifactModality.MAP_LAYER_GEOJSON
+    extensive_artifact_copy.modality = ArtifactModality.VECTOR_MAP_LAYER
     extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.geojson'
     extensive_artifact_copy.attachments = Attachments(
         legend=legend.model_copy(deep=True), display_filename=f'{extensive_artifact_metadata.filename}-display.pmtiles'
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=extensive_artifact_metadata,
         resources=default_computation_resources,
@@ -94,7 +94,7 @@ def test_create_extensive_geojson_artifact(
     assert generated_artifact == extensive_artifact_copy
 
 
-def test_create_geojson_artifact_generates_pmtiles(default_computation_resources, default_artifact_metadata):
+def test_create_vector_artifact_generates_pmtiles(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 254)), Color((0, 0, 1)), Color((0, 255, 1))],
@@ -114,7 +114,7 @@ def test_create_geojson_artifact_generates_pmtiles(default_computation_resources
         crs='EPSG:4326',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -133,7 +133,7 @@ def test_create_geojson_artifact_generates_pmtiles(default_computation_resources
     assert_geodataframe_equal(written_data, expected_display_data, check_like=True)
 
 
-def test_create_geojson_artifact_can_overwrite_pmtile_config(default_computation_resources, default_artifact_metadata):
+def test_create_vector_artifact_can_overwrite_pmtile_config(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 254)), Color((0, 0, 1)), Color((0, 255, 1))],
@@ -143,7 +143,7 @@ def test_create_geojson_artifact_can_overwrite_pmtile_config(default_computation
         crs='EPSG:4326',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -157,12 +157,12 @@ def test_create_geojson_artifact_can_overwrite_pmtile_config(default_computation
     assert not written_data.empty
 
 
-def test_create_geojson_artifact_continuous_legend(
+def test_create_vector_artifact_continuous_legend(
     default_computation_resources, general_uuid, default_artifact_metadata
 ):
     expected_artifact = Artifact(
         name='test_name',
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        modality=ArtifactModality.VECTOR_MAP_LAYER,
         filename='test_artifact_file.geojson',
         summary='Test summary',
         attachments=Attachments(
@@ -188,7 +188,7 @@ def test_create_geojson_artifact_continuous_legend(
         legend_data=ContinuousLegendData(cmap_name='plasma', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -198,7 +198,7 @@ def test_create_geojson_artifact_continuous_legend(
     assert generated_artifact == expected_artifact
 
 
-def test_create_geojson_artifact_index_str(default_computation_resources, general_uuid, default_artifact_metadata):
+def test_create_vector_artifact_index_str(default_computation_resources, general_uuid, default_artifact_metadata):
     expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
@@ -219,7 +219,7 @@ def test_create_geojson_artifact_index_str(default_computation_resources, genera
         crs='EPSG:4326',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
     )
 
@@ -236,7 +236,7 @@ def test_create_geojson_artifact_index_str(default_computation_resources, genera
     )
 
 
-def test_create_geojson_artifact_index_non_unique(
+def test_create_vector_artifact_index_non_unique(
     default_computation_resources, general_uuid, default_artifact_metadata
 ):
     expected_geojson = """{
@@ -259,7 +259,7 @@ def test_create_geojson_artifact_index_non_unique(
         crs='EPSG:4326',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -289,10 +289,10 @@ EXPECTED_MULTIINDEX_GEOJSON = """{
 """
 
 
-def test_create_geojson_artifact_multiindex(default_computation_resources, general_uuid, default_artifact_metadata):
+def test_create_vector_artifact_multiindex(default_computation_resources, general_uuid, default_artifact_metadata):
     expected_artifact = Artifact(
         name='test_name',
-        modality=ArtifactModality.MAP_LAYER_GEOJSON,
+        modality=ArtifactModality.VECTOR_MAP_LAYER,
         filename='test_artifact_file.geojson',
         summary='Test summary',
         attachments=Attachments(
@@ -316,7 +316,7 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
     )
     expected_pmtiles_index = pd.Series(["('bar', 'one')", "('bar', 'two')", "('baz', 'one')"])
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
     )
 
@@ -333,7 +333,7 @@ def test_create_geojson_artifact_multiindex(default_computation_resources, gener
     assert_series_equal(written_display_data['index'], expected_pmtiles_index, check_names=False, check_index=False)
 
 
-def test_create_geojson_artifact_tuple_index(default_computation_resources, default_artifact_metadata):
+def test_create_vector_artifact_tuple_index(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -345,7 +345,7 @@ def test_create_geojson_artifact_tuple_index(default_computation_resources, defa
     )
     expected_pmtiles_index = pd.Series(["('bar', 'one')", "('bar', 'two')", "('baz', 'one')"])
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -362,7 +362,7 @@ def test_create_geojson_artifact_tuple_index(default_computation_resources, defa
     assert_series_equal(written_display_data['index'], expected_pmtiles_index, check_names=False, check_index=False)
 
 
-def test_create_geojson_artifact_extra_column_retained(default_computation_resources, default_artifact_metadata):
+def test_create_vector_artifact_extra_column_retained(default_computation_resources, default_artifact_metadata):
     expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
@@ -384,7 +384,7 @@ def test_create_geojson_artifact_extra_column_retained(default_computation_resou
         crs='EPSG:4326',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
@@ -400,7 +400,7 @@ def test_create_geojson_artifact_extra_column_retained(default_computation_resou
     assert 'extra_column_1' in written_display_data.columns
 
 
-def test_create_geojson_artifact_fail_on_wrong_color_type(default_computation_resources, default_artifact_metadata):
+def test_create_vector_artifact_fail_on_wrong_color_type(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': ['#ffffff', '#b00b1e', '#000000'],
@@ -412,7 +412,7 @@ def test_create_geojson_artifact_fail_on_wrong_color_type(default_computation_re
     )
 
     with pytest.raises(AssertionError, match=r'Not all values in column color are of type'):
-        create_geojson_artifact(
+        create_vector_artifact(
             data=method_input,
             metadata=default_artifact_metadata,
             resources=default_computation_resources,
@@ -430,7 +430,7 @@ EXPECTED_ROUNDING_GEOJSON = """{
 """
 
 
-def test_write_geojson_file_max_precision(default_computation_resources, default_artifact_metadata):
+def test_write_vector_file_max_precision(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
@@ -440,7 +440,7 @@ def test_write_geojson_file_max_precision(default_computation_resources, default
         crs='EPSG:4326',
     )
 
-    generated_artifact = create_geojson_artifact(
+    generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
