@@ -52,7 +52,7 @@ class AoiProperties(BaseModel):
 
 
 class ComputationInfo(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra='forbid')
+    model_config = ConfigDict(from_attributes=True)
 
     correlation_uuid: UUID = Field(description='The unique identifier of the computation.', examples=[uuid.uuid4()])
     request_ts: datetime = Field(

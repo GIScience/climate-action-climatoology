@@ -158,7 +158,7 @@ class PluginBaseInfo(BaseModel):
     ]
 
 
-class PluginInfo(PluginBaseInfo, extra='forbid'):
+class PluginInfo(PluginBaseInfo):
     """A dataclass to provide the basic information about a plugin."""
 
     model_config = ConfigDict(from_attributes=True)
