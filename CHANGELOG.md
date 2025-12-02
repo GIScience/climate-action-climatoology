@@ -104,6 +104,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
 - plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
 - artifacts now have a rank attribute to assert their order is
   preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
+- vector layers now contain a unique 'index'
+  attribute ([#236](https://gitlab.heigit.org/climate-action/climatoology/-/issues/236))
 
 #### Library
 

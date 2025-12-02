@@ -245,6 +245,8 @@ def create_vector_artifact(
 
     if isinstance(data.index, MultiIndex):
         data.index = data.index.to_flat_index()
+    if (data.index.name and data.index.name != 'index') or not data.index.is_unique:
+        data = data.reset_index(names=data.index.name or 'index_0')
     data.index = data.index.astype(str)
 
     data = data.to_crs(4326)
