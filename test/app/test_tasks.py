@@ -101,6 +101,25 @@ def test_computation_task_run_forward_input(
     assert computed_result == expected_computation_info
 
 
+def test_computation_task_run_with_extra_kwarg(
+    default_computation_task,
+    default_computation_info,
+    default_aoi_feature_pure_dict,
+    backend_with_computation_registered,
+    frozen_time,
+):
+    """This test asserts that our plugins are ready to accept future optional arguments.
+    This will reduce the number of breaking changes we will have to make in climatoology.
+    """
+    expected_computation_info = default_computation_info.model_copy(deep=True).model_dump(mode='json')
+
+    computed_result = default_computation_task.run(
+        aoi=default_aoi_feature_pure_dict, params={'id': 1}, future_new_param=True
+    )
+
+    assert computed_result == expected_computation_info
+
+
 def test_computation_task_run_input_validated(
     default_computation_task,
     default_aoi_feature_pure_dict,

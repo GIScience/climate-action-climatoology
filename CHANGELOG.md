@@ -7,7 +7,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
-## [7.0.0rc1(https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.0rc1) - 2025-11-28
+## [7.0.0rc1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.0rc1) - 2025-11-28
 
 This release candidate contains most of the breaking changes for v7.
 V7 will contain the full changelog with respect to V6.4.4.
@@ -64,6 +64,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
 - renamed `ArtifactModality.MAP_LAYER_GEOJSON` and`ArtifactModality.MAP_LAYER_GEOTIFF` to
   `ArtifactModality.VECTOR_MAP_LAYER` and `ArtifactModality.RASTER_MAP_LAYER`
   respectively ([#239](https://gitlab.heigit.org/climate-action/climatoology/-/issues/239))
+- Accept arbitrary kwargs in plugin `compute` tasks to accept future optional
+  arguments ([#203](https://gitlab.heigit.org/climate-action/climatoology/-/issues/203))
 
 #### Library
 
@@ -124,6 +126,11 @@ The changelog contains subsections for changes that affect a dedicated domain.
 - `MinioStorage.list_all()` function, which is replaced
   by `BackendDatabase.list_artifacts()` ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
 - the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
+
+#### Library
+
+- Strict checks on extra attributes in `PluginInfo` and `ComputationInfo`, which improves compatibility between plugins
+  and gateway running on different versions ([#203](https://gitlab.heigit.org/climate-action/climatoology/-/issues/203))
 
 ### Added
 

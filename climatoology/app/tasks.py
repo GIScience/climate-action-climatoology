@@ -1,6 +1,7 @@
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 import geojson_pydantic
@@ -57,8 +58,14 @@ class CAPlatformComputeTask(Task):
             (computation_info_store_id,) = self.storage.save(result, file_dir=Path(temp_dir))
             return computation_info_store_id
 
-    def run(self, aoi: dict, params: dict) -> dict:
+    def run(self, *, aoi: dict, params: dict, **kwargs: Any) -> dict:
         correlation_uuid: UUID = self.request.correlation_id  # Typing seems wrong
+
+        if kwargs:
+            log.warning(
+                f'The following arguments were included in the compute request but will not be handled: {kwargs}'
+            )
+
         try:
             self.update_state(task_id=self.request.correlation_id, state='STARTED')
             log.debug('Acquired compute request')
