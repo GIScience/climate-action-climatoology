@@ -198,6 +198,32 @@ def test_create_vector_artifact_continuous_legend(
     assert generated_artifact == expected_artifact
 
 
+def test_create_vector_artifact_index_must_be_labelled_correctly(
+    default_computation_resources, default_artifact_metadata
+):
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'label': ['White a', 'Black b', 'Green c'],
+            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+        },
+        index=pd.Index(['hello', 'again', 'world'], name='custom_index_name'),
+        crs='EPSG:4326',
+    )
+
+    generated_artifact = create_vector_artifact(
+        data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
+    )
+
+    written_data = gpd.read_file(default_computation_resources.computation_dir / generated_artifact.filename)
+    assert 'index' in written_data.columns
+
+    written_display_data = gpd.read_file(
+        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
+    )
+    assert 'index' in written_display_data.columns
+
+
 def test_create_vector_artifact_index_str(default_computation_resources, general_uuid, default_artifact_metadata):
     expected_geojson = """{
 "type": "FeatureCollection",
@@ -236,15 +262,13 @@ def test_create_vector_artifact_index_str(default_computation_resources, general
     )
 
 
-def test_create_vector_artifact_index_non_unique(
-    default_computation_resources, general_uuid, default_artifact_metadata
-):
+def test_create_vector_artifact_index_non_unique_gets_reset(default_computation_resources, default_artifact_metadata):
     expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
-{ "type": "Feature", "properties": { "index": "hello", "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": "hello", "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": "world", "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
+{ "type": "Feature", "properties": { "index": "0", "index_0": "hello", "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
+{ "type": "Feature", "properties": { "index": "1", "index_0": "hello", "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
+{ "type": "Feature", "properties": { "index": "2", "index_0": "world", "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
 ]
 }
 """
@@ -273,9 +297,7 @@ def test_create_vector_artifact_index_non_unique(
     written_display_data = gpd.read_file(
         default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
     )
-    assert_series_equal(
-        written_display_data['index'], method_input.index.to_series(), check_names=False, check_index=False
-    )
+    assert_series_equal(written_display_data['index'], pd.Series(['0', '1', '2']), check_names=False, check_index=False)
 
 
 EXPECTED_MULTIINDEX_GEOJSON = """{
