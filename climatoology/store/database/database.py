@@ -30,13 +30,13 @@ from climatoology.store.database.models.computation import (
 )
 from climatoology.store.database.models.info import (
     PluginAuthorTable,
-    plugin_info_author_link_table,
+    PluginInfoAutherLinkTable,
 )
 from climatoology.store.exception import InfoNotReceivedError
 
 log = get_climatoology_logger(__name__)
 
-DEMO_SUFFIX = '-demo'
+DEMO_PREFIX = 'demo-'
 
 
 class BackendDatabase:
@@ -107,11 +107,11 @@ class BackendDatabase:
         # In development, where the same version may be written again and an update may be preferred:
         # - we delete old author-info-links for the current info_key to ensure the author seats are created correctly
         # - authors will be accumulated IF they EVER change during a development cycle
-        session.query(plugin_info_author_link_table).filter_by(info_key=info_key).delete()
+        session.query(PluginInfoAutherLinkTable).filter_by(info_key=info_key).delete()
         info_author_link = [
             {'info_key': info_key, 'author_id': author.name, 'author_seat': seat} for seat, author in enumerate(authors)
         ]
-        link_insert_stmt = insert(plugin_info_author_link_table).values(info_author_link).on_conflict_do_nothing()
+        link_insert_stmt = insert(PluginInfoAutherLinkTable).values(info_author_link).on_conflict_do_nothing()
         session.execute(link_insert_stmt)
 
     def read_info_key(self, plugin_id: str, plugin_version: Optional[Version] = None) -> Optional[str]:

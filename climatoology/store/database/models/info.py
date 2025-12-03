@@ -4,15 +4,15 @@ from typing import List, Optional, Set
 import sqlalchemy
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
-from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, Table, asc
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Column, Computed, ForeignKey, Integer, Table, asc
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.base.plugin_info import Assets, Concern, DemoConfig, PluginState
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
-plugin_info_author_link_table = Table(
+PluginInfoAutherLinkTable = Table(
     'plugin_info_author_link',
     ClimatoologyTableBase.metadata,
     Column('info_key', ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'), primary_key=True),
@@ -40,7 +40,7 @@ class PluginInfoTable(ClimatoologyTableBase):
     version: Mapped[Version] = mapped_column(DbSemver)
     name: Mapped[str]
     authors: Mapped[List[PluginAuthorTable]] = relationship(
-        secondary=plugin_info_author_link_table, order_by=asc(plugin_info_author_link_table.c.author_seat)
+        secondary=PluginInfoAutherLinkTable, order_by=asc(PluginInfoAutherLinkTable.c.author_seat)
     )
     repository: Mapped[str]
     state: Mapped[PluginState] = mapped_column(sqlalchemy.Enum(PluginState))
@@ -48,10 +48,10 @@ class PluginInfoTable(ClimatoologyTableBase):
     teaser: Mapped[str]
     purpose: Mapped[str]
     methodology: Mapped[str]
-    sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
-    demo_config: Mapped[DemoConfig] = mapped_column(JSON)
+    sources: Mapped[Optional[List[dict]]] = mapped_column(JSONB)
+    demo_config: Mapped[DemoConfig] = mapped_column(JSONB)
     computation_shelf_life: Mapped[Optional[timedelta]]
-    assets: Mapped[Assets] = mapped_column(JSON)
-    operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
+    assets: Mapped[Assets] = mapped_column(JSONB)
+    operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSONB)
     library_version: Mapped[Version] = mapped_column(DbSemver)
     latest: Mapped[bool] = mapped_column(default=False)

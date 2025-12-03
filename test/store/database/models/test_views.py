@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import now as db_now
 
 from climatoology.base.event import ComputationState
-from climatoology.store.database.database import DEMO_SUFFIX, row_to_dict
+from climatoology.store.database.database import DEMO_PREFIX, row_to_dict
 from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
@@ -245,7 +245,7 @@ def test_usage_view_excludes_demo(
     }
 
     loc_computation_info.correlation_uuid = uuid.uuid4()
-    loc_computation_info.aoi.properties.id = f'test_plugin{DEMO_SUFFIX}'
+    loc_computation_info.aoi.properties.id = f'{DEMO_PREFIX}test_plugin'
     backend_with_computation_registered.register_computation(
         correlation_uuid=loc_computation_info.correlation_uuid,
         requested_params=loc_computation_info.requested_params,

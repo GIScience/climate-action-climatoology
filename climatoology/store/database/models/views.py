@@ -10,7 +10,7 @@ from sqlalchemy.sql.functions import now as db_now
 from sqlalchemy_utils import create_view
 
 from climatoology.base.event import ComputationState
-from climatoology.store.database.database import DEMO_SUFFIX
+from climatoology.store.database.database import DEMO_PREFIX
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 from climatoology.store.database.models.computation import ComputationLookupTable, ComputationTable
@@ -41,7 +41,7 @@ class ValidComputationsView(ClimatoologyTableBase):
             ComputationTable.params,
         )
         .join(PluginInfoTable, ComputationTable.plugin_key == PluginInfoTable.key)
-        .join(TaskExtended, cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id)
+        .join(TaskExtended, ComputationTable.correlation_uuid == TaskExtended.task_id)
         .where(PluginInfoTable.latest)
         .where(ComputationTable.valid_until > db_now())
         .where(TaskExtended.status == ComputationState.SUCCESS)
@@ -53,7 +53,7 @@ class ValidComputationsView(ClimatoologyTableBase):
     __table__.schema = CLIMATOOLOGY_SCHEMA_NAME
 
 
-real_failure_filter = and_(
+REAL_FAILURE_FILTER = and_(
     TaskExtended.status == ComputationState.FAILURE,
     not_(coalesce(TaskExtended.traceback, '').contains('InputValidationError')),
 )
@@ -68,12 +68,12 @@ class ComputationsSummaryView(ClimatoologyTableBase):
             PluginInfoTable.version.label('plugin_version'),
             count().label('no_of_computations'),
             (count().filter(TaskExtended.status == ComputationState.SUCCESS)).label('no_of_successes'),
-            (count().filter(real_failure_filter)).label('no_of_failures'),
+            (count().filter(REAL_FAILURE_FILTER)).label('no_of_failures'),
             (
                 cast(
                     func.round(
-                        count().filter(real_failure_filter)
-                        / (count().filter(or_(TaskExtended.status == ComputationState.SUCCESS, real_failure_filter)))
+                        count().filter(REAL_FAILURE_FILTER)
+                        / (count().filter(or_(TaskExtended.status == ComputationState.SUCCESS, REAL_FAILURE_FILTER)))
                         * 100.0,
                         2,
                     ),
@@ -91,7 +91,7 @@ class ComputationsSummaryView(ClimatoologyTableBase):
         .join(ComputationTable, ComputationTable.plugin_key == PluginInfoTable.key)
         .join(
             TaskExtended,
-            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
+            ComputationTable.correlation_uuid == TaskExtended.task_id,
             isouter=True,
         )
         .group_by(PluginInfoTable.id)
@@ -123,7 +123,7 @@ class UsageView(ClimatoologyTableBase):
         .join(ComputationTable, ComputationTable.plugin_key == PluginInfoTable.key)
         .join(ComputationLookupTable, ComputationTable.correlation_uuid == ComputationLookupTable.computation_id)
         .group_by(PluginInfoTable.id)
-        .where(not_(ComputationLookupTable.aoi_id.contains(DEMO_SUFFIX)))
+        .where(not_(ComputationLookupTable.aoi_id.startswith(DEMO_PREFIX)))
         .order_by(count().desc(), PluginInfoTable.id)
     )
 
@@ -133,7 +133,7 @@ class UsageView(ClimatoologyTableBase):
 
 FAILURE_REPORTING_DAYS = 30
 
-cause_extraction = func.left(coalesce(ComputationTable.message, TaskExtended.traceback), 10)
+CAUSE_EXTRACTION = func.left(coalesce(ComputationTable.message, TaskExtended.traceback), 10)
 
 
 class FailedComputationsView(ClimatoologyTableBase):
@@ -143,7 +143,7 @@ class FailedComputationsView(ClimatoologyTableBase):
         select(
             PluginInfoTable.id.label('plugin_id'),
             count().label(f'no_of_failures_in_last_{FAILURE_REPORTING_DAYS}_days'),
-            cause_extraction.label('cause'),
+            CAUSE_EXTRACTION.label('cause'),
             array_agg(distinct(cast(TaskExtended.date_done, Date)), type_=ARRAY(Date, as_tuple=True)).label('on_days'),
             array_agg(distinct(PluginInfoTable.version), type_=ARRAY(DbSemver, as_tuple=True)).label('in_versions'),
             array_agg(distinct(ComputationTable.message), type_=ARRAY(sqlalchemy.String, as_tuple=True)).label(
@@ -153,15 +153,15 @@ class FailedComputationsView(ClimatoologyTableBase):
                 'with_tracebacks'
             ),
         )
-        .where(real_failure_filter)
+        .where(REAL_FAILURE_FILTER)
         .join(ComputationTable, ComputationTable.plugin_key == PluginInfoTable.key)
         .join(
             TaskExtended,
-            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
+            ComputationTable.correlation_uuid == TaskExtended.task_id,
             isouter=True,
         )
         .group_by(PluginInfoTable.id)
-        .group_by(cause_extraction)
+        .group_by(CAUSE_EXTRACTION)
         .where(TaskExtended.date_done > (db_now()) - timedelta(days=FAILURE_REPORTING_DAYS))
         .order_by(PluginInfoTable.id, count().desc())
     )
@@ -175,7 +175,7 @@ class FailedComputationsView(ClimatoologyTableBase):
 class ArtifactErrorsView(ClimatoologyTableBase):
     """A quick overview of common artifact errors per plugin to assess the need for investigation"""
 
-    aliased_json_values = func.json_each_text(ComputationTable.artifact_errors).table_valued(
+    aliased_json_values = func.jsonb_each_text(ComputationTable.artifact_errors).table_valued(
         'key', 'value', name='artifact_errors'
     )
     select_statement = (
@@ -192,7 +192,7 @@ class ArtifactErrorsView(ClimatoologyTableBase):
         .join(ComputationTable, ComputationTable.plugin_key == PluginInfoTable.key)
         .join(
             TaskExtended,
-            cast(ComputationTable.correlation_uuid, sqlalchemy.String) == TaskExtended.task_id,
+            ComputationTable.correlation_uuid == TaskExtended.task_id,
             isouter=True,
         )
         .group_by(PluginInfoTable.id)

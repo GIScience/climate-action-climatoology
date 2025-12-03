@@ -2,11 +2,12 @@ from typing import Optional, Set
 from uuid import UUID
 
 import sqlalchemy
-from sqlalchemy import JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import ForeignKey
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from climatoology.base.artifact import ArtifactModality, Attachments
+from climatoology.store.database.models import DbUuidAsString
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
 
@@ -17,7 +18,7 @@ class ArtifactTable(ClimatoologyTableBase):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     rank: Mapped[int]
     correlation_uuid: Mapped[UUID] = mapped_column(
-        ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.computation.correlation_uuid')
+        DbUuidAsString, ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.computation.correlation_uuid'), index=True
     )
     name: Mapped[str]
     modality: Mapped[ArtifactModality]
@@ -25,6 +26,6 @@ class ArtifactTable(ClimatoologyTableBase):
     tags: Mapped[Set[str]] = mapped_column(ARRAY(sqlalchemy.String))
     summary: Mapped[str]
     description: Mapped[Optional[str]]
-    sources: Mapped[Optional[list[dict]]] = mapped_column(JSON)
-    attachments: Mapped[Optional[Attachments]] = mapped_column(JSON)
+    sources: Mapped[Optional[list[dict]]] = mapped_column(JSONB)
+    attachments: Mapped[Optional[Attachments]] = mapped_column(JSONB)
     filename: Mapped[str]
