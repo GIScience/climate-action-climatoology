@@ -5,6 +5,7 @@ import pytest
 from alembic.util.exc import CommandError
 from semver import Version
 
+from climatoology.base.computation import AoiProperties
 from climatoology.base.plugin_info import PluginAuthor
 from climatoology.store.database.database import BackendDatabase
 
@@ -199,6 +200,25 @@ def test_register_computations(
     )
     deduplicated = db_correlation_uuid_original == db_correlation_uuid_duplicate
     assert deduplicated == expected_deduplication
+
+
+def test_register_computation_retains_aoi_properties_when_read(
+    backend_with_computation_registered, default_plugin_key, default_aoi_feature_geojson_pydantic
+):
+    custom_aoi_feature = default_aoi_feature_geojson_pydantic.model_copy(deep=True)
+    custom_aoi_feature.properties = AoiProperties(name='test_aoi', id='test_aoi_id', foo='bar', hello='world')
+
+    correlation_uuid = uuid.uuid4()
+    _ = backend_with_computation_registered.register_computation(
+        correlation_uuid=correlation_uuid,
+        requested_params={'id': '1'},
+        aoi=custom_aoi_feature,
+        plugin_key=default_plugin_key,
+        computation_shelf_life=None,
+    )
+
+    computation_info = backend_with_computation_registered.read_computation(correlation_uuid=correlation_uuid)
+    assert computation_info.aoi.properties == custom_aoi_feature.properties
 
 
 def test_read_duplicate_computation(

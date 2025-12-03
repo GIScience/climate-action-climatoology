@@ -24,6 +24,9 @@ def upgrade() -> None:
     op.drop_column('computation', 'aoi_id', schema='ca_base')
     op.drop_column('computation', 'status', schema='ca_base')
     op.drop_column('computation', 'aoi_name', schema='ca_base')
+    op.add_column(
+        'computation_lookup', sa.Column('aoi_properties', postgresql.JSONB(astext_type=sa.Text())), schema='ca_base'
+    )
 
     op.execute(sa.text("update ca_base.info set teaser='This plugin does not provide a teaser.' where teaser is null"))
     op.alter_column('info', 'teaser', existing_type=sa.VARCHAR(), nullable=False, schema='ca_base')
@@ -67,6 +70,7 @@ def downgrade() -> None:
         ),
         schema='ca_base',
     )
+    op.drop_column('computation_lookup', 'aoi_properties', schema='ca_base')
 
     op.alter_column(
         'info', 'demo_config', existing_type=postgresql.JSON(astext_type=sa.Text()), nullable=True, schema='ca_base'
