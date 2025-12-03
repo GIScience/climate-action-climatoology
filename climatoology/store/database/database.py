@@ -58,12 +58,11 @@ class BackendDatabase:
             try:
                 check(config=alembic_cfg)
             except CommandError as e:
-                log.error(
-                    'The target database is not compatible with the expectations by climatoology. Make sure to '
-                    'update your database e.g. by running the alembic migration or contacting your admin.',
-                    exc_info=e,
-                )
-                raise e
+                raise RuntimeError(
+                    'The target database is not compatible with the expectations by climatoology. '
+                    'Make sure to update your database e.g. by running the alembic migration or '
+                    'contacting your admin.'
+                ) from e
             finally:
                 log.info(stdout_replacement.readlines())
 

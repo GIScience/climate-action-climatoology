@@ -6,3 +6,7 @@ PUBLIC_SCHEMA_NAME = 'public'
 
 class ClimatoologyTableBase(DeclarativeBase):
     pass
+
+
+class ClimatoologyViewBase(DeclarativeBase):
+    pass

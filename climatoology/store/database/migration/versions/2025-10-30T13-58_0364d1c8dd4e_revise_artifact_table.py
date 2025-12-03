@@ -36,7 +36,7 @@ def downgrade() -> None:
     """Downgrade schema."""
     op.alter_column('artifact', 'rank', existing_type=sa.Integer(), nullable=True, schema='ca_base')
     op.alter_column('artifact', 'tags', existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=True, schema='ca_base')
-    op.add_column(
-        'artifact', sa.Column('file_path', sa.String(), nullable=False, default='/tmp/dummy_filename'), schema='ca_base'
-    )
+    op.add_column('artifact', sa.Column('file_path', sa.String(), nullable=True), schema='ca_base')
+    op.execute(sa.text('update ca_base.artifact set file_path=filename'))
+    op.alter_column('artifact', 'file_path', nullable=False, schema='ca_base')
     op.execute(sa.text('alter table ca_base.artifact rename column filename to store_id;'))

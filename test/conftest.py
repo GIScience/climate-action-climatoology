@@ -14,6 +14,7 @@ import shapely
 import sqlalchemy
 from celery import Celery, signals
 from celery.backends.database import TaskExtended
+from celery.backends.database.session import ResultModelBase
 from celery.utils.threads import LocalStack
 from freezegun import freeze_time
 from pydantic import BaseModel, Field, HttpUrl
@@ -49,7 +50,16 @@ from climatoology.base.plugin_info import (
     generate_plugin_info,
 )
 from climatoology.store.database.database import BackendDatabase
+from climatoology.store.database.models.base import ClimatoologyTableBase
 from climatoology.store.database.models.computation import ComputationTable
+from climatoology.store.database.models.views import (
+    ArtifactErrorsView,
+    ComputationsSummaryView,
+    FailedComputationsView,
+    UsageView,
+    ValidComputationsView,
+    create_view_tracking_object,
+)
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -466,13 +476,31 @@ def db_with_postgis(db_connection_string) -> str:
 
 @pytest.fixture
 def db_with_tables(db_with_postgis, alembic_runner) -> str:
-    alembic_runner.migrate_up_to('head')
+    engine = create_engine(db_with_postgis)
+    with engine.connect() as con:
+        con.execute(text('CREATE SCHEMA ca_base;'))
+        con.commit()
+
+    ResultModelBase.metadata.create_all(engine)
+    ClimatoologyTableBase.metadata.create_all(engine)
+
+    with engine.connect() as con:
+        con.execute(create_view_tracking_object(ValidComputationsView).to_sql_statement_create())
+        con.execute(create_view_tracking_object(ComputationsSummaryView).to_sql_statement_create())
+        con.execute(create_view_tracking_object(UsageView).to_sql_statement_create())
+        con.execute(create_view_tracking_object(FailedComputationsView).to_sql_statement_create())
+        con.execute(create_view_tracking_object(ArtifactErrorsView).to_sql_statement_create())
+        con.commit()
+
+    alembic_runner.raw_command('stamp', 'head')
     return db_with_postgis
 
 
 @pytest.fixture
 def default_backend_db(db_with_tables) -> BackendDatabase:
-    return BackendDatabase(connection_string=db_with_tables, user_agent='Test Climatoology Backend')
+    return BackendDatabase(
+        connection_string=db_with_tables, user_agent='Test Climatoology Backend', assert_db_status=True
+    )
 
 
 @pytest.fixture
@@ -520,29 +548,72 @@ def backend_with_computation_successful(backend_with_computation_registered, def
 
 
 @pytest.fixture
-def alembic_config() -> Config:
+def alembic_config(
+    general_uuid, default_plugin_info_final, default_computation_info, default_artifact_enriched
+) -> Config:
     return Config(
         config_options={'script_location': 'climatoology/store/database/migration'},
         at_revision_data={
+            '0c77b1f5b970': [
+                {
+                    '__tablename__': 'celery_taskmeta',
+                    'id': 1,
+                    'task_id': str(general_uuid),
+                    'date_done': datetime.now(),
+                }
+            ],
             '3d4313578291': [
                 {
                     '__tablename__': 'info',
-                    'plugin_id': 'prefilled_test_plugin',
-                    'name': 'Prefilled Test Plugin',
-                    'version': '1.0.0',
-                    'concerns': [],
-                    'purpose': 'No Purpose',
-                    'methodology': 'No Methods',
-                    'assets': {},
-                    'operator_schema': {},
-                    'library_version': '0.0.1',
+                    'plugin_id': default_plugin_info_final.id,
+                    'name': default_plugin_info_final.name,
+                    'version': str(default_plugin_info_final.version),
+                    'concerns': ['CLIMATE_ACTION__GHG_EMISSION'],
+                    'purpose': default_plugin_info_final.purpose,
+                    'methodology': default_plugin_info_final.methodology,
+                    'assets': default_plugin_info_final.assets.model_dump(mode='json'),
+                    'operator_schema': default_plugin_info_final.operator_schema,
+                    'library_version': str(default_plugin_info_final.library_version),
                 },
                 {'__tablename__': 'pluginauthor', 'name': 'Waldemar'},
                 {
                     '__tablename__': 'author_info_link_table',
-                    'info_id': 'prefilled_test_plugin',
+                    'info_id': default_plugin_info_final.id,
                     'author_id': 'Waldemar',
                 },
+            ],
+            '49cccfd144a8': [
+                {
+                    '__tablename__': 'ca-base.computation',
+                    'correlation_uuid': str(general_uuid),
+                    'timestamp': datetime.now(),
+                    'params': default_computation_info.params,
+                    'aoi_geom': default_computation_info.aoi.geometry.wkt,
+                    'aoi_name': default_computation_info.aoi.properties.name,
+                    'aoi_id': default_computation_info.aoi.properties.id,
+                    'plugin_id': default_computation_info.plugin_info.id,
+                    'plugin_version': str(default_computation_info.plugin_info.version),
+                    'status': ComputationState.PENDING,
+                    'artifact_errors': default_computation_info.artifact_errors,
+                },
+                {
+                    '__tablename__': 'ca-base.artifact',
+                    'correlation_uuid': str(general_uuid),
+                    'name': default_artifact_enriched.name,
+                    'modality': default_artifact_enriched.modality.value,
+                    'primary': default_artifact_enriched.primary,
+                    'summary': default_artifact_enriched.summary,
+                    'store_id': default_artifact_enriched.filename,
+                    'file_path': default_artifact_enriched.filename,
+                },
+            ],
+            '8b52ceba3457': [
+                {
+                    '__tablename__': 'ca-base.computation_lookup',
+                    'user_correlation_uuid': str(general_uuid),
+                    'request_ts': datetime.now(),
+                    'computation_id': str(general_uuid),
+                }
             ],
         },
     )

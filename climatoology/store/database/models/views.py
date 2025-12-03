@@ -1,18 +1,22 @@
 from datetime import timedelta
+from typing import Type
 
 import sqlalchemy
+from alembic_utils.pg_view import PGView
 from celery.backends.database import TaskExtended
 from geoalchemy2 import Geometry
 from sqlalchemy import Date, and_, cast, distinct, not_, or_, select, type_coerce
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import ARRAY, array_agg
 from sqlalchemy.sql.functions import coalesce, count, func
 from sqlalchemy.sql.functions import now as db_now
 from sqlalchemy_utils import create_view
+from sqlalchemy_utils.view import CreateView
 
 from climatoology.base.event import ComputationState
 from climatoology.store.database.database import DEMO_PREFIX
 from climatoology.store.database.models import DbSemver
-from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
+from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyViewBase
 from climatoology.store.database.models.computation import ComputationLookupTable, ComputationTable
 from climatoology.store.database.models.info import PluginInfoTable
 
@@ -27,7 +31,7 @@ class RawGeometry(Geometry):
         return col
 
 
-class ValidComputationsView(ClimatoologyTableBase):
+class ValidComputationsView(ClimatoologyViewBase):
     """A potentially public-facing collection of currently valid computations.
 
     The view is deliberately not ordered because it should be filtered by plugin on the client side.
@@ -48,7 +52,7 @@ class ValidComputationsView(ClimatoologyTableBase):
     )
 
     __table__ = create_view(
-        name='valid_computations', selectable=select_statement, metadata=ClimatoologyTableBase.metadata
+        name='valid_computations', selectable=select_statement, metadata=ClimatoologyViewBase.metadata
     )
     __table__.schema = CLIMATOOLOGY_SCHEMA_NAME
 
@@ -59,7 +63,7 @@ REAL_FAILURE_FILTER = and_(
 )
 
 
-class ComputationsSummaryView(ClimatoologyTableBase):
+class ComputationsSummaryView(ClimatoologyViewBase):
     """Internal reliability report"""
 
     select_statement = (
@@ -100,12 +104,12 @@ class ComputationsSummaryView(ClimatoologyTableBase):
     )
 
     __table__ = create_view(
-        name='computations_summary', selectable=select_statement, metadata=ClimatoologyTableBase.metadata
+        name='computations_summary', selectable=select_statement, metadata=ClimatoologyViewBase.metadata
     )
     __table__.schema = CLIMATOOLOGY_SCHEMA_NAME
 
 
-class UsageView(ClimatoologyTableBase):
+class UsageView(ClimatoologyViewBase):
     """Internal usage report (ignoring demo-requests)"""
 
     select_statement = (
@@ -127,7 +131,7 @@ class UsageView(ClimatoologyTableBase):
         .order_by(count().desc(), PluginInfoTable.id)
     )
 
-    __table__ = create_view(name='usage_summary', selectable=select_statement, metadata=ClimatoologyTableBase.metadata)
+    __table__ = create_view(name='usage_summary', selectable=select_statement, metadata=ClimatoologyViewBase.metadata)
     __table__.schema = CLIMATOOLOGY_SCHEMA_NAME
 
 
@@ -136,7 +140,7 @@ FAILURE_REPORTING_DAYS = 30
 CAUSE_EXTRACTION = func.left(coalesce(ComputationTable.message, TaskExtended.traceback), 10)
 
 
-class FailedComputationsView(ClimatoologyTableBase):
+class FailedComputationsView(ClimatoologyViewBase):
     """A quick overview of failure per plugin to assess the need for investigation"""
 
     select_statement = (
@@ -167,12 +171,12 @@ class FailedComputationsView(ClimatoologyTableBase):
     )
 
     __table__ = create_view(
-        name='failed_computations', selectable=select_statement, metadata=ClimatoologyTableBase.metadata
+        name='failed_computations', selectable=select_statement, metadata=ClimatoologyViewBase.metadata
     )
     __table__.schema = CLIMATOOLOGY_SCHEMA_NAME
 
 
-class ArtifactErrorsView(ClimatoologyTableBase):
+class ArtifactErrorsView(ClimatoologyViewBase):
     """A quick overview of common artifact errors per plugin to assess the need for investigation"""
 
     aliased_json_values = func.jsonb_each_text(ComputationTable.artifact_errors).table_valued(
@@ -201,7 +205,26 @@ class ArtifactErrorsView(ClimatoologyTableBase):
         .order_by(PluginInfoTable.id, aliased_json_values.c.key, count().desc())
     )
 
-    __table__ = create_view(
-        name='artifact_errors', selectable=select_statement, metadata=ClimatoologyTableBase.metadata
-    )
+    __table__ = create_view(name='artifact_errors', selectable=select_statement, metadata=ClimatoologyViewBase.metadata)
     __table__.schema = CLIMATOOLOGY_SCHEMA_NAME
+
+
+def create_view_tracking_object(view_cls: Type[ClimatoologyViewBase]) -> PGView:
+    """
+    Create an alembic tracking object for a view, so changes to the view are recorded.
+
+    The workaround is required because PGView does not support creating view from `select()` statements and the two
+    libraries (sqlalchemy-utils, used for view creation, and alembic-utils, used for view tracking) are not compatible.
+
+    :param view_cls: the view class to create a tracking object for
+    :return: the tracking object
+    """
+    select_stmt = CreateView(view_cls.__table__.fullname, view_cls.select_statement)
+    select_stmt = select_stmt.compile(dialect=postgresql.dialect())
+    select_stmt = str(select_stmt).replace(f'CREATE VIEW {view_cls.__table__.fullname} AS ', '')
+    tracking_object = PGView(
+        schema=view_cls.__table__.schema,
+        signature=view_cls.__table__.name,
+        definition=select_stmt,
+    )
+    return tracking_object
