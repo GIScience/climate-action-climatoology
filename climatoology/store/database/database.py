@@ -195,6 +195,7 @@ class BackendDatabase:
                 computation_id=db_correlation_uuid,
                 aoi_name=aoi.properties.name,
                 aoi_id=aoi.properties.id,
+                aoi_properties=aoi.properties.model_extra,
             )
             session.execute(lookup_insert_stmt)
             session.commit()
@@ -217,7 +218,7 @@ class BackendDatabase:
                 computation_info.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
                     **{
                         'type': 'Feature',
-                        'properties': {'name': result.aoi_name, 'id': result.aoi_id},
+                        'properties': {'name': result.aoi_name, 'id': result.aoi_id} | result.aoi_properties,
                         'geometry': geoalchemy2.shape.to_shape(computation_info.aoi_geom),
                     }
                 )

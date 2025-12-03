@@ -39,6 +39,8 @@ class ComputationScope:
 
 
 class AoiProperties(BaseModel):
+    model_config = ConfigDict(extra='allow')
+
     name: str = Field(
         title='Name',
         description='The name of the area of interest i.e. a human readable description.',

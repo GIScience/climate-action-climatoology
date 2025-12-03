@@ -7,6 +7,21 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
+### Added
+
+- retain all AOI properties that are sent with the compute
+  request ([#213](https://gitlab.heigit.org/climate-action/climatoology/-/issues/213))
+
+### Fix
+
+- vector layer files now contain a unique 'index'
+  attribute ([#236](https://gitlab.heigit.org/climate-action/climatoology/-/issues/236))
+
+### Removed
+
+- strict checks on extra attributes in `PluginInfo` and `ComputationInfo`, which improves compatibility between plugins
+  and gateway running on different versions ([#203](https://gitlab.heigit.org/climate-action/climatoology/-/issues/203))
+
 ## [7.0.0rc1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.0rc1) - 2025-11-28
 
 This release candidate contains most of the breaking changes for v7.
@@ -104,8 +119,6 @@ The changelog contains subsections for changes that affect a dedicated domain.
 - plugin authors order is now preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
 - artifacts now have a rank attribute to assert their order is
   preserved ([#204](https://gitlab.heigit.org/climate-action/climatoology/-/issues/204))
-- vector layers now contain a unique 'index'
-  attribute ([#236](https://gitlab.heigit.org/climate-action/climatoology/-/issues/236))
 
 #### Library
 
@@ -128,11 +141,6 @@ The changelog contains subsections for changes that affect a dedicated domain.
 - `MinioStorage.list_all()` function, which is replaced
   by `BackendDatabase.list_artifacts()` ([#208](https://gitlab.heigit.org/climate-action/climatoology/-/issues/208))
 - the deprecated `get_info_via_task` function, which is incompatible with the (changed) custom queue configuration
-
-#### Library
-
-- Strict checks on extra attributes in `PluginInfo` and `ComputationInfo`, which improves compatibility between plugins
-  and gateway running on different versions ([#203](https://gitlab.heigit.org/climate-action/climatoology/-/issues/203))
 
 ### Added
 
