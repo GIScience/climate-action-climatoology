@@ -22,12 +22,19 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     op.add_column('computation', sa.Column('cache_epoch', sa.Integer(), nullable=True), schema='ca-base')
-    op.add_column('computation', sa.Column('valid_until', sa.DateTime(), nullable=False), schema='ca-base')
+
+    op.add_column('computation', sa.Column('valid_until', sa.DateTime(), nullable=True), schema='ca-base')
+    op.execute(sa.text('update "ca-base".computation set valid_until=\'1970-01-01\'::timestamp'))
+    op.alter_column('computation', 'valid_until', nullable=False, schema='ca-base')
+
     op.add_column(
         'computation',
-        sa.Column('requested_params', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column('requested_params', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         schema='ca-base',
     )
+    op.execute(sa.text('update "ca-base".computation set requested_params=\'{}\'::jsonb'))
+    op.alter_column('computation', 'requested_params', nullable=False, schema='ca-base')
+
     op.alter_column(
         'computation', 'params', existing_type=postgresql.JSONB(astext_type=sa.Text()), nullable=True, schema='ca-base'
     )

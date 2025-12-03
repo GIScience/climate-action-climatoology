@@ -1,14 +1,11 @@
-from typing import Optional, Type
+from typing import Optional
 
 from alembic import context
-from alembic_utils.pg_view import PGView
 from alembic_utils.replaceable_entity import register_entities
 from celery.backends.database.session import ResultModelBase
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import engine_from_config, pool
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.schema import SchemaItem
-from sqlalchemy_utils.view import CreateView
 
 from climatoology.store.database.models.base import ClimatoologyTableBase
 from climatoology.store.database.models.views import (
@@ -17,29 +14,8 @@ from climatoology.store.database.models.views import (
     FailedComputationsView,
     UsageView,
     ValidComputationsView,
+    create_view_tracking_object,
 )
-
-
-def create_view_tracking_object(view_cls: Type[ClimatoologyTableBase]) -> PGView:
-    """
-    Create an alembic tracking object for a view, so changes to the view are recorded.
-
-    The workaround is required because PGView does not support creating view from `select()` statements and the two
-    libraries (sqlalchemy-utils, used for view creation, and alembic-utils, used for view tracking) are not compatible.
-
-    :param view_cls: the view class to create a tracking object for
-    :return: the tracking object
-    """
-    select_stmt = CreateView(view_cls.__table__.fullname, view_cls.select_statement)
-    select_stmt = select_stmt.compile(dialect=postgresql.dialect())
-    select_stmt = str(select_stmt).replace(f'CREATE VIEW {view_cls.__table__.fullname} AS ', '')
-    tracking_object = PGView(
-        schema=view_cls.__table__.schema,
-        signature=view_cls.__table__.name,
-        definition=select_stmt,
-    )
-    return tracking_object
-
 
 register_entities(
     [

@@ -2,7 +2,6 @@ import uuid
 from datetime import timedelta
 
 import pytest
-from alembic.util.exc import CommandError
 from semver import Version
 
 from climatoology.base.computation import AoiProperties
@@ -344,7 +343,12 @@ def test_outdated_db_refuses_startup(db_with_postgis, alembic_runner):
     alembic_runner.migrate_up_to('45b227b8bee7')
 
     BackendDatabase(connection_string=db_with_postgis, user_agent='Test Climatoology Backend')
-    with pytest.raises(CommandError, match=r'Target database is not up to date.'):
+    with pytest.raises(
+        RuntimeError,
+        match=r'The target database is not compatible with the expectations by '
+        r'climatoology. Make sure to update your database e.g. by running the '
+        r'alembic migration or contacting your admin.',
+    ):
         BackendDatabase(
             connection_string=db_with_postgis, user_agent='Test Climatoology Backend', assert_db_status=True
         )
