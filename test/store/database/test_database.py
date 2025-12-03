@@ -52,7 +52,7 @@ def test_info_is_recreated(default_plugin_info_final, default_backend_db):
     _ = default_backend_db.write_info(info=changed_devel_info)
 
     read_info = default_backend_db.read_info(plugin_id=changed_devel_info.id, plugin_version=changed_devel_info.version)
-    assert read_info.model_dump_json(indent=4) == changed_devel_info.model_dump_json(indent=4)
+    assert read_info == changed_devel_info
 
 
 def test_author_order_is_preserved(default_backend_db, default_plugin_info_final):

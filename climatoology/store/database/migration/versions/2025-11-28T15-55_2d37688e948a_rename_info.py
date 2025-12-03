@@ -1,7 +1,7 @@
 """rename_info
 
 Revision ID: 2d37688e948a
-Revises: afbe6fd67545
+Revises: 9ba5a3807edb
 Create Date: 2025-11-28 15:55:34.670492
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '2d37688e948a'
-down_revision: Union[str, None] = 'afbe6fd67545'
+down_revision: Union[str, None] = '9ba5a3807edb'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
