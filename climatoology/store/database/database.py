@@ -11,7 +11,7 @@ from alembic.command import check
 from alembic.config import Config
 from alembic.util.exc import CommandError
 from semver import Version
-from sqlalchemy import NullPool, column, create_engine, select, update
+from sqlalchemy import NullPool, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
@@ -91,7 +91,7 @@ class BackendDatabase:
             insert(PluginInfoTable)
             .values(**info_dict)
             .on_conflict_do_update(index_elements=[PluginInfoTable.key], set_=info_dict)
-            .returning(column('key'))
+            .returning(PluginInfoTable.key)
         )
         insert_return = session.execute(info_insert_stmt)
         info_key = insert_return.scalar_one()
@@ -183,7 +183,7 @@ class BackendDatabase:
                     # this is a hack (with currently irrelevant side effects) due to https://stackoverflow.com/questions/34708509/how-to-use-returning-with-on-conflict-in-postgresql:
                     set_={'plugin_key': plugin_key},
                 )
-                .returning(column('correlation_uuid'))
+                .returning(ComputationTable.correlation_uuid)
             )
             insert_return = session.execute(computation_insert_stmt)
             (db_correlation_uuid,) = insert_return.first()

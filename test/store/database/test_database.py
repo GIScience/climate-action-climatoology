@@ -257,7 +257,7 @@ def test_resolve_deduplicated_computation_id(
     default_plugin, default_backend_db, default_computation_info, default_plugin_info, default_plugin_key
 ):
     duplicate_computation_id = uuid.uuid4()
-    _ = default_backend_db.register_computation(
+    expected_computation_id = default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
         requested_params=default_computation_info.params,
         aoi=default_computation_info.aoi,
@@ -274,6 +274,7 @@ def test_resolve_deduplicated_computation_id(
 
     db_computation_id = default_backend_db.resolve_computation_id(user_correlation_uuid=duplicate_computation_id)
 
+    assert expected_computation_id == default_computation_info.correlation_uuid
     assert db_computation_id == default_computation_info.correlation_uuid
 
 
