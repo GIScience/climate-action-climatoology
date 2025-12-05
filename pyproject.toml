@@ -8,7 +8,6 @@ authors = [
     { name = "Maciej Adamiak", email = "maciej.adamiak@heigit.org" },
 ]
 readme = "README.md"
-repository = "https://gitlab.heigit.org/climate-action/climatoology"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -41,6 +40,9 @@ dependencies = [
     "alembic-postgresql-enum (>=1.7.0,<2.0.0)",
     "plotly (>=6.0.0,<7.0.0)",
 ]
+
+[project.urls]
+repository = "https://gitlab.heigit.org/climate-action/climatoology"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^9.0.0"
