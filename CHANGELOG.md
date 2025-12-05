@@ -18,8 +18,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - retain all AOI properties that are sent with the compute
   request ([#213](https://gitlab.heigit.org/climate-action/climatoology/-/issues/213))
-- Created `PluginInfoEnriched` class to more strictly define both this and `PluginInfo` with their required fields and
-  correct typing ([#225](https://gitlab.heigit.org/climate-action/climatoology/-/issues/225))
+- Created `PluginInfoEnriched` and `PluginInfoFinal` classes to more strictly define the stages of info with their
+  required fields and correct typing ([#225](https://gitlab.heigit.org/climate-action/climatoology/-/issues/225))
+  - Created `AssetsFinal` to enable correct asset typing for each plugin info stage
 
 ### Fix
 

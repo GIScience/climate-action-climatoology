@@ -46,11 +46,13 @@ from climatoology.base.computation import (
 )
 from climatoology.base.event import ComputationState
 from climatoology.base.plugin_info import (
+    AssetsFinal,
     Concern,
     MiscSource,
     PluginAuthor,
     PluginInfo,
     PluginInfoEnriched,
+    PluginInfoFinal,
 )
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.base import ClimatoologyTableBase
@@ -142,9 +144,9 @@ def default_plugin_info_enriched(default_operator) -> PluginInfoEnriched:
 
 
 @pytest.fixture
-def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoEnriched:
-    default_info_final = default_plugin_info_enriched.model_copy(deep=True)
-    default_info_final.assets.icon = 'assets/test_plugin/latest/ICON.png'
+def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoFinal:
+    assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
+    default_info_final = PluginInfoFinal(**default_plugin_info_enriched.model_dump(exclude={'assets'}), assets=assets)
     return default_info_final
 
 

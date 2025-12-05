@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 import pytest
 
 from climatoology.base.artifact import Attachments
-from climatoology.base.plugin_info import Assets, _convert_icon_to_thumbnail
+from climatoology.base.plugin_info import Assets, AssetsFinal, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
 
 TEST_RESOURCES_DIR = Path(__file__).parent.parent / 'resources'
@@ -89,20 +89,21 @@ def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, e
 
 
 def test_minio_synchronise_asset(mocked_object_store):
-    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.png'))
+    assets = Assets(icon=Path(__file__).parent.parent / 'resources/test_icon.png')
     mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
     assert mocked_object_store.client.stat_object(
         bucket_name='minio_test_bucket', object_name='assets/test_plugin/latest/ICON.png'
     )
 
 
-def test_minio_synchronise_asset_rewrites_asset_object(mocked_object_store):
-    assets = Assets(icon=str(Path(__file__).parent.parent / 'resources/test_icon.png'))
-    new_assets = mocked_object_store.write_assets(
-        plugin_id='test_plugin',
-        assets=assets,
-    )
-    assert new_assets.icon == 'assets/test_plugin/latest/ICON.png'
+def test_minio_synchronise_asset_creates_final_assets_object(mocked_object_store, default_plugin_info_enriched):
+    expected_assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
+
+    method_input = default_plugin_info_enriched.assets.model_copy(deep=True)
+
+    new_assets = mocked_object_store.write_assets(plugin_id='test_plugin', assets=method_input)
+
+    assert new_assets == expected_assets
 
 
 def test_generate_asset_object_name():

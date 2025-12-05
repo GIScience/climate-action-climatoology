@@ -8,7 +8,7 @@ from sqlalchemy import Column, Computed, ForeignKey, Integer, Table, asc
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.base.plugin_info import Assets, Concern, DemoConfig, PluginState
+from climatoology.base.plugin_info import AssetsFinal, Concern, DemoConfig, PluginState
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
@@ -51,7 +51,7 @@ class PluginInfoTable(ClimatoologyTableBase):
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSONB)
     demo_config: Mapped[DemoConfig] = mapped_column(JSONB)
     computation_shelf_life: Mapped[Optional[timedelta]]
-    assets: Mapped[Assets] = mapped_column(JSONB)
+    assets: Mapped[AssetsFinal] = mapped_column(JSONB)
     operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSONB)
     library_version: Mapped[Version] = mapped_column(DbSemver)
     latest: Mapped[bool] = mapped_column(default=False)
