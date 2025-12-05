@@ -13,7 +13,7 @@ from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModal
 from climatoology.base.computation import AoiProperties, ComputationResources
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import PluginInfo
+from climatoology.base.plugin_info import DemoConfig, PluginInfo, PluginInfoEnriched
 
 log = get_climatoology_logger(__name__)
 
@@ -57,16 +57,37 @@ class BaseOperator(ABC, Generic[T_co]):
 
     @final
     @cached_property
-    def info_enriched(self) -> PluginInfo:
+    def info_enriched(self) -> PluginInfoEnriched:
         """Describe the operators' purpose, functionality, methodology and sources.
 
         :return: operator info
         """
         info = self.info()
-        info.operator_schema = self._model.model_json_schema()
-        info.library_version = climatoology.__version__
+
+        assert isinstance(info.demo_input_parameters, self._model), (
+            'The DemoModel is not the same as the model expected by the Operator'
+        )
+
+        info_enriched = PluginInfoEnriched(
+            name=info.name,
+            authors=info.authors,
+            state=info.state,
+            concerns=info.concerns,
+            teaser=info.teaser,
+            computation_shelf_life=info.computation_shelf_life,
+            id=info.id,
+            version=info.version,
+            repository=info.repository,
+            purpose=info.purpose.read_text(),
+            methodology=info.purpose.read_text(),
+            sources=info.sources,
+            assets=info.assets,
+            operator_schema=self._model.model_json_schema(),
+            demo_config=DemoConfig(params=info.demo_params_as_dict, name=info.demo_aoi.name, aoi=info.demo_aoi.geojson),
+            library_version=climatoology.__version__,
+        )
         log.debug(f'{info.name} info constructed')
-        return info
+        return info_enriched
 
     @abstractmethod
     def info(self) -> PluginInfo:

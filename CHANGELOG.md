@@ -7,10 +7,19 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/6.4.4...main)
 
+### Changed
+
+- Renamed `PluginBaseInfo` to
+  `ComputationPluginInfo` ([#225](https://gitlab.heigit.org/climate-action/climatoology/-/issues/225))
+- Removed `compose_demo_config` in favour of providing a `demo_aoi` and `demo_input_parameters` separately to the
+  `PluginInfo` object
+
 ### Added
 
 - retain all AOI properties that are sent with the compute
   request ([#213](https://gitlab.heigit.org/climate-action/climatoology/-/issues/213))
+- Created `PluginInfoEnriched` class to more strictly define both this and `PluginInfo` with their required fields and
+  correct typing ([#225](https://gitlab.heigit.org/climate-action/climatoology/-/issues/225))
 
 ### Fix
 

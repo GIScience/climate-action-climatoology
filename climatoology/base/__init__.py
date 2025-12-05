@@ -8,7 +8,7 @@ from semver import Version
 T_co = TypeVar('T_co', bound=BaseModel, covariant=True)
 
 
-class PydanticSemver:
+class PydanticSemver(Version):
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
