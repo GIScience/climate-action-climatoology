@@ -3,16 +3,16 @@ import tempfile
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
 import geojson_pydantic
 from pydantic import BaseModel, ConfigDict, Field
 from semver import Version
 
+from climatoology.base import PydanticSemver
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
 from climatoology.base.event import ComputationState
-from climatoology.base.plugin_info import PluginBaseInfo
 
 
 class ComputationResources(BaseModel):
@@ -51,6 +51,22 @@ class AoiProperties(BaseModel):
         description='A unique identifier of the area of interest.',
         examples=[str(uuid.uuid4())],
     )
+
+
+class ComputationPluginInfo(BaseModel):
+    """Basic information about what plugin the computation is from. This is separate from the other plugin info classes
+    because it has different typing requirements and is customised for the computation info.
+    """
+
+    id: str = Field(description='A cleaned plugin name.', examples=['the_plugin_001'])
+    version: Annotated[
+        Version,
+        PydanticSemver,
+        Field(
+            description='The plugin version.',
+            examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
+        ),
+    ]
 
 
 class ComputationInfo(BaseModel):
@@ -117,10 +133,10 @@ class ComputationInfo(BaseModel):
         ],
         default=[],
     )
-    plugin_info: PluginBaseInfo = Field(
+    plugin_info: ComputationPluginInfo = Field(
         description='Basic information on the plugin that produced the computation.',
         examples=[
-            PluginBaseInfo(id='example_plugin', version=Version(0, 0, 1)),
+            ComputationPluginInfo(id='example_plugin', version=Version(0, 0, 1)),
         ],
     )
     status: Optional[ComputationState] = Field(

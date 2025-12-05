@@ -16,9 +16,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload
 
 from climatoology.base.artifact import ArtifactEnriched
-from climatoology.base.computation import AoiProperties, ComputationInfo
+from climatoology.base.computation import AoiProperties, ComputationInfo, ComputationPluginInfo
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import PluginAuthor, PluginBaseInfo, PluginInfo
+from climatoology.base.plugin_info import PluginAuthor, PluginInfoEnriched
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import ClimatoologyTableBase
@@ -66,7 +66,7 @@ class BackendDatabase:
             finally:
                 log.info(stdout_replacement.readlines())
 
-    def write_info(self, info: PluginInfo) -> str:
+    def write_info(self, info: PluginInfoEnriched) -> str:
         log.debug(f'Connecting to the database and writing info for {info.id}')
         with Session(self.engine) as session:
             info_key = self._synch_info_to_db(info, session)
@@ -74,13 +74,13 @@ class BackendDatabase:
             log.info(f'Info written to database for {info_key}')
             return info_key
 
-    def _synch_info_to_db(self, info: PluginInfo, session: Session) -> str:
+    def _synch_info_to_db(self, info: PluginInfoEnriched, session: Session) -> str:
         self._upload_authors(authors=info.authors, session=session)
         info_key = self._upload_info(info=info, session=session)
         self._update_info_author_relation_table(info_key=info_key, authors=info.authors, session=session)
         return info_key
 
-    def _upload_info(self, info: PluginInfo, session: Session) -> str:
+    def _upload_info(self, info: PluginInfoEnriched, session: Session) -> str:
         info_update_stmt = (
             update(PluginInfoTable).where(PluginInfoTable.id == info.id, PluginInfoTable.latest).values(latest=False)
         )
@@ -123,7 +123,7 @@ class BackendDatabase:
             result = session.execute(key_stmt).scalar_one_or_none()
         return result
 
-    def read_info(self, plugin_id: str, plugin_version: Version = None) -> PluginInfo:
+    def read_info(self, plugin_id: str, plugin_version: Version = None) -> PluginInfoEnriched:
         """Read the plugin info from the database.
 
         :param plugin_id: the id for the plugin of interest
@@ -141,7 +141,7 @@ class BackendDatabase:
             info_query = select(PluginInfoTable).where(PluginInfoTable.key == info_key)
             result_scalars = session.scalars(info_query)
             result = result_scalars.one()
-            retrieved_info = PluginInfo.model_validate(result)
+            retrieved_info = PluginInfoEnriched.model_validate(result)
             log.debug(f'Info for plugin {plugin_id} read from database')
             return retrieved_info
 
@@ -221,7 +221,7 @@ class BackendDatabase:
                         'geometry': geoalchemy2.shape.to_shape(computation_info.aoi_geom),
                     }
                 )
-                computation_info.plugin_info = PluginBaseInfo(
+                computation_info.plugin_info = ComputationPluginInfo(
                     id=computation_info.plugin.id,
                     version=computation_info.plugin.version,
                 )

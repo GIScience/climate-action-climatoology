@@ -3,14 +3,25 @@ import re
 import tomllib
 from datetime import timedelta
 from enum import StrEnum
+from functools import cached_property
 from io import BytesIO
 from pathlib import Path
-from typing import Annotated, List, Literal, Optional, Set, Union
+from typing import Annotated, Any, List, Literal, Optional, Set, Union
 
 import bibtexparser
 import geojson_pydantic
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, conlist, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FilePath,
+    HttpUrl,
+    ValidationError,
+    computed_field,
+    conlist,
+    model_validator,
+)
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
@@ -115,10 +126,24 @@ class Assets(BaseModel):
     )
 
 
+class CustomAOI(BaseModel):
+    """Configuration to define a custom AOI from a spatial file."""
+
+    name: str = Field(description='The display name of the custom AOI', examples=['Earth'])
+    path: Path = Field(
+        description='The path to the file containing the custom AOI', examples=['/path/to/earth.geojson']
+    )
+
+    @computed_field
+    @property
+    def geojson(self) -> geojson_pydantic.MultiPolygon:
+        return geojson_pydantic.MultiPolygon(**json.loads(self.path.read_text()))
+
+
 class DemoConfig(BaseModel):
     """Configuration to run a demonstration of a plugin."""
 
-    params: dict = Field(description='The input parameters used for the demo.')
+    params: dict[str, Any] = Field(description='The input parameters used for the demo.')
     name: str = Field(description='The display name of the demo AOI')
     aoi: geojson_pydantic.MultiPolygon = Field(
         description='The the area of interest the demo will be run in.',
@@ -142,34 +167,12 @@ class DemoConfig(BaseModel):
     )
 
 
-class PluginBaseInfo(BaseModel):
-    id: Optional[str] = Field(
-        description='A cleaned plugin name.',
-        examples=['the_plugin_001'],
-        default=None,
-    )
-    version: Annotated[
-        Version,
-        PydanticSemver,
-        Field(
-            description='The plugin version.',
-            examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
-        ),
-    ]
-
-
-class PluginInfo(PluginBaseInfo):
-    """A dataclass to provide the basic information about a plugin."""
-
-    model_config = ConfigDict(from_attributes=True)
+class _PluginBaseInfo(BaseModel):
+    """A dataclass containing the consistent attributes between the PluginInfo and PluginInfoEnriched"""
 
     name: str = Field(description='The full name of the plugin.', examples=['The Plugin'])
     authors: conlist(item_type=PluginAuthor, min_length=1) = Field(
         description='A list of plugin contributors.', examples=[[PluginAuthor(name='John Doe')]]
-    )
-    repository: HttpUrl = Field(
-        description='The link to the source code of the plugin.',
-        examples=[HttpUrl('https://gitlab.heigit.org/climate-action/net_zero')],
     )
     state: PluginState = Field(
         description='The current development state of the plugin using categories from https://github.com/GIScience/badges.',
@@ -188,6 +191,123 @@ class PluginInfo(PluginBaseInfo):
         min_length=20,
         max_length=150,
         pattern='^[A-Z].*\\.$',
+    )
+    computation_shelf_life: Optional[timedelta] = Field(
+        description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
+        'of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of 0 means '
+        'no caching while None means indefinite caching.',
+        examples=[timedelta(weeks=4)],
+        default=timedelta(0),
+    )
+
+
+class PluginInfo(_PluginBaseInfo):
+    """A dataclass to provide the basic information about a plugin."""
+
+    purpose: FilePath = Field(
+        description='A markdown file that describes: What will this plugin accomplish?',
+        examples=['purpose.md'],
+    )
+    methodology: FilePath = Field(
+        description='A markdown file that explains: How does this plugin achieve its goal?',
+        examples=['methodology.md'],
+    )
+    icon: FilePath = Field(description='The path to the icon image.', examples=[Path('icon.png')])
+    sources_library: Optional[FilePath] = Field(
+        description='The path to the sources library. Provide a [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)'
+        'file. You can extract such a file from most common bibliography management systems.',
+        examples=[Path('sources_library.json')],
+        default=None,
+    )
+    info_source_keys: Optional[set[str]] = Field(
+        description='A list of keys/IDs to optionally subset the sources library to only include the base sources for '
+        'the plugin. Defaults to all sources.',
+        examples=['source_1'],
+        default=None,
+    )
+    demo_input_parameters: BaseModel = Field(description='The input parameters used for the demo.')
+    demo_aoi: CustomAOI = Field(
+        description='The AOI to use for demo computations',
+        default=CustomAOI(name='Heidelberg Demo', path=DEMO_AOI_PATH),
+    )
+
+    @computed_field
+    @property
+    def id(self) -> str:
+        plugin_id = self.name.lower()
+        plugin_id = re.sub(r'[^a-zA-Z-\s]', '', plugin_id)
+        plugin_id = re.sub(r'\s', '_', plugin_id)
+        return plugin_id
+
+    @computed_field
+    @cached_property
+    def version(self) -> PydanticSemver:
+        version = extract_project_attribute_from_pyproject_toml(attribute='version')
+        try:
+            return PydanticSemver.parse(version)
+        except (TypeError, ValueError) as e:
+            raise ValidationError(
+                'Your pyproject.toml does not contain a version or is not adhering to the latest pyproject.toml '
+                'format: https://python-poetry.org/docs/pyproject/'
+            ) from e
+
+    @computed_field
+    @cached_property
+    def repository(self) -> HttpUrl:
+        repository = extract_project_attribute_from_pyproject_toml(attribute='repository')
+        try:
+            return HttpUrl(repository)
+        except ValidationError as e:
+            raise ValidationError(
+                'Your pyproject.toml does not contain a repository url or is not adhering to the latest pyproject.toml '
+                'format: https://python-poetry.org/docs/pyproject/'
+            ) from e
+
+    @computed_field
+    @cached_property
+    def assets(self) -> Assets:
+        # The conversion and validation from a dict to the Source type will happen on Asset instantiation
+        # noinspection PyTypeChecker
+        sources_library: dict[str, Source] = _convert_bib(self.sources_library)
+        assets = Assets(sources_library=sources_library, icon=str(self.icon))
+        return assets
+
+    @computed_field
+    @property
+    def sources(self) -> list[Source]:
+        return filter_sources(sources_library=self.assets.sources_library, source_keys=self.info_source_keys)
+
+    @computed_field
+    @property
+    def demo_params_as_dict(self) -> dict[str, Any]:
+        return self.demo_input_parameters.model_dump(mode='json')
+
+    @model_validator(mode='after')
+    def validate(self):
+        """This validator asserts that validations happen early"""
+        assert self.version
+        assert self.repository
+        assert self.demo_aoi.geojson
+        assert self.assets
+        assert isinstance(self.sources, list)
+        assert self.demo_params_as_dict
+
+
+class PluginInfoEnriched(_PluginBaseInfo):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(description='A cleaned plugin name.', examples=['the_plugin_001'])
+    version: Annotated[
+        Version,
+        PydanticSemver,
+        Field(
+            description='The plugin version.',
+            examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
+        ),
+    ]
+    repository: HttpUrl = Field(
+        description='The link to the source code of the plugin.',
+        examples=[HttpUrl('https://gitlab.heigit.org/climate-action/net_zero')],
     )
     purpose: str = Field(
         description='What will this plugin accomplish?',
@@ -213,14 +333,6 @@ class PluginInfo(PluginBaseInfo):
         ],
         default=list(),
     )
-    demo_config: DemoConfig = Field(description='Configuration to run a demonstration of a plugin.')
-    computation_shelf_life: Optional[timedelta] = Field(
-        description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
-        'of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of 0 means '
-        'no caching while None means indefinite caching.',
-        examples=[timedelta(weeks=4)],
-        default=timedelta(0),
-    )
     assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.png')])
     operator_schema: JsonSchemaValue = Field(
         description='The schematic description of the parameters necessary to initiate a computation using '
@@ -244,6 +356,27 @@ class PluginInfo(PluginBaseInfo):
         ],
         default=None,
     )
+    demo_config: DemoConfig = Field(
+        description='The configuration for the demo computation',
+        examples=[
+            DemoConfig(
+                name='Heidelberg Demo',
+                params={},
+                aoi=geojson_pydantic.MultiPolygon.create(
+                    coordinates=[
+                        [
+                            [
+                                [0.0, 0.0],
+                                [0.0, 1.0],
+                                [1.0, 1.0],
+                                [0.0, 0.0],
+                            ]
+                        ]
+                    ]
+                ),
+            )
+        ],
+    )
     library_version: Annotated[
         Version,
         PydanticSemver,
@@ -254,13 +387,12 @@ class PluginInfo(PluginBaseInfo):
         ),
     ]
 
-    @model_validator(mode='after')
-    def create_id(self) -> 'PluginInfo':
-        plugin_id = self.name.lower()
-        plugin_id = re.sub(r'[^a-zA-Z-\s]', '', plugin_id)
-        plugin_id = re.sub(r'\s', '_', plugin_id)
-        self.id = plugin_id
-        return self
+
+def extract_project_attribute_from_pyproject_toml(attribute: str) -> Optional[str]:
+    with open('pyproject.toml', 'rb') as pyproject_toml:
+        pyproject = tomllib.load(pyproject_toml)
+        value = pyproject.get('project', {}).get(attribute)
+        return value
 
 
 def _verify_icon(icon: Path) -> None:
@@ -285,7 +417,9 @@ def _convert_bib(sources: Optional[Path] = None) -> dict[str, dict[str, str]]:
         return bibtexparser.load(file).get_entry_dict()
 
 
-def filter_sources(sources_library: dict[str, Source], source_keys: set[str]) -> list[Source]:
+def filter_sources(sources_library: dict[str, Source], source_keys: Optional[set[str]]) -> list[Source]:
+    if source_keys is None:
+        return list(sources_library.values())
     sources_filtered = []
     for key in source_keys:
         if key in sources_library:
@@ -303,17 +437,17 @@ def generate_plugin_info(
     *,
     name: str,
     authors: List[PluginAuthor],
-    icon: Path,
-    version: Version,
     concerns: Set[Concern],
     teaser: str,
     purpose: Path,
     methodology: Path,
-    demo_config: DemoConfig,
+    icon: Path,
+    demo_input_parameters: BaseModel,
+    demo_aoi: CustomAOI = CustomAOI(name='Heidelberg Demo', path=DEMO_AOI_PATH),
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
     sources_library: Optional[Path] = None,
-    info_sources: Optional[set[str]] = None,
+    info_source_keys: Optional[set[str]] = None,
 ) -> PluginInfo:
     """Generate a plugin info object.
 
@@ -321,82 +455,41 @@ def generate_plugin_info(
     :param authors: The list of plugin contributors. The list should be limited to contributors that have invested a
       considerable amount of contributions to the plugin. The list should adhere to the research-paper order i.e. by
       amount of contributions, descending.
-    :param icon: The path to an image or icon that can be used to represent the plugin. Make sure the file is committed
-      to the repository and HeiGIT has all legal rights to it (without attribution!).
-    :param version: The plugin version. Make sure to adhere to [semantic versioning](https://semver.org/)!
     :param concerns: The domains or topics the plugin is tackling.
-    :param state: The current development state of the plugin using categories from https://github.com/GIScience/badges.
     :param teaser: A single sentence teaser for the plugins' functionality. The sentence must be between 20 and 150
       characters long, start with an upper case letter and end with a full stop.
     :param purpose: What will this plugin accomplish? Provide a text file that can have
       [markdown](https://www.markdownguide.org/) formatting.
     :param methodology: How does this plugin achieve its goal? Provide a text file that can have
       [markdown](https://www.markdownguide.org/) formatting.
+    :param icon: The path to an image or icon that can be used to represent the plugin. Make sure the file is committed
+      to the repository and HeiGIT has all legal rights to it (without attribution!).
+    :param demo_input_parameters: the input parameters for the plugin.
+    :param demo_aoi: A `CustomAOI` object defining the AOI name and file to use for the demo computation.
+    :param state: The current development state of the plugin using categories from https://github.com/GIScience/badges.
     :param computation_shelf_life: How long are computations valid (at most). Computations will be valid within a fixed
       time frame of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of
       0 means no caching while None means indefinite caching.
-    :param demo_config: A `DemoConfig` object defining the input parameters, AOI and AOI name for the demo computation.
-      The helper function `compose_demo_config` may be used to create this object with a default AOI.
     :param sources_library: A list of sources that were used in the process or are related. Self-citations are welcome and
       even preferred! Provide a [.bib](https://bibtex.eu/faq/how-do-i-create-a-bib-file-to-manage-my-bibtex-references/)
       file. You can extract such a file from most common bibliography management systems.
-    :param info_sources: A list of IDs to optionally subset the sources library to only include the base sources for the
+    :param info_source_keys: A list of IDs to optionally subset the sources library to only include the base sources for the
       plugin. Defaults to all sources.
     :return: A PluginInfo object that can be used to announce the plugin on the platform.
     """
-    sources_library = _convert_bib(sources_library)
-    # noinspection PyTypeChecker
-    # the type of the sources will be validated in the following line, until then they are just dicts
-    assets = Assets(icon=str(icon), sources_library=sources_library)
-
-    if info_sources is None:
-        info_sources = {}
-    subset_sources = filter_sources(sources_library=assets.sources_library, source_keys=info_sources)
-
-    with open('pyproject.toml', 'rb') as pyproject_toml:
-        pyproject = tomllib.load(pyproject_toml)
-        repository = pyproject.get('project', {}).get('repository')
-        if repository is None:
-            raise ValueError(
-                'Your pyproject.toml does not contain a repository url or is not adhering to the latest pyproject.toml format: https://python-poetry.org/docs/pyproject/'
-            )
 
     return PluginInfo(
         name=name,
         authors=authors,
-        repository=repository,
-        version=version,
-        concerns=concerns,
         state=state,
+        concerns=concerns,
         teaser=teaser,
-        purpose=purpose.read_text(),
-        methodology=methodology.read_text(),
-        sources=subset_sources,
-        assets=assets,
-        demo_config=demo_config,
         computation_shelf_life=computation_shelf_life,
+        purpose=purpose,
+        methodology=methodology,
+        icon=icon,
+        sources_library=sources_library,
+        info_source_keys=info_source_keys,
+        demo_input_parameters=demo_input_parameters,
+        demo_aoi=demo_aoi,
     )
-
-
-def compose_demo_config(input_parameters: BaseModel, aoi_path: Path = None, aoi_name: str = None) -> DemoConfig:
-    """
-    Compose the demo config object from the provided components.
-
-    :param input_parameters: the input parameters for the plugin
-    :param aoi_path: A path to the file containing the geojson geometry for the area of interest for the demo
-    computation. It could be an administrative boundary or an arbitrary geometry. The default is the municipality of
-    Heidelberg, but make sure to provide another region if this is not suitable for your plugin. The computation will
-    only be done once (and then cached) so the size of the area may not be the biggest concern as long as it can be
-    computed within ~30min.
-    :param aoi_name: a string for the display name of the demo computation
-    """
-    if not aoi_path:
-        aoi_path = DEMO_AOI_PATH
-        assert aoi_name is None, 'You provided an `aoi_name` but no `aoi_path`, provide both or none.'
-        aoi_name = 'Heidelberg Demo'
-
-    if aoi_path and not aoi_name:
-        raise ValueError('You provided `aoi_path` but no `name`. Please include a `name` for the demo AOI')
-
-    demo_aoi = geojson_pydantic.MultiPolygon(**json.loads(aoi_path.read_text()))
-    return DemoConfig(aoi=demo_aoi, params=input_parameters.model_dump(), name=aoi_name)

@@ -25,7 +25,6 @@ from shapely import set_srid
 from sqlalchemy import String, cast, create_engine, insert, text, update
 from sqlalchemy.orm import Session
 
-import climatoology
 from climatoology.app.plugin import _create_plugin
 from climatoology.app.settings import CABaseSettings
 from climatoology.app.tasks import CAPlatformComputeTask
@@ -38,16 +37,20 @@ from climatoology.base.artifact import (
 )
 from climatoology.base.artifact_creators import create_markdown_artifact
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import AoiProperties, ComputationInfo, ComputationResources, ComputationScope
+from climatoology.base.computation import (
+    AoiProperties,
+    ComputationInfo,
+    ComputationPluginInfo,
+    ComputationResources,
+    ComputationScope,
+)
 from climatoology.base.event import ComputationState
 from climatoology.base.plugin_info import (
     Concern,
     MiscSource,
     PluginAuthor,
-    PluginBaseInfo,
     PluginInfo,
-    compose_demo_config,
-    generate_plugin_info,
+    PluginInfoEnriched,
 )
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.base import ClimatoologyTableBase
@@ -110,8 +113,8 @@ def default_plugin_key() -> str:
 
 
 @pytest.fixture
-def default_plugin_info() -> PluginInfo:
-    info = generate_plugin_info(
+def default_plugin_info(default_input_model) -> PluginInfo:
+    info = PluginInfo(
         name='Test Plugin',
         authors=[
             PluginAuthor(
@@ -121,55 +124,25 @@ def default_plugin_info() -> PluginInfo:
             )
         ],
         icon=Path(__file__).parent / 'resources/test_icon.png',
-        version=Version(3, 1, 0),
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
         purpose=Path(__file__).parent / 'resources/test_purpose.md',
         methodology=Path(__file__).parent / 'resources/test_methodology.md',
         sources_library=Path(__file__).parent / 'resources/test.bib',
-        info_sources={
-            'test2023',
-            'CitekeyInbook',
-            'CitekeyInproceedings',
-            'CitekeyMisc',
-        },  # TODO: this is an optional field and should be seperated to also make sure the filtering works (do when refactoring info stages, see other todo)
         computation_shelf_life=timedelta(days=1),
-        demo_config=compose_demo_config(input_parameters=TestModel(id=1, name='John Doe', execution_time=0.0)),
+        demo_input_parameters=default_input_model,
     )
+    info.version = Version(3, 1, 0)
     return info
 
 
 @pytest.fixture
-def default_plugin_info_enriched(default_plugin_info) -> PluginInfo:
-    default_info_enriched = default_plugin_info.model_copy(deep=True)
-    default_info_enriched.library_version = climatoology.__version__
-    default_info_enriched.operator_schema = {
-        'properties': {
-            'id': {'description': 'A required integer parameter.', 'examples': [1], 'title': 'ID', 'type': 'integer'},
-            'name': {
-                'default': 'John Doe',
-                'description': 'An optional name parameter.',
-                'examples': ['John Doe'],
-                'title': 'Name',
-                'type': 'string',
-            },
-            'execution_time': {
-                'default': 0.0,
-                'description': 'The time for the compute to run (in seconds)',
-                'examples': [10.0],
-                'title': 'Execution time',
-                'type': 'number',
-            },
-        },
-        'required': ['id'],
-        'title': 'TestModel',
-        'type': 'object',
-    }
-    return default_info_enriched
+def default_plugin_info_enriched(default_operator) -> PluginInfoEnriched:
+    return default_operator.info_enriched
 
 
 @pytest.fixture
-def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfo:
+def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoEnriched:
     default_info_final = default_plugin_info_enriched.model_copy(deep=True)
     default_info_final.assets.icon = 'assets/test_plugin/latest/ICON.png'
     return default_info_final
@@ -375,7 +348,7 @@ def default_computation_info(
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact_enriched],
-        plugin_info=PluginBaseInfo(id=default_plugin_info.id, version=default_plugin_info.version),
+        plugin_info=ComputationPluginInfo(id=default_plugin_info.id, version=default_plugin_info.version),
     )
 
 

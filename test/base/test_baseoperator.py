@@ -38,9 +38,11 @@ def test_operator_scope():
 
 
 def test_operator_info_enrichment_does_not_change_given_input(default_plugin_info):
+    input_plugin_info = default_plugin_info.model_copy(deep=True)
+
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> PluginInfo:
-            return default_plugin_info.model_copy()
+            return input_plugin_info.model_copy()
 
         def compute(
             self,
@@ -53,10 +55,9 @@ def test_operator_info_enrichment_does_not_change_given_input(default_plugin_inf
 
     operator = TestOperator()
 
-    expected_info = default_plugin_info.model_dump(exclude={'library_version', 'operator_schema'})
-    computed_info = operator.info_enriched.model_dump(exclude={'library_version', 'operator_schema'})
+    _ = operator.info_enriched
 
-    assert computed_info == expected_info
+    assert default_plugin_info == input_plugin_info
 
 
 @patch('climatoology.__version__', Version(1, 0, 0))
@@ -66,7 +67,9 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_plugin
 
     class TestOperator(BaseOperator[MinimalTestModel]):
         def info(self) -> PluginInfo:
-            return default_plugin_info.model_copy()
+            info = default_plugin_info.model_copy()
+            info.demo_input_parameters = MinimalTestModel(test='test')
+            return info
 
         def compute(
             self,
@@ -234,6 +237,7 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
     default_aoi_geom_shapely,
     default_aoi_properties,
     general_uuid,
+    default_input_model,
 ):
     def good_fn():
         return default_artifact
@@ -260,16 +264,14 @@ def test_operator_create_artifact_safely_with_only_good_artifact(
         resources=input_resources,
         aoi=default_aoi_geom_shapely,
         aoi_properties=default_aoi_properties,
-        params=TestModel(id=1),
+        params=default_input_model,
     )
     assert computed_artifacts == [default_artifact_enriched]
     assert input_resources.artifact_errors == {}
 
 
 def test_operator_create_artifact_safely_with_only_bad_artifact(
-    default_plugin_info,
-    default_aoi_geom_shapely,
-    default_aoi_properties,
+    default_plugin_info, default_aoi_geom_shapely, default_aoi_properties, default_input_model
 ):
     def bad_fn():
         raise ValueError('Artifact computation failed')
@@ -309,7 +311,7 @@ def test_operator_create_artifact_safely_with_only_bad_artifact(
             resources=input_resources,
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params=TestModel(id=1),
+            params=default_input_model,
         )
 
 
@@ -321,6 +323,7 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
     default_aoi_properties,
     caplog,
     general_uuid,
+    default_input_model,
 ):
     def bad_fn():
         raise ValueError('Test artifact computation failed')
@@ -367,7 +370,7 @@ def test_operator_create_artifact_safely_with_good_and_bad_artifacts(
             resources=input_resources,
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params=TestModel(id=1),
+            params=default_input_model,
         )
 
     assert computed_artifacts == [default_artifact_enriched]
