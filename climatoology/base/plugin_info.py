@@ -25,7 +25,6 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
 
-import climatoology
 from climatoology.base import PydanticSemver
 from climatoology.base.logging import get_climatoology_logger
 
@@ -242,7 +241,7 @@ class PluginInfo(_PluginBaseInfo):
     @computed_field
     @cached_property
     def version(self) -> PydanticSemver:
-        version = extract_project_attribute_from_pyproject_toml(attribute='version')
+        version = extract_attribute_from_pyproject_toml(attribute_tree=['project', 'version'])
         try:
             return PydanticSemver.parse(version)
         except (TypeError, ValueError) as e:
@@ -254,7 +253,7 @@ class PluginInfo(_PluginBaseInfo):
     @computed_field
     @cached_property
     def repository(self) -> HttpUrl:
-        repository = extract_project_attribute_from_pyproject_toml(attribute='repository')
+        repository = extract_attribute_from_pyproject_toml(attribute_tree=['project', 'urls', 'repository'])
         try:
             return HttpUrl(repository)
         except ValidationError as e:
@@ -331,7 +330,6 @@ class PluginInfoEnriched(_PluginBaseInfo):
                 )
             ]
         ],
-        default=list(),
     )
     assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.png')])
     operator_schema: JsonSchemaValue = Field(
@@ -354,7 +352,6 @@ class PluginInfoEnriched(_PluginBaseInfo):
                 }
             }
         ],
-        default=None,
     )
     demo_config: DemoConfig = Field(
         description='The configuration for the demo computation',
@@ -382,17 +379,20 @@ class PluginInfoEnriched(_PluginBaseInfo):
         PydanticSemver,
         Field(
             description='The climatoology library version, the plugin is using.',
-            default=climatoology.__version__,
             examples=[str(Version(1, 2, 3))],  # https://github.com/pydantic/pydantic/issues/12280
         ),
     ]
 
 
-def extract_project_attribute_from_pyproject_toml(attribute: str) -> Optional[str]:
+def extract_attribute_from_pyproject_toml(attribute_tree: list[str]) -> Optional[str]:
     with open('pyproject.toml', 'rb') as pyproject_toml:
         pyproject = tomllib.load(pyproject_toml)
-        value = pyproject.get('project', {}).get(attribute)
-        return value
+        curr_subtree = pyproject
+        for key in attribute_tree:
+            curr_subtree = curr_subtree.get(key)
+            if curr_subtree is None:
+                return None
+        return curr_subtree
 
 
 def _verify_icon(icon: Path) -> None:

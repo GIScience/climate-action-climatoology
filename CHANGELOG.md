@@ -25,6 +25,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - vector layer files now contain a unique 'index'
   attribute ([#236](https://gitlab.heigit.org/climate-action/climatoology/-/issues/236))
+- repository url was read from a deprecated
+  location ([#255](https://gitlab.heigit.org/climate-action/climatoology/-/issues/255))
 
 ### Removed
 
