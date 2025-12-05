@@ -104,9 +104,9 @@ type Source = Union[ArticleSource, IncollectionSource, MiscSource]
 
 
 class Assets(BaseModel):
-    """Static data linked to the plugin that should be stored in the object store."""
+    """Static data linked to the plugin that may be used by the operator."""
 
-    icon: str = Field(description='The icon asset', examples=['icon.png'])
+    icon: FilePath = Field(description='The icon file', examples=[Path('icon.png')])
     sources_library: dict[str, Source] = Field(
         description='The sources available in this plugin',
         examples=[
@@ -123,6 +123,12 @@ class Assets(BaseModel):
         ],
         default=dict(),
     )
+
+
+class AssetsFinal(BaseModel):
+    """Static data linked to the plugin that should be stored in the object store."""
+
+    icon: str = Field(description='The icon asset', examples=['icon.png'])
 
 
 class CustomAOI(BaseModel):
@@ -245,7 +251,7 @@ class PluginInfo(_PluginBaseInfo):
         try:
             return PydanticSemver.parse(version)
         except (TypeError, ValueError) as e:
-            raise ValidationError(
+            raise ValueError(
                 'Your pyproject.toml does not contain a version or is not adhering to the latest pyproject.toml '
                 'format: https://python-poetry.org/docs/pyproject/'
             ) from e
@@ -257,7 +263,7 @@ class PluginInfo(_PluginBaseInfo):
         try:
             return HttpUrl(repository)
         except ValidationError as e:
-            raise ValidationError(
+            raise ValueError(
                 'Your pyproject.toml does not contain a repository url or is not adhering to the latest pyproject.toml '
                 'format: https://python-poetry.org/docs/pyproject/'
             ) from e
@@ -268,7 +274,7 @@ class PluginInfo(_PluginBaseInfo):
         # The conversion and validation from a dict to the Source type will happen on Asset instantiation
         # noinspection PyTypeChecker
         sources_library: dict[str, Source] = _convert_bib(self.sources_library)
-        assets = Assets(sources_library=sources_library, icon=str(self.icon))
+        assets = Assets(sources_library=sources_library, icon=self.icon)
         return assets
 
     @computed_field
@@ -284,12 +290,12 @@ class PluginInfo(_PluginBaseInfo):
     @model_validator(mode='after')
     def validate(self):
         """This validator asserts that validations happen early"""
-        assert self.version
-        assert self.repository
-        assert self.demo_aoi.geojson
-        assert self.assets
-        assert isinstance(self.sources, list)
-        assert self.demo_params_as_dict
+        assert self.version, "there is an issue with the plugin's version number"
+        assert self.repository, 'the repository URL could not be found'
+        assert self.demo_aoi.geojson, "the geojson for the demo AOI couldn't be loaded"
+        assert self.assets, "assets weren't created correctly"
+        assert isinstance(self.sources, list), 'there was a problem generating the source list for the plugin'
+        assert isinstance(self.demo_params_as_dict, dict), "the demo input parameters couldn't be loaded"
 
 
 class PluginInfoEnriched(_PluginBaseInfo):
@@ -331,7 +337,7 @@ class PluginInfoEnriched(_PluginBaseInfo):
             ]
         ],
     )
-    assets: Assets = Field(description='Static assets', examples=[Assets(icon='icon.png')])
+    assets: Assets = Field(description='Static assets')
     operator_schema: JsonSchemaValue = Field(
         description='The schematic description of the parameters necessary to initiate a computation using '
         '[JSONSchema](https://json-schema.org/).',
@@ -382,6 +388,10 @@ class PluginInfoEnriched(_PluginBaseInfo):
             examples=[str(Version(1, 2, 3))],  # https://github.com/pydantic/pydantic/issues/12280
         ),
     ]
+
+
+class PluginInfoFinal(PluginInfoEnriched):
+    assets: AssetsFinal = Field(description='Static assets', examples=[AssetsFinal(icon='icon.png')])
 
 
 def extract_attribute_from_pyproject_toml(attribute_tree: list[str]) -> Optional[str]:

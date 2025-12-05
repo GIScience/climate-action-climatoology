@@ -10,7 +10,7 @@ from minio import Minio, S3Error
 
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import Assets, _convert_icon_to_thumbnail
+from climatoology.base.plugin_info import Assets, AssetsFinal, _convert_icon_to_thumbnail
 
 log = get_climatoology_logger(__name__)
 
@@ -76,7 +76,7 @@ class Storage(ABC):
         pass
 
     @abstractmethod
-    def write_assets(self, plugin_id: str, assets: Assets) -> Assets:
+    def write_assets(self, plugin_id: str, assets: Assets) -> AssetsFinal:
         """Write the assets to the object store.
 
         Note that existing assets will be overwritten but deprecated ones will not be deleted.
@@ -211,18 +211,18 @@ class MinioStorage(Storage):
             raise e
         return url
 
-    def write_assets(self, plugin_id: str, assets: Assets) -> Assets:
+    def write_assets(self, plugin_id: str, assets: Assets) -> AssetsFinal:
         icon_filename = self._synch_icon(icon_path=assets.icon, plugin_id=plugin_id)
 
-        new_assets = Assets(icon=icon_filename)
+        new_assets = AssetsFinal(icon=icon_filename)
 
         return new_assets
 
-    def _synch_icon(self, icon_path: str, plugin_id: str) -> str:
+    def _synch_icon(self, icon_path: Path, plugin_id: str) -> str:
         object_name = Storage.generate_asset_object_name(
             plugin_id=plugin_id, plugin_version='latest', asset_type=AssetType.ICON
         )
-        binary_icon = _convert_icon_to_thumbnail(Path(icon_path))
+        binary_icon = _convert_icon_to_thumbnail(icon_path)
         self.client.put_object(
             bucket_name=self.__bucket,
             object_name=object_name,

@@ -10,7 +10,7 @@ from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSetti
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import PluginInfoEnriched
+from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.info import PluginInfoTable
 from climatoology.store.object_store import MinioStorage, Storage
@@ -123,9 +123,11 @@ def _version_is_compatible(info: PluginInfoEnriched, db: BackendDatabase, celery
     return True
 
 
-def synch_info(info: PluginInfoEnriched, db: BackendDatabase, storage: Storage) -> PluginInfoEnriched:
-    info.assets = storage.write_assets(plugin_id=info.id, assets=info.assets)
+def synch_info(info: PluginInfoEnriched, db: BackendDatabase, storage: Storage) -> PluginInfoFinal:
+    final_assets = storage.write_assets(plugin_id=info.id, assets=info.assets)
 
-    _ = db.write_info(info=info)
+    final_info = PluginInfoFinal(**info.model_dump(exclude={'assets'}), assets=final_assets)
 
-    return info
+    _ = db.write_info(info=final_info)
+
+    return final_info

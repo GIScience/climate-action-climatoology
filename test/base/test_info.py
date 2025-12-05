@@ -12,7 +12,7 @@ from climatoology.base.plugin_info import (
     MiscSource,
     PluginAuthor,
     PluginInfo,
-    PluginInfoEnriched,
+    PluginInfoFinal,
     PluginState,
     filter_sources,
     generate_plugin_info,
@@ -67,7 +67,7 @@ def test_info_serialisable(default_plugin_info_final):
 def test_info_deserialisable(default_plugin_info_final):
     """This test asserts that the plugin info can be sent as a json object via celery"""
     serialised_info = default_plugin_info_final.model_dump(mode='json')
-    info = PluginInfoEnriched(**serialised_info)
+    info = PluginInfoFinal(**serialised_info)
     assert info == default_plugin_info_final
 
 
