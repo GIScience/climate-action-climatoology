@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Generator, List, Set
 from unittest.mock import Mock, patch
 
-import geojson_pydantic
 import pytest
 import responses
 import shapely
@@ -38,6 +37,7 @@ from climatoology.base.artifact import (
 from climatoology.base.artifact_creators import create_markdown_artifact
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import (
+    AoiFeatureModel,
     AoiProperties,
     ComputationInfo,
     ComputationPluginInfo,
@@ -278,8 +278,8 @@ def default_aoi_geom_shapely() -> shapely.MultiPolygon:
 @pytest.fixture
 def default_aoi_feature_geojson_pydantic(
     default_aoi_properties,
-) -> geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]:
-    return geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+) -> AoiFeatureModel:
+    return AoiFeatureModel(
         **{
             'type': 'Feature',
             'properties': default_aoi_properties.model_dump(mode='json'),
@@ -319,7 +319,7 @@ def default_computation_resources(general_uuid) -> Generator[ComputationResource
 @pytest.fixture
 def mocked_utility_response():
     with responses.RequestsMock() as rsps:
-        rsps.get('http://localhost:80/health', json=HealthCheck().model_dump())
+        rsps.get('http://localhost/health', json=HealthCheck().model_dump())
         yield rsps
 
 

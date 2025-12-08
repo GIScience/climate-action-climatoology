@@ -1,3 +1,6 @@
+from typing import ClassVar
+
+from sqlalchemy import Selectable, Table
 from sqlalchemy.orm import DeclarativeBase
 
 CLIMATOOLOGY_SCHEMA_NAME = 'ca_base'
@@ -9,4 +12,6 @@ class ClimatoologyTableBase(DeclarativeBase):
 
 
 class ClimatoologyViewBase(DeclarativeBase):
+    select_statement: ClassVar[Selectable]
+    __table__: ClassVar[Table]
     pass

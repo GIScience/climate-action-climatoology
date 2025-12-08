@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-import geojson_pydantic
 import shapely
 from celery import Task
 from celery.signals import task_revoked
@@ -12,7 +11,7 @@ from shapely import set_srid
 
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import AoiProperties, ComputationInfo, ComputationScope
+from climatoology.base.computation import AoiFeatureModel, ComputationInfo, ComputationScope
 from climatoology.base.exception import InputValidationError
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.store.database.database import BackendDatabase
@@ -70,7 +69,7 @@ class CAPlatformComputeTask(Task):
             self.update_state(task_id=str(correlation_uuid), state='STARTED')
             log.debug('Acquired compute request')
 
-            aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)
+            aoi = AoiFeatureModel(**aoi)
 
             # through difficult typing above we know it's a MultiPolygon but the type checker cannot know
             # noinspection PyTypeChecker

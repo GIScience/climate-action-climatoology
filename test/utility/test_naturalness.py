@@ -58,14 +58,14 @@ def test_naturalness_connection_issues(mocked_utility_response):
 
     mocked_utility_response.return_value = response
 
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     with pytest.raises(PlatformUtilityError):
         with operator.compute_raster(index='NDVI', units=[NATURALNESS_UNIT]):
             pass
 
 
 def test_compute_raster_with_invalid_inputs(mocked_utility_response):
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     with pytest.raises(AssertionError):
         with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[]):
             pass
@@ -73,9 +73,9 @@ def test_compute_raster_with_invalid_inputs(mocked_utility_response):
 
 def test_compute_raster_single_unit(mocked_utility_response):
     with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post('http://localhost:80/NDVI/raster', body=raster.read())
+        mocked_utility_response.post('http://localhost/NDVI/raster', body=raster.read())
 
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
 
     with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT]) as raster:
         assert raster.shape == (221, 42)
@@ -94,7 +94,7 @@ def test_compute_vector_single_unit(mocked_utility_response, default_zonal_vecto
         crs=CRS.from_epsg(4326),
     )
     mocked_utility_response.post(
-        'http://localhost:80/NDVI/vector',
+        'http://localhost/NDVI/vector',
         json=default_zonal_vector_response,
         match=[
             matchers.json_params_matcher(
@@ -138,7 +138,7 @@ def test_compute_vector_single_unit(mocked_utility_response, default_zonal_vecto
         ],
     )
 
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     agg_stats = ['mean']
 
     time_range = TimeRange(end_date=date(2023, 6, 1))
@@ -194,9 +194,9 @@ def test_compute_vector_retain_index_dtype(index_dtype, mocked_utility_response)
             },
         ],
     }
-    mocked_utility_response.post('http://localhost:80/NDVI/vector', json=vector_response)
+    mocked_utility_response.post('http://localhost/NDVI/vector', json=vector_response)
 
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     agg_stats = ['mean']
 
     time_range = TimeRange(end_date=date(2023, 6, 1))
@@ -257,10 +257,10 @@ def test_compute_vector_multi_unit(mocked_utility_response):
             ],
         },
     ]
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[0])
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[1])
+    mocked_utility_response.add(method='POST', url='http://localhost/NDVI/vector', json=vector_response[0])
+    mocked_utility_response.add(method='POST', url='http://localhost/NDVI/vector', json=vector_response[1])
 
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     agg_stats = ['mean']
 
     time_range = TimeRange(end_date=date(2023, 6, 1))
@@ -322,10 +322,10 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
             ],
         },
     ]
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[0])
-    mocked_utility_response.add(method='POST', url='http://localhost:80/NDVI/vector', json=vector_response[1])
+    mocked_utility_response.add(method='POST', url='http://localhost/NDVI/vector', json=vector_response[0])
+    mocked_utility_response.add(method='POST', url='http://localhost/NDVI/vector', json=vector_response[1])
 
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     agg_stats = ['mean']
 
     time_range = TimeRange(end_date=date(2023, 6, 1))
@@ -340,7 +340,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
         resolution=10,
     )
 
-    mocked_utility_response.assert_call_count(url='http://localhost:80/NDVI/vector', count=2)
+    mocked_utility_response.assert_call_count(url='http://localhost/NDVI/vector', count=2)
 
     expected_output = gpd.GeoDataFrame(
         index=['first', 'second'],
@@ -357,7 +357,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
 @pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 4], [100, 9]])
 def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, mocked_utility_response, caplog):
     # (h, w) of default vectors = (221, 223)
-    operator = NaturalnessUtility(host='localhost', port=80, path='/')
+    operator = NaturalnessUtility(base_url='http://localhost')
     vectors = gpd.GeoSeries(
         data=[
             Polygon([[0, 0], [0.01, 0], [0.01, 0.01], [0, 0.01], [0, 0]]),

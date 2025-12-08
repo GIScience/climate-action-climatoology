@@ -179,27 +179,24 @@ class LulcWorkUnit(BaseModel):
 class LulcUtility(PlatformHttpUtility):
     def __init__(
         self,
-        host: str,
-        port: int,
-        path: str,
+        base_url: str,
         max_workers: int = 2,
         max_retries: int = 5,
     ):
         """A wrapper class around the LULC Utility API.
 
-        :param host: api host
-        :param port: api port
-        :param path: api path
+        :param base_url: The base URL of the LULC API, including any path it may be deployed under
+            (e.g. https://staging.climate-action.org/api/v1/lulc).
         :param max_workers: maximum number of threads to spawn for parallel requests
         :param max_retries: number of retires before giving up during connection startup
         """
-        super().__init__(host, port, path, max_retries)
+        super().__init__(base_url=base_url, max_retries=max_retries)
 
         self.max_workers = max_workers
 
     def __fetch_data(self, unit: LulcWorkUnit) -> rio.DatasetReader:
         try:
-            url = f'{self.base_url}segment/'
+            url = f'{self.base_url}/segment/'
             log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')
             response = self.session.post(url=url, json=unit.model_dump(mode='json'))
             response.raise_for_status()
@@ -231,7 +228,7 @@ class LulcUtility(PlatformHttpUtility):
             yield lulc
 
     def get_class_legend(self) -> LabelResponse:
-        url = f'{self.base_url}segment/describe'
+        url = f'{self.base_url}/segment/describe'
         response = self.session.get(url=url)
         response.raise_for_status()
         return LabelResponse(**response.json())

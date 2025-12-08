@@ -6,22 +6,20 @@ from typing import List, Optional
 from uuid import UUID
 
 import geoalchemy2
-import geojson_pydantic
 from alembic.command import check
 from alembic.config import Config
 from alembic.util.exc import CommandError
 from semver import Version
 from sqlalchemy import NullPool, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import DeclarativeBase, Session, joinedload
 
 from climatoology.base.artifact import ArtifactEnriched
-from climatoology.base.computation import AoiProperties, ComputationInfo, ComputationPluginInfo
+from climatoology.base.computation import AoiFeatureModel, ComputationInfo, ComputationPluginInfo
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import PluginAuthor, PluginInfoFinal
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
-from climatoology.store.database.models.base import ClimatoologyTableBase
 from climatoology.store.database.models.computation import (
     COMPUTATION_DEDUPLICATION_CONSTRAINT,
     ComputationLookupTable,
@@ -80,7 +78,8 @@ class BackendDatabase:
         self._update_info_author_relation_table(info_key=info_key, authors=info.authors, session=session)
         return info_key
 
-    def _upload_info(self, info: PluginInfoFinal, session: Session) -> str:
+    @staticmethod
+    def _upload_info(info: PluginInfoFinal, session: Session) -> str:
         info_update_stmt = (
             update(PluginInfoTable).where(PluginInfoTable.id == info.id, PluginInfoTable.latest).values(latest=False)
         )
@@ -97,12 +96,14 @@ class BackendDatabase:
         info_key = insert_return.scalar_one()
         return info_key
 
-    def _upload_authors(self, authors: list[PluginAuthor], session: Session) -> None:
+    @staticmethod
+    def _upload_authors(authors: list[PluginAuthor], session: Session) -> None:
         authors = [author.model_dump(mode='json') for author in authors]
         author_insert_stmt = insert(PluginAuthorTable).values(authors).on_conflict_do_nothing()
         session.execute(author_insert_stmt)
 
-    def _update_info_author_relation_table(self, info_key: str, authors: list[PluginAuthor], session: Session) -> None:
+    @staticmethod
+    def _update_info_author_relation_table(info_key: str, authors: list[PluginAuthor], session: Session) -> None:
         # In development, where the same version may be written again and an update may be preferred:
         # - we delete old author-info-links for the current info_key to ensure the author seats are created correctly
         # - authors will be accumulated IF they EVER change during a development cycle
@@ -149,7 +150,7 @@ class BackendDatabase:
         self,
         correlation_uuid: UUID,
         requested_params: dict,
-        aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties],
+        aoi: AoiFeatureModel,
         plugin_key: str,
         computation_shelf_life: Optional[timedelta],
     ) -> UUID:
@@ -214,7 +215,7 @@ class BackendDatabase:
             if result:
                 computation_info = result.computation
                 computation_info.request_ts = result.request_ts
-                computation_info.aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+                computation_info.aoi = AoiFeatureModel(
                     **{
                         'type': 'Feature',
                         'properties': {'name': result.aoi_name, 'id': result.aoi_id} | result.aoi_properties,
@@ -291,7 +292,7 @@ class BackendDatabase:
             session.commit()
 
 
-def row_to_dict(row: ClimatoologyTableBase) -> dict:
+def row_to_dict(row: DeclarativeBase) -> dict:
     result = dict(row.__dict__)
     result.pop('_sa_instance_state', None)
     return result

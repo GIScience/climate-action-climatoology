@@ -63,17 +63,18 @@ class HealthCheck(BaseModel):
 class PlatformHttpUtility(ABC):
     def __init__(
         self,
-        host: str,
-        port: int,
-        path: str,
+        base_url: str,
         max_retries: int = 5,
     ):
-        assert path[0] == path[-1] == '/', 'The path must start and end with a /'
-        self.base_url = f'http://{host}:{port}{path}'
+        assert base_url[-1] != '/', 'The base_url must not end with a /'
+        self.base_url = base_url
 
         retries = Retry(total=max_retries, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
 
         self.session = requests.Session()
+
+        # We have to mount http:// to overwrite the default adapters
+        # noinspection HttpUrlsUsage
         self.session.mount('http://', HTTPAdapter(max_retries=retries))
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
@@ -81,7 +82,7 @@ class PlatformHttpUtility(ABC):
 
     def health(self) -> bool:
         try:
-            url = f'{self.base_url}health'
+            url = f'{self.base_url}/health'
             response = self.session.get(url=url)
             response.raise_for_status()
             assert response.json().get('status') == HealthCheck().status

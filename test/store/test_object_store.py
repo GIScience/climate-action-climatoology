@@ -72,7 +72,7 @@ def test_get_icon_url(mocked_object_store):
 )
 def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, expected_length):
     icon_path = Path(__file__).parent.parent / 'resources' / icon_filename
-    assets = Assets(icon=str(icon_path))
+    assets = Assets(icon=icon_path)
     with patch(
         'climatoology.store.object_store._convert_icon_to_thumbnail', side_effect=_convert_icon_to_thumbnail
     ) as mocked_thumbnail_call:
