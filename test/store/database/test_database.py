@@ -205,6 +205,8 @@ def test_register_computation_retains_aoi_properties_when_read(
     backend_with_computation_registered, default_plugin_key, default_aoi_feature_geojson_pydantic
 ):
     custom_aoi_feature = default_aoi_feature_geojson_pydantic.model_copy(deep=True)
+    # deliberately calling AoiProperties with extra arguments
+    # noinspection PyArgumentList
     custom_aoi_feature.properties = AoiProperties(name='test_aoi', id='test_aoi_id', foo='bar', hello='world')
 
     correlation_uuid = uuid.uuid4()

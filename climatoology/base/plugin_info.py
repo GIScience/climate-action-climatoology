@@ -176,9 +176,10 @@ class _PluginBaseInfo(BaseModel):
     """A dataclass containing the consistent attributes between the PluginInfo and PluginInfoEnriched"""
 
     name: str = Field(description='The full name of the plugin.', examples=['The Plugin'])
-    authors: conlist(item_type=PluginAuthor, min_length=1) = Field(
-        description='A list of plugin contributors.', examples=[[PluginAuthor(name='John Doe')]]
-    )
+    authors: Annotated[
+        conlist(item_type=PluginAuthor, min_length=1),
+        Field(description='A list of plugin contributors.', examples=[[PluginAuthor(name='John Doe')]]),
+    ]
     state: PluginState = Field(
         description='The current development state of the plugin using categories from https://github.com/GIScience/badges.',
         examples=[PluginState.ACTIVE],

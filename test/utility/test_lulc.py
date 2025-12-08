@@ -24,7 +24,7 @@ lulc_unit_b = LulcWorkUnit(
 
 
 def test_lulc_when_passing_zero_units(mocked_utility_response):
-    operator = LulcUtility(host='localhost', port=80, path='/')
+    operator = LulcUtility(base_url='http://localhost')
     with pytest.raises(AssertionError):
         with operator.compute_raster([]):
             pass
@@ -32,9 +32,9 @@ def test_lulc_when_passing_zero_units(mocked_utility_response):
 
 def test_lulc_when_passing_single_unit(mocked_utility_response):
     with open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster:
-        mocked_utility_response.post('http://localhost:80/segment/', body=raster.read())
+        mocked_utility_response.post('http://localhost/segment/', body=raster.read())
 
-    operator = LulcUtility(host='localhost', port=80, path='/')
+    operator = LulcUtility(base_url='http://localhost')
 
     with operator.compute_raster([lulc_unit_a]) as raster:
         assert raster.shape == (1304, 1336)
@@ -49,17 +49,17 @@ def test_lulc_when_passing_multiple_units(mocked_utility_response):
         open(f'{os.path.dirname(__file__)}/../resources/test_raster_b.tiff', 'rb') as raster_b,
     ):
         mocked_utility_response.post(
-            'http://localhost:80/segment/',
+            'http://localhost/segment/',
             match=[matchers.json_params_matcher(lulc_unit_a.model_dump(mode='json'))],
             body=raster_a.read(),
         )
         mocked_utility_response.post(
-            'http://localhost:80/segment/',
+            'http://localhost/segment/',
             match=[matchers.json_params_matcher(lulc_unit_b.model_dump(mode='json'))],
             body=raster_b.read(),
         )
 
-    operator = LulcUtility(host='localhost', port=80, path='/')
+    operator = LulcUtility(base_url='http://localhost')
 
     with operator.compute_raster([lulc_unit_a, lulc_unit_b]) as raster:
         assert raster.shape == (2605, 1336)
@@ -74,7 +74,7 @@ def test_lulc_when_encountering_connection_issues(mocked_utility_response):
 
     mocked_utility_response.return_value = response
 
-    operator = LulcUtility(host='localhost', port=80, path='/')
+    operator = LulcUtility(base_url='http://localhost')
     with pytest.raises(PlatformUtilityError):
         with operator.compute_raster([lulc_unit_a]):
             pass
@@ -82,7 +82,7 @@ def test_lulc_when_encountering_connection_issues(mocked_utility_response):
 
 def test_legend_retrieval(mocked_utility_response):
     mocked_utility_response.get(
-        'http://localhost:80/segment/describe',
+        'http://localhost/segment/describe',
         json={
             'osm': {
                 'class1': {
@@ -106,7 +106,7 @@ def test_legend_retrieval(mocked_utility_response):
             },
         },
     )
-    operator = LulcUtility(host='localhost', port=80, path='/')
+    operator = LulcUtility(base_url='http://localhost')
 
     expected_result = LabelResponse(
         osm={

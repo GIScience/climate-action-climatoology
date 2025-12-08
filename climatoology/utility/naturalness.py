@@ -73,21 +73,18 @@ class NaturalnessWorkUnit(BaseModel):
 class NaturalnessUtility(PlatformHttpUtility):
     def __init__(
         self,
-        host: str,
-        port: int,
-        path: str,
+        base_url: str,
         max_workers: int = 1,
         max_retries: int = 5,
     ):
         """A wrapper class around the Naturalness Utility API.
 
-        :param host: api host
-        :param port: api port
-        :param path: api path
+        :param base_url: The base URL of the Naturalness API, including any path it may be deployed under
+            (e.g. https://staging.climate-action.org/api/v1/naturalness).
         :param max_workers: maximum number of threads to spawn for parallel requests
         :param max_retries: number of retires before giving up during connection startup
         """
-        super().__init__(host, port, path, max_retries)
+        super().__init__(base_url=base_url, max_retries=max_retries)
 
         self.max_workers = max_workers
 
@@ -168,7 +165,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
     def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rasterio.DatasetReader:
         try:
-            url = f'{self.base_url}{index}/raster'
+            url = f'{self.base_url}/{index}/raster'
 
             log.debug(f'Requesting raster from Naturalness Utility at {url} for region {unit.model_dump()}')
             response = self.session.post(url=url, json=unit.model_dump(mode='json'))
@@ -189,7 +186,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         resolution: int,
     ) -> gpd.GeoDataFrame:
         try:
-            url = f'{self.base_url}{index}/vector'
+            url = f'{self.base_url}/{index}/vector'
             log.debug(f'Requesting zonal statistics from Naturalness Utility at {url}')
 
             request_json = {

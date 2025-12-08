@@ -105,9 +105,10 @@ def run_migrations_online() -> None:
 def include_object(
     object_under_review: SchemaItem, name: Optional[str], type_: str, reflected: bool, compare_to: Optional[SchemaItem]
 ) -> bool:
-    if type_ == 'table' and name in ['spatial_ref_sys'] and object_under_review.schema is None:
+    schema = getattr(object_under_review, 'schema', None)
+    if type_ == 'table' and name in ['spatial_ref_sys'] and schema is None:
         return False
-    if type_ == 'view' and object_under_review.schema == 'public':
+    if type_ == 'view' and schema == 'public':
         return False
     if type_ == 'grant_table':
         return False  # we decided to ignore table grants due to https://github.com/olirice/alembic_utils/issues/137

@@ -14,6 +14,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - Removed `compose_demo_config` in favour of providing a `demo_aoi` and `demo_input_parameters` separately to the
   `PluginInfo` object
 - `ComputationState`-Enum moved from `climatoology.base.event` to `climatoology.base.computation`
+- All utilities now require a `base_url` instead of its parts (`host`, `port`, `path`) separately. Easy transition can
+  be achieved by doing:
+  `base_url=f'https://{host}:{port}{path}'`. In addition, the path should be WITHOUT trailing `/` as of HeiGIT
+  convention.
 
 ### Added
 
@@ -21,7 +25,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   request ([#213](https://gitlab.heigit.org/climate-action/climatoology/-/issues/213))
 - Created `PluginInfoEnriched` and `PluginInfoFinal` classes to more strictly define the stages of info with their
   required fields and correct typing ([#225](https://gitlab.heigit.org/climate-action/climatoology/-/issues/225))
-  - Created `AssetsFinal` to enable correct asset typing for each plugin info stage
+    - Created `AssetsFinal` to enable correct asset typing for each plugin info stage
 
 ### Fix
 

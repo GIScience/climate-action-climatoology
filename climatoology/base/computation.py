@@ -54,6 +54,9 @@ class AoiProperties(BaseModel):
     )
 
 
+AoiFeatureModel = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
+
+
 class ComputationPluginInfo(BaseModel):
     """Basic information about what plugin the computation is from. This is separate from the other plugin info classes
     because it has different typing requirements and is customised for the computation info.
@@ -110,10 +113,10 @@ class ComputationInfo(BaseModel):
     requested_params: dict = Field(
         description='The raw parameters that were requested by the client', examples=[{'param_a': 1}]
     )
-    aoi: geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties] = Field(
+    aoi: AoiFeatureModel = Field(
         description='The target area of interest of the computation.',
         examples=[
-            geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](
+            AoiFeatureModel(
                 **{
                     'type': 'Feature',
                     'properties': {'name': 'test_aoi', 'id': 'test_aoi_id'},
