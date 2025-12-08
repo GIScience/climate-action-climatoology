@@ -8,7 +8,7 @@ from sqlalchemy import String, cast, insert, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import now as db_now
 
-from climatoology.base.event import ComputationState
+from climatoology.base.computation import ComputationState
 from climatoology.store.database.database import DEMO_PREFIX, row_to_dict
 from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.database.models.views import (

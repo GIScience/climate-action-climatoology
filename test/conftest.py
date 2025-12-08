@@ -43,8 +43,8 @@ from climatoology.base.computation import (
     ComputationPluginInfo,
     ComputationResources,
     ComputationScope,
+    ComputationState,
 )
-from climatoology.base.event import ComputationState
 from climatoology.base.plugin_info import (
     AssetsFinal,
     Concern,
@@ -363,7 +363,7 @@ def default_computation_task(
     )
     compute_task.update_state = Mock()
     request = Mock()
-    request.correlation_id = general_uuid
+    request.correlation_id = str(general_uuid)
     compute_task.request_stack = LocalStack()
     compute_task.request_stack.push(request)
     return compute_task

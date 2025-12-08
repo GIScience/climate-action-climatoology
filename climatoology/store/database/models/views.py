@@ -13,7 +13,7 @@ from sqlalchemy.sql.functions import now as db_now
 from sqlalchemy_utils import create_view
 from sqlalchemy_utils.view import CreateView
 
-from climatoology.base.event import ComputationState
+from climatoology.base.computation import ComputationState
 from climatoology.store.database.database import DEMO_PREFIX
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyViewBase

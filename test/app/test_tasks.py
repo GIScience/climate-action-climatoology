@@ -36,7 +36,7 @@ def test_computation_task_run(
     )
 
     assert computed_result == expected_computation_info
-    default_computation_task.update_state.assert_called_once_with(task_id=general_uuid, state='STARTED')
+    default_computation_task.update_state.assert_called_once_with(task_id=str(general_uuid), state='STARTED')
 
 
 def test_computation_task_run_must_return_results(
