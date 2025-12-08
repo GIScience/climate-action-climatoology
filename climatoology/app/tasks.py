@@ -59,7 +59,7 @@ class CAPlatformComputeTask(Task):
             return computation_info_store_id
 
     def run(self, *, aoi: dict, params: dict, **kwargs: Any) -> dict:
-        correlation_uuid: UUID = self.request.correlation_id  # Typing seems wrong
+        correlation_uuid = UUID(self.request.correlation_id)
 
         if kwargs:
             log.warning(
@@ -67,7 +67,7 @@ class CAPlatformComputeTask(Task):
             )
 
         try:
-            self.update_state(task_id=self.request.correlation_id, state='STARTED')
+            self.update_state(task_id=str(correlation_uuid), state='STARTED')
             log.debug('Acquired compute request')
 
             aoi = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties](**aoi)

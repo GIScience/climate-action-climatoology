@@ -13,6 +13,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   `ComputationPluginInfo` ([#225](https://gitlab.heigit.org/climate-action/climatoology/-/issues/225))
 - Removed `compose_demo_config` in favour of providing a `demo_aoi` and `demo_input_parameters` separately to the
   `PluginInfo` object
+- `ComputationState`-Enum moved from `climatoology.base.event` to `climatoology.base.computation`
 
 ### Added
 

@@ -45,7 +45,6 @@ def test_operator_info(default_plugin_info):
     assert default_plugin_info.id == 'test_plugin'
     assert default_plugin_info.version == Version(3, 1, 0)
     assert default_plugin_info.teaser == 'Test teaser that is meant to do nothing.'
-    # TODO: when implementing the info stages, this is optional so it might go to the extensive info
 
     assert default_plugin_info.assets.sources_library['CitekeyInbook'] == IncollectionSource(
         ENTRYTYPE='inbook',

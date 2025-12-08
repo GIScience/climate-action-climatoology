@@ -2,17 +2,18 @@ import shutil
 import tempfile
 import uuid
 from datetime import datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, List, Optional
 from uuid import UUID
 
 import geojson_pydantic
+from celery.states import FAILURE, PENDING, RETRY, REVOKED, STARTED, SUCCESS
 from pydantic import BaseModel, ConfigDict, Field
 from semver import Version
 
 from climatoology.base import PydanticSemver
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
-from climatoology.base.event import ComputationState
 
 
 class ComputationResources(BaseModel):
@@ -67,6 +68,20 @@ class ComputationPluginInfo(BaseModel):
             examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
         ),
     ]
+
+
+class ComputationState(StrEnum):
+    """Available stati of computations.
+
+    Based on the Celery states (https://docs.celeryq.dev/en/stable/userguide/tasks.html#built-in-states)
+    """
+
+    PENDING = PENDING
+    STARTED = STARTED
+    SUCCESS = SUCCESS
+    FAILURE = FAILURE
+    RETRY = RETRY
+    REVOKED = REVOKED
 
 
 class ComputationInfo(BaseModel):
