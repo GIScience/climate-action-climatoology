@@ -210,10 +210,10 @@ class Artifact(ArtifactMetadata):
     model_config = ConfigDict(from_attributes=True)
 
     modality: ArtifactModality = Field(description='The type of artefact created.', examples=[ArtifactModality.IMAGE])
-    attachments: Optional[Attachments] = Field(
+    attachments: Attachments = Field(
         description='Additional information or files that are linked to this artifact.',
         examples=[Attachments(legend=Legend(legend_data={'The red object': Color('red')}))],
-        default=None,
+        default=Attachments(),
     )
 
 
