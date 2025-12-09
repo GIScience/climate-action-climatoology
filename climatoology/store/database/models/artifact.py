@@ -27,5 +27,5 @@ class ArtifactTable(ClimatoologyTableBase):
     summary: Mapped[str]
     description: Mapped[Optional[str]]
     sources: Mapped[Optional[list[dict]]] = mapped_column(JSONB)
-    attachments: Mapped[Optional[Attachments]] = mapped_column(JSONB)
+    attachments: Mapped[Attachments] = mapped_column(JSONB)
     filename: Mapped[str]

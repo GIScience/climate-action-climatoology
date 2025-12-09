@@ -31,9 +31,32 @@ def upgrade() -> None:
     op.execute(sa.text('update ca_base.artifact set rank=-1 where rank is NULL'))
     op.alter_column('artifact', 'rank', existing_type=sa.Integer(), nullable=False, schema='ca_base')
 
+    op.execute(sa.text("update ca_base.artifact set attachments='{}'::jsonb where attachments is NULL"))
+    op.alter_column(
+        'artifact',
+        'attachments',
+        existing_type=postgresql.JSONB(astext_type=sa.Text()),
+        nullable=False,
+        schema='ca_base',
+    )
+
+    op.execute(sa.text("ALTER TYPE \"artifactmodality\" RENAME VALUE 'MAP_LAYER_GEOJSON' TO 'VECTOR_MAP_LAYER';"))
+    op.execute(sa.text("ALTER TYPE \"artifactmodality\" RENAME VALUE 'MAP_LAYER_GEOTIFF' TO 'RASTER_MAP_LAYER';"))
+
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.execute(sa.text("ALTER TYPE \"artifactmodality\" RENAME VALUE 'VECTOR_MAP_LAYER' TO  'MAP_LAYER_GEOJSON';"))
+    op.execute(sa.text("ALTER TYPE \"artifactmodality\" RENAME VALUE 'RASTER_MAP_LAYER' TO 'MAP_LAYER_GEOTIFF';"))
+
+    op.alter_column(
+        'artifact',
+        'attachments',
+        existing_type=postgresql.JSONB(astext_type=sa.Text()),
+        nullable=True,
+        schema='ca_base',
+    )
+
     op.alter_column('artifact', 'rank', existing_type=sa.Integer(), nullable=True, schema='ca_base')
     op.alter_column('artifact', 'tags', existing_type=postgresql.ARRAY(sa.VARCHAR()), nullable=True, schema='ca_base')
     op.add_column('artifact', sa.Column('file_path', sa.String(), nullable=True), schema='ca_base')
