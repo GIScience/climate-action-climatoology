@@ -3,4 +3,4 @@
 from semver import Version
 
 # version('climatoology')
-__version__: Version = Version.parse('7.0.0-rc1')
+__version__: Version = Version.parse('7.0.0-rc2')
