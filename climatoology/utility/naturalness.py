@@ -166,9 +166,11 @@ class NaturalnessUtility(PlatformHttpUtility):
     def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rasterio.DatasetReader:
         try:
             url = f'{self.base_url}/{index}/raster'
+            request_body = unit.model_dump(mode='json', exclude=['aoi'])
+            request_body['area_coords'] = unit.aoi.bounds
 
             log.debug(f'Requesting raster from Naturalness Utility at {url} for region {unit.model_dump()}')
-            response = self.session.post(url=url, json=unit.model_dump(mode='json'))
+            response = self.session.post(url=url, json=request_body)
             response.raise_for_status()
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityError('Connection to utility cannot be established') from e
