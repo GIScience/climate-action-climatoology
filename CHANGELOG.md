@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.0rc2...main)
 
+### Fix
+
+- utility requests now send bounding boxes (as expected by the utilities) instead of geometries, which was sent in
+  versions `7.0.0-rc1` and `7.0.0-rc2`
+
 ## [7.0.0rc2](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.0rc2...main)
 
 ### Changed
