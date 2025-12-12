@@ -101,8 +101,8 @@ ORDER BY
 SELECT
     ca_base.plugin_info.id as plugin_id,
     count(*) AS no_of_requested_computations,
-    cast(round(count(*) / cast((cast(now() as DATE) - cast(min(ca_base.computation_lookup.request_ts) as DATE)) as numeric), 2) as FLOAT) as avg_computations_per_day,
-    min(ca_base.computation_lookup.request_ts) AS since
+    CAST(round(count(*) / CAST(((CAST(now() AS DATE) - CAST(min(ca_base.computation_lookup.request_ts) AS DATE)) + 1) AS NUMERIC), 2) AS FLOAT) AS avg_computations_per_day,
+    CAST(min(ca_base.computation_lookup.request_ts) AS DATE) AS since
 FROM
     ca_base.plugin_info
 JOIN ca_base.computation ON

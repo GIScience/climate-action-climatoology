@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 
 from celery.backends.database import TaskExtended
 from geoalchemy2.shape import to_shape
+from pytz import UTC
 from semver import Version
 from sqlalchemy import String, cast, insert, select, update
 from sqlalchemy.orm import Session
@@ -207,8 +208,8 @@ def test_usage_view(
     expected_view = {
         'plugin_id': 'test_plugin',
         'no_of_requested_computations': 2,
-        'avg_computations_per_day': 0.0,
-        'since': datetime(2018, 1, 1, 12, 0),
+        'avg_computations_per_day': 0.0,  # 0 because 2 computations / "days in range 2018-today" is a very low number
+        'since': date(2018, 1, 1),
     }
 
     deduplicated_correlation_uuid = uuid.uuid4()
@@ -241,7 +242,7 @@ def test_usage_view_excludes_demo(
         'plugin_id': 'test_plugin',
         'no_of_requested_computations': 1,
         'avg_computations_per_day': 0.0,
-        'since': datetime(2018, 1, 1, 12, 0),
+        'since': date(2018, 1, 1),
     }
 
     loc_computation_info.correlation_uuid = uuid.uuid4()
@@ -255,6 +256,38 @@ def test_usage_view_excludes_demo(
     )
 
     with Session(backend_with_computation_registered.engine) as session:
+        usage_select = select(UsageView)
+        result_scalars = session.scalars(usage_select)
+        results = result_scalars.fetchall()
+
+        assert len(results) == 1
+
+        result = results[0]
+
+    result_dict = row_to_dict(result)
+    assert result_dict == expected_view
+
+
+def test_usage_view_first_plugin_day_division_by_zero(
+    default_backend_db, default_plugin_info_final, default_aoi_feature_geojson_pydantic
+):
+    expected_view = {
+        'plugin_id': 'test_plugin',
+        'no_of_requested_computations': 1,
+        'avg_computations_per_day': 1.0,
+        'since': datetime.now(UTC).date(),
+    }
+
+    default_backend_db.write_info(info=default_plugin_info_final)
+    default_backend_db.register_computation(
+        correlation_uuid=uuid.uuid4(),
+        requested_params={},
+        aoi=default_aoi_feature_geojson_pydantic,
+        plugin_key=f'{default_plugin_info_final.id};{default_plugin_info_final.version}',
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
+    )
+
+    with Session(default_backend_db.engine) as session:
         usage_select = select(UsageView)
         result_scalars = session.scalars(usage_select)
         results = result_scalars.fetchall()
