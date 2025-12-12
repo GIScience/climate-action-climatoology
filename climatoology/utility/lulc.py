@@ -197,7 +197,7 @@ class LulcUtility(PlatformHttpUtility):
     def __fetch_data(self, unit: LulcWorkUnit) -> rio.DatasetReader:
         try:
             url = f'{self.base_url}/segment/'
-            request_body = unit.model_dump(mode='json', exclude=['aoi'])
+            request_body = unit.model_dump(mode='json', exclude={'aoi'})
             request_body['area_coords'] = unit.aoi.bounds
 
             log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')

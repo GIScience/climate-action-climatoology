@@ -289,7 +289,7 @@ class PluginInfo(_PluginBaseInfo):
         return self.demo_input_parameters.model_dump(mode='json')
 
     @model_validator(mode='after')
-    def validate(self):
+    def validate(self) -> 'PluginInfo':
         """This validator asserts that validations happen early"""
         assert self.version, "there is an issue with the plugin's version number"
         assert self.repository, 'the repository URL could not be found'
@@ -297,6 +297,8 @@ class PluginInfo(_PluginBaseInfo):
         assert self.assets, "assets weren't created correctly"
         assert isinstance(self.sources, list), 'there was a problem generating the source list for the plugin'
         assert isinstance(self.demo_params_as_dict, dict), "the demo input parameters couldn't be loaded"
+
+        return self
 
 
 class PluginInfoEnriched(_PluginBaseInfo):

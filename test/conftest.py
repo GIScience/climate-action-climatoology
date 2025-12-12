@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field, HttpUrl
 from pytest_alembic import Config
 from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
-from shapely import set_srid
+from shapely import Polygon, set_srid
 from sqlalchemy import String, cast, create_engine, insert, text, update
 from sqlalchemy.orm import Session
 
@@ -270,7 +270,7 @@ def default_plugin(
 
 @pytest.fixture
 def default_aoi_geom_shapely() -> shapely.MultiPolygon:
-    geom = shapely.MultiPolygon(polygons=[[((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (0.0, 0.0))]])
+    geom = shapely.MultiPolygon(polygons=[Polygon(((0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (0.0, 0.0)))])
     srid_geom = set_srid(geometry=geom, srid=4326)
     return srid_geom
 
