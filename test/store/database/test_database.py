@@ -255,6 +255,12 @@ def test_list_artifacts(general_uuid, backend_with_computation_successful, defau
     assert artifacts == default_computation_info.artifacts
 
 
+def test_list_artifacts_unknown_computation(backend_with_computation_successful):
+    unknown_uuid = uuid.uuid4()
+    artifacts = backend_with_computation_successful.list_artifacts(correlation_uuid=unknown_uuid)
+    assert artifacts is None
+
+
 def test_resolve_deduplicated_computation_id(
     default_plugin, default_backend_db, default_computation_info, default_plugin_info, default_plugin_key
 ):
