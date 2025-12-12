@@ -233,8 +233,10 @@ class BackendDatabase:
                 log.warning(f'Correlation {correlation_uuid} does not exist in database')
                 return None
 
-    def list_artifacts(self, correlation_uuid: UUID) -> List[ArtifactEnriched]:
+    def list_artifacts(self, correlation_uuid: UUID) -> Optional[List[ArtifactEnriched]]:
         computation_info = self.read_computation(correlation_uuid=correlation_uuid)
+        if computation_info is None:
+            return None
         return computation_info.artifacts
 
     @lru_cache(maxsize=256)

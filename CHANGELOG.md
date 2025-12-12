@@ -11,6 +11,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - utility requests now send bounding boxes (as expected by the utilities) instead of geometries, which was sent in
   versions `7.0.0-rc1` and `7.0.0-rc2`
+- fix the database `list_artifact` endpoint not being able to handle unknown
+  computations ([#259](https://gitlab.heigit.org/climate-action/climatoology/-/issues/259))
 - `ArtifactMetadata` not creating unique
   filenames ([#256](https://gitlab.heigit.org/climate-action/climatoology/-/issues/256))
 
