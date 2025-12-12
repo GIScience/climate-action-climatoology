@@ -15,6 +15,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   computations ([#259](https://gitlab.heigit.org/climate-action/climatoology/-/issues/259))
 - `ArtifactMetadata` not creating unique
   filenames ([#256](https://gitlab.heigit.org/climate-action/climatoology/-/issues/256))
+- usage view potential division by zero on the first plugin day
 
 ## [7.0.0rc2](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.0rc2...main)
 

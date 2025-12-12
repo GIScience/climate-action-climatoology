@@ -118,11 +118,11 @@ class UsageView(ClimatoologyViewBase):
             count().label('no_of_requested_computations'),
             cast(
                 func.round(
-                    count() / (cast(db_now(), Date) - cast(func.min(ComputationLookupTable.request_ts), Date)), 2
+                    count() / ((cast(db_now(), Date) - cast(func.min(ComputationLookupTable.request_ts), Date)) + 1), 2
                 ),
                 sqlalchemy.Float,
             ).label('avg_computations_per_day'),
-            func.min(ComputationLookupTable.request_ts).label('since'),
+            cast(func.min(ComputationLookupTable.request_ts), Date).label('since'),
         )
         .join(ComputationTable, ComputationTable.plugin_key == PluginInfoTable.key)
         .join(ComputationLookupTable, ComputationTable.correlation_uuid == ComputationLookupTable.computation_id)
