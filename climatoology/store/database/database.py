@@ -84,7 +84,7 @@ class BackendDatabase:
             update(PluginInfoTable).where(PluginInfoTable.id == info.id, PluginInfoTable.latest).values(latest=False)
         )
         session.execute(info_update_stmt)
-        info_dict = info.model_dump(mode='json', exclude={'authors'})
+        info_dict = info.model_dump(mode='json', exclude={'authors'}, exclude_none=True)
         info_dict['latest'] = True
         info_insert_stmt = (
             insert(PluginInfoTable)
@@ -263,7 +263,7 @@ class BackendDatabase:
             updated_values['cache_epoch'] = None
             updated_values['valid_until'] = computation_info.request_ts
 
-        artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
+        artifacts = [artifact.model_dump(mode='json', exclude_none=True) for artifact in computation_info.artifacts]
         artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
 
         computation_update_stmt = (
