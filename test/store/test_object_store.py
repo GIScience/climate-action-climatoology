@@ -85,6 +85,7 @@ def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, e
             data=ANY,
             metadata={'Type': DataGroup.ASSET.value},
             length=expected_length,
+            content_type='image/png',
         )
 
 

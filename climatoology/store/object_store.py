@@ -223,11 +223,14 @@ class MinioStorage(Storage):
             plugin_id=plugin_id, plugin_version='latest', asset_type=AssetType.ICON
         )
         binary_icon = _convert_icon_to_thumbnail(icon_path)
+
+        content_type = mimetypes.guess_type(object_name)[0]
         self.client.put_object(
             bucket_name=self.__bucket,
             object_name=object_name,
             data=binary_icon,
             metadata={'Type': DataGroup.ASSET.value},
             length=binary_icon.getbuffer().nbytes,
+            content_type=content_type,
         )
         return object_name
