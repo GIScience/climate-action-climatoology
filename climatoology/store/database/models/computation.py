@@ -48,8 +48,9 @@ class ComputationLookupTable(ClimatoologyTableBase):
     user_correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
     request_ts: Mapped[datetime]
     aoi_name: Mapped[str]
-    aoi_id: Mapped[str] = mapped_column(index=True)
+    aoi_id: Mapped[str]
     aoi_properties: Mapped[Optional[dict]] = mapped_column(JSONB)
+    is_demo: Mapped[bool] = mapped_column(index=True)
     computation_id: Mapped[UUID] = mapped_column(
         DbUuidAsString, ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.computation.correlation_uuid')
     )
