@@ -16,6 +16,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - a problem where computations with artifacts where some had a description and others didn't
   failed ([#260](https://gitlab.heigit.org/climate-action/climatoology/-/issues/260)).
 
+### Changed
+
+- the demo status of a computation-request is now marked in clearly in the lookup
+  table ([#258](https://gitlab.heigit.org/climate-action/climatoology/-/issues/258))
+
 ## [7.0.0rc3](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.0rc3...main)
 
 ### Fix

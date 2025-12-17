@@ -34,8 +34,6 @@ from climatoology.store.exception import InfoNotReceivedError
 
 log = get_climatoology_logger(__name__)
 
-DEMO_PREFIX = 'demo-'
-
 
 class BackendDatabase:
     def __init__(self, connection_string: str, user_agent: str, assert_db_status: bool = False):
@@ -153,6 +151,7 @@ class BackendDatabase:
         aoi: AoiFeatureModel,
         plugin_key: str,
         computation_shelf_life: Optional[timedelta],
+        is_demo: bool = False,
     ) -> UUID:
         with Session(self.engine) as session:
             request_ts = datetime.now(UTC).replace(tzinfo=None)
@@ -195,6 +194,7 @@ class BackendDatabase:
                 computation_id=db_correlation_uuid,
                 aoi_name=aoi.properties.name,
                 aoi_id=aoi.properties.id,
+                is_demo=is_demo,
                 aoi_properties=aoi.properties.model_extra,
             )
             session.execute(lookup_insert_stmt)

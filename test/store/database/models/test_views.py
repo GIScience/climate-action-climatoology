@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import now as db_now
 
 from climatoology.base.computation import ComputationState
-from climatoology.store.database.database import DEMO_PREFIX, row_to_dict
+from climatoology.store.database.database import row_to_dict
 from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
@@ -246,13 +246,13 @@ def test_usage_view_excludes_demo(
     }
 
     loc_computation_info.correlation_uuid = uuid.uuid4()
-    loc_computation_info.aoi.properties.id = f'{DEMO_PREFIX}test_plugin'
     backend_with_computation_registered.register_computation(
         correlation_uuid=loc_computation_info.correlation_uuid,
         requested_params=loc_computation_info.requested_params,
         aoi=loc_computation_info.aoi,
         plugin_key=default_plugin_key,
         computation_shelf_life=default_plugin_info_final.computation_shelf_life,
+        is_demo=True,
     )
 
     with Session(backend_with_computation_registered.engine) as session:

@@ -3,10 +3,13 @@ from datetime import timedelta
 
 import pytest
 from semver import Version
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from climatoology.base.computation import AoiProperties
 from climatoology.base.plugin_info import PluginAuthor
 from climatoology.store.database.database import BackendDatabase
+from climatoology.store.database.models.computation import ComputationLookupTable
 
 
 def test_info_to_db_and_back(default_backend_db, default_plugin_info_final, default_plugin_key):
@@ -169,7 +172,7 @@ def test_add_authors_linked_to_plugin_versions(default_backend_db, default_plugi
         (timedelta(seconds=1), [{'different': True}, {'different': False}], False),
     ],
 )
-def test_register_computations(
+def test_register_computation(
     default_plugin,
     default_plugin_key,
     default_backend_db,
@@ -220,6 +223,26 @@ def test_register_computation_retains_aoi_properties_when_read(
 
     computation_info = backend_with_computation_registered.read_computation(correlation_uuid=correlation_uuid)
     assert computation_info.aoi.properties == custom_aoi_feature.properties
+
+
+def test_register_computation_demo(backend_with_computation_successful, default_computation_info):
+    user_corr_id = uuid.uuid4()
+    _ = backend_with_computation_successful.register_computation(
+        correlation_uuid=user_corr_id,
+        requested_params=default_computation_info.params,
+        aoi=default_computation_info.aoi,
+        plugin_key=f'{default_computation_info.plugin_info.id};{default_computation_info.plugin_info.version}',
+        computation_shelf_life=None,
+        is_demo=True,
+    )
+
+    with Session(backend_with_computation_successful.engine) as session:
+        result = session.scalar(
+            select(ComputationLookupTable.is_demo).where(ComputationLookupTable.user_correlation_uuid == user_corr_id)
+        )
+
+        assert isinstance(result, bool)
+        assert result
 
 
 def test_read_duplicate_computation(

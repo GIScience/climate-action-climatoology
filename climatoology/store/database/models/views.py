@@ -14,7 +14,6 @@ from sqlalchemy_utils import create_view
 from sqlalchemy_utils.view import CreateView
 
 from climatoology.base.computation import ComputationState
-from climatoology.store.database.database import DEMO_PREFIX
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyViewBase
 from climatoology.store.database.models.computation import ComputationLookupTable, ComputationTable
@@ -127,7 +126,7 @@ class UsageView(ClimatoologyViewBase):
         .join(ComputationTable, ComputationTable.plugin_key == PluginInfoTable.key)
         .join(ComputationLookupTable, ComputationTable.correlation_uuid == ComputationLookupTable.computation_id)
         .group_by(PluginInfoTable.id)
-        .where(not_(ComputationLookupTable.aoi_id.startswith(DEMO_PREFIX)))
+        .where(not_(ComputationLookupTable.is_demo))
         .order_by(count().desc(), PluginInfoTable.id)
     )
 
