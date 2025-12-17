@@ -265,7 +265,7 @@ class BackendDatabase:
             updated_values['cache_epoch'] = None
             updated_values['valid_until'] = computation_info.request_ts
 
-        artifacts = [artifact.model_dump(mode='json', exclude_none=True) for artifact in computation_info.artifacts]
+        artifacts = [artifact.model_dump(mode='json') for artifact in computation_info.artifacts]
         artifact_insert_stmt = insert(ArtifactTable).values(artifacts)
 
         computation_update_stmt = (

@@ -308,6 +308,38 @@ def test_update_successful_computation_with_validated_params(
     assert db_computation == default_computation_info
 
 
+def test_update_successful_computation_some_artifacts_without_description(
+    default_plugin,
+    default_backend_db,
+    default_computation_info,
+    default_plugin_info,
+    default_plugin_key,
+    default_artifact_enriched,
+    frozen_time,
+):
+    computation_with_mixed_artifacts = default_computation_info.model_copy(deep=True)
+    artifact_with_desciption = default_artifact_enriched.model_copy(deep=True)
+    artifact_with_desciption.description = 'some description'
+    artifact_without_desciption = default_artifact_enriched.model_copy(deep=True)
+    artifact_without_desciption.description = None
+
+    computation_with_mixed_artifacts.artifacts = [artifact_with_desciption, artifact_without_desciption]
+
+    _ = default_backend_db.register_computation(
+        correlation_uuid=default_computation_info.correlation_uuid,
+        requested_params=default_computation_info.requested_params,
+        aoi=default_computation_info.aoi,
+        plugin_key=default_plugin_key,
+        computation_shelf_life=default_plugin_info.computation_shelf_life,
+    )
+
+    default_backend_db.update_successful_computation(computation_info=computation_with_mixed_artifacts)
+
+    db_computation = default_backend_db.read_computation(correlation_uuid=default_computation_info.correlation_uuid)
+
+    assert len(db_computation.artifacts) == 2
+
+
 def test_computation_artifact_order_is_preserved(
     backend_with_computation_registered, default_computation_info, default_artifact_enriched
 ):
