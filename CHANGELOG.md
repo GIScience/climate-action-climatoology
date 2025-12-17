@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.0rc3...main)
 
+### Added
+
+- a script to locate the alembic migrations for the api gateway
+
 ### Fix
 
 - a problem where computations with artifacts where some had a description and others didn't

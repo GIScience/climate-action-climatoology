@@ -41,6 +41,9 @@ dependencies = [
     "plotly (>=6.0.0,<7.0.0)",
 ]
 
+[project.scripts]
+alembic-config-location = 'climatoology.store.database.migration.alembic_config_discovery:discover'
+
 [project.urls]
 repository = "https://gitlab.heigit.org/climate-action/climatoology"
 
