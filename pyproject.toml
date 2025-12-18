@@ -1,6 +1,6 @@
 [project]
 name = "climatoology"
-version = "7.0.0"
+version = "7.0.1"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
     { name = "Moritz Schott", email = "moritz.schott@heigit.org" },

@@ -1,3 +1,4 @@
+from logging.config import fileConfig
 from typing import Optional
 
 from alembic import context
@@ -7,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.sql.schema import SchemaItem
 
+from climatoology.store.database.migration import alembic_config_discovery
 from climatoology.store.database.models.base import ClimatoologyTableBase
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
@@ -16,6 +18,8 @@ from climatoology.store.database.models.views import (
     ValidComputationsView,
     create_view_tracking_object,
 )
+
+fileConfig(alembic_config_discovery.discover(), disable_existing_loggers=False)
 
 register_entities(
     [
