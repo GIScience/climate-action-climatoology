@@ -1,7 +1,7 @@
 """add-version-as-info-primary-key
 
 Revision ID: 9ba5a3807edb
-Revises: 0364d1c8dd4e
+Revises: 540bd0182fc3
 Create Date: 2025-11-11 14:13:50.707401
 
 """
@@ -49,10 +49,74 @@ def upgrade() -> None:
     op.execute(sa.text('update ca_base.author_info_link_table set author_seat=1 where author_seat is null'))
     op.alter_column('author_info_link_table', 'author_seat', nullable=False, schema='ca_base')
 
+    # Drop previous constraints
+    op.drop_constraint(
+        op.f('author_info_link_table_info_id_fkey'), 'author_info_link_table', schema='ca_base', type_='foreignkey'
+    )
+    op.drop_constraint(op.f('computation_plugin_id_fkey'), 'computation', schema='ca_base', type_='foreignkey')
+    op.drop_constraint('info_pkey', 'info', schema='ca_base', type_='primary')
+    # Add the first (required) replacement constraint
+    op.create_primary_key('info_pkey', 'info', ['key'], schema='ca_base')
+
+    op.execute(
+        sa.text(
+            """
+INSERT
+    INTO
+    ca_base.info (
+        VERSION,
+        name,
+        concerns,
+        state,
+        teaser,
+        purpose,
+        methodology,
+        sources,
+        demo_config,
+        computation_shelf_life,
+        assets,
+        operator_schema,
+        library_version,
+        repository,
+        id,
+        latest
+    )
+SELECT
+    DISTINCT ON
+    (
+        c.plugin_id,
+        c.plugin_version
+    )
+    plugin_version AS VERSION,
+    i.name,
+    i.concerns,
+    i.state,
+    i.teaser,
+    i.purpose,
+    i.methodology,
+    i.sources,
+    i.demo_config,
+    i.computation_shelf_life,
+    i.assets,
+    i.operator_schema,
+    '0.0.1',
+    i.repository,
+    i.id,
+    FALSE
+FROM
+    ca_base.computation c
+JOIN ca_base.info i ON
+    c.plugin_id = i.id
+ON
+    CONFLICT DO NOTHING;
+"""
+        )
+    )
+
     op.add_column('computation', sa.Column('plugin_key', sa.String(), nullable=True), schema='ca_base')
     op.execute(
         sa.text(
-            'update ca_base.computation set plugin_key=ca_base.info.key from ca_base.info where ca_base.info.id = plugin_id'
+            'update ca_base.computation set plugin_key=ca_base.info.key from ca_base.info where ca_base.info.id = plugin_id and ca_base.info.version = plugin_version'
         )
     )
     op.alter_column('computation', 'plugin_key', nullable=False, schema='ca_base')
@@ -77,15 +141,7 @@ def upgrade() -> None:
         schema='ca_base',
     )
 
-    # Drop previous constraints
-    op.drop_constraint(
-        op.f('author_info_link_table_info_id_fkey'), 'author_info_link_table', schema='ca_base', type_='foreignkey'
-    )
-    op.drop_constraint(op.f('computation_plugin_id_fkey'), 'computation', schema='ca_base', type_='foreignkey')
-    op.drop_constraint('info_pkey', 'info', schema='ca_base', type_='primary')
-
     # Add replacement constraints
-    op.create_primary_key('info_pkey', 'info', ['key'], schema='ca_base')
     op.create_foreign_key(
         None,
         'author_info_link_table',
@@ -140,6 +196,9 @@ def downgrade() -> None:
     )
     op.drop_constraint('info_pkey', 'info', schema='ca_base', type_='primary')
 
+    # Drop non-lates plugin infos
+    op.execute(sa.text('delete from ca_base.info where latest = FALSE'))
+
     # Add previous constraints
     op.create_primary_key('info_pkey', 'info', ['id'], schema='ca_base')
     op.create_foreign_key(
@@ -182,6 +241,5 @@ def downgrade() -> None:
     op.drop_column('author_info_link_table', 'info_key', schema='ca_base')
 
     # Drop key from info table
-    op.execute(sa.text('delete from ca_base.info where latest = FALSE'))
     op.drop_column('info', 'key', schema='ca_base')
     op.drop_column('info', 'latest', schema='ca_base')

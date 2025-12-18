@@ -7,6 +7,14 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.0...main)
 
+## [7.0.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.1) - 2025-12-18
+
+### Fix
+
+- an issue with upgrading the database if computations related to different plugin versions were present. In that case,
+  the plugin info will be duplicated with the respective changed version set but the library version will be 0.0.1 to
+  mark the respective (potentially erroneous) plugin info
+
 ## [7.0.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.0) - 2025-12-17
 
 This changelog is complete in relation to V6.4.4.
