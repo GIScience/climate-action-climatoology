@@ -21,6 +21,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     op.add_column('artifact', sa.Column('sources', sa.JSON(), nullable=True), schema='ca_base')
+    op.execute(sa.text("update ca_base.artifact set sources='[]'"))
 
 
 def downgrade() -> None:
