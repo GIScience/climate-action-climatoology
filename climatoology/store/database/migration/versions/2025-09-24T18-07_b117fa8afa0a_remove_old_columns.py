@@ -27,10 +27,12 @@ def upgrade() -> None:
     op.add_column(
         'computation_lookup', sa.Column('aoi_properties', postgresql.JSONB(astext_type=sa.Text())), schema='ca_base'
     )
+    op.execute(sa.text("update ca_base.computation_lookup set aoi_properties='{}'"))
 
     op.execute(sa.text("update ca_base.info set teaser='This plugin does not provide a teaser.' where teaser is null"))
     op.alter_column('info', 'teaser', existing_type=sa.VARCHAR(), nullable=False, schema='ca_base')
     op.execute(sa.text("update ca_base.info set demo_config='{}' where demo_config is null"))
+    op.execute(sa.text('update ca_base.info set demo_config=demo_config::jsonb || \'{"name": "Demo"}\'::jsonb'))
     op.alter_column(
         'info', 'demo_config', existing_type=postgresql.JSON(astext_type=sa.Text()), nullable=False, schema='ca_base'
     )
