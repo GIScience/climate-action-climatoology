@@ -184,6 +184,11 @@ def downgrade() -> None:
     op.add_column('author_info_link_table', sa.Column('info_id', sa.String(), nullable=True), schema='ca_base')
     op.execute(
         sa.text(
+            'DELETE FROM ca_base.author_info_link_table AS al USING ca_base.info AS i WHERE i.key = al.info_key AND i.latest = FALSE'
+        )
+    )
+    op.execute(
+        sa.text(
             'update ca_base.author_info_link_table set info_id=ca_base.info.id from ca_base.info where ca_base.info.key=ca_base.author_info_link_table.info_key'
         )
     )
