@@ -31,4 +31,10 @@ def downgrade() -> None:
             'update ca_base.computation c set timestamp=ct.date_done from public.celery_taskmeta ct where c.correlation_uuid::text = ct.task_id'
         )
     )
+    # revoked computations will have NULL for the celery `date_done`
+    op.execute(
+        sa.text(
+            'update ca_base.computation c set timestamp=cl.request_ts from ca_base.computation_lookup cl where cl.computation_id = c.correlation_uuid and c.timestamp is null'
+        )
+    )
     op.alter_column('computation', 'timestamp', nullable=False, schema='ca_base')

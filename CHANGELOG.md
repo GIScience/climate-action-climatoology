@@ -12,6 +12,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Fix
 
 - Migrations that led to old computations failing the new validation requirements
+- Migration downgrades so that the downgraded state meets the later upgrade requirements for author-info-link uniqueness
+  and missing timestamps for revoked computations
 
 ## [7.0.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.1) - 2025-12-18
 
