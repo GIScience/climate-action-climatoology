@@ -60,7 +60,7 @@ responses = "^0.25.3"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.1"
 ruff = "^0.14.9"
-celery-types = "^0.23.0"
+celery-types = "^0.24.0"
 pandas-stubs = "^2.3.0.250703"
 
 [tool.alembic]
