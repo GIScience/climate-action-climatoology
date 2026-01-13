@@ -133,9 +133,9 @@ def compute_raster(
                 with memfile.open(**write_profile) as m:
                     pbar.set_description(f'Writing mosaic {mosaic.shape}')
 
-                    m.write(mosaic)
                     if has_color_map:
                         m.write_colormap(1, first_colormap)
+                    m.write(mosaic)
 
                     del mosaic
                     del slices
