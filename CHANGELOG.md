@@ -14,6 +14,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - Assign colormap before writing the mosaic to avoid GDAL
   warning ([#268](https://gitlab.heigit.org/climate-action/climatoology/-/issues/268))
 - Correctly update the `aoi` parameter of utility work units when adjusting the bounds to meet the `max_unit_size`
+- Revert `jsonb` types in the database to `json` to retain input order of
+  keys ([#245](https://gitlab.heigit.org/climate-action/climatoology/-/issues/245))
   limits ([#266](https://gitlab.heigit.org/climate-action/climatoology/-/issues/266))
 
 ## [7.0.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.2) - 2025-12-22

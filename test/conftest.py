@@ -213,14 +213,14 @@ def extensive_artifact_enriched(extensive_artifact, general_uuid) -> ArtifactEnr
 class TestModel(BaseModel):
     __test__ = False
     id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
-    name: str = Field(
-        title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
-    )
     execution_time: float = Field(
         title='Execution time',
         description='The time for the compute to run (in seconds)',
         examples=[10.0],
         default=0.0,
+    )
+    name: str = Field(
+        title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
     )
 
 
