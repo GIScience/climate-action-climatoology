@@ -9,10 +9,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Fix
 
-- Assign colormap before writing the mosaic to avoid GDAL warning ([#268](https://gitlab.heigit.org/climate-action/climatoology/-/issues/268))
-
-### Fix
-
+- Pie chart creation now correctly reads `x` data as categories and `y` data as
+  values ([#267](https://gitlab.heigit.org/climate-action/climatoology/-/issues/267))
 - Assign colormap before writing the mosaic to avoid GDAL
   warning ([#268](https://gitlab.heigit.org/climate-action/climatoology/-/issues/268))
 - Correctly update the `aoi` parameter of utility work units when adjusting the bounds to meet the `max_unit_size`

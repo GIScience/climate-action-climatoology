@@ -138,7 +138,7 @@ def create_chart_artifact(
 
     This will create a JSON file holding all information required to plot the defined chart.
 
-    :param data: Chart data
+    :param data: Chart data. For a pie chart, x holds the categories and y the corresponding values.
     :param metadata: Standard Artifact attributes
     :param resources: The computation resources for this plugin.
     :return: The artifact that contains a path-pointer to the created file.
@@ -157,7 +157,7 @@ def create_chart_artifact(
             fig = px.bar(x=data.x, y=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
 
         case ChartType.PIE:
-            fig = px.pie(values=data.x, names=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+            fig = px.pie(names=data.x, values=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
 
         case _:
             raise ValueError(f'{data.chart_type} is not a supported chart type.')
