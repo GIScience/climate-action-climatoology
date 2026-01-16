@@ -178,7 +178,7 @@ class FailedComputationsView(ClimatoologyViewBase):
 class ArtifactErrorsView(ClimatoologyViewBase):
     """A quick overview of common artifact errors per plugin to assess the need for investigation"""
 
-    aliased_json_values = func.jsonb_each_text(ComputationTable.artifact_errors).table_valued(
+    aliased_json_values = func.json_each_text(ComputationTable.artifact_errors).table_valued(
         'key', 'value', name='artifact_errors'
     )
     select_statement = (

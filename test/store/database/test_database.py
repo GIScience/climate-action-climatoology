@@ -6,6 +6,7 @@ from semver import Version
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, Attachments, Legend
 from climatoology.base.computation import AoiProperties
 from climatoology.base.plugin_info import PluginAuthor
 from climatoology.store.database.database import BackendDatabase
@@ -129,6 +130,16 @@ def test_read_info_older_version_if_requested(default_backend_db, default_plugin
     assert read_info == default_plugin_info_final
 
 
+def test_read_info_operator_schema_order_is_retained(default_backend_db, default_plugin_info_final):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
+
+    read_info = default_backend_db.read_info(
+        plugin_id=default_plugin_info_final.id, plugin_version=default_plugin_info_final.version
+    )
+
+    assert list(read_info.operator_schema['properties'].keys()) == ['id', 'execution_time', 'name']
+
+
 def test_add_authors(default_backend_db, default_plugin_info_final):
     _ = default_backend_db.write_info(info=default_plugin_info_final)
 
@@ -243,6 +254,34 @@ def test_register_computation_demo(backend_with_computation_successful, default_
 
         assert isinstance(result, bool)
         assert result
+
+
+def test_read_computation_legend_order_is_retained(
+    backend_with_computation_registered, default_computation_info, default_artifact_metadata
+):
+    test_computation_info = default_computation_info.model_copy(deep=True)
+
+    artifact_with_legend = Artifact(
+        **default_artifact_metadata.model_dump(exclude={'filename'}),
+        modality=ArtifactModality.VECTOR_MAP_LAYER,
+        filename='test_aoi.geojson',
+        attachments=Attachments(legend=Legend(legend_data={'long_first_label': '#000', 'a': '#fff'})),
+    )
+    test_computation_info.artifacts = [
+        ArtifactEnriched(
+            **artifact_with_legend.model_dump(exclude={'sources'}),
+            rank=0,
+            correlation_uuid=default_computation_info.correlation_uuid,
+        )
+    ]
+
+    backend_with_computation_registered.update_successful_computation(computation_info=test_computation_info)
+    read_computation = backend_with_computation_registered.read_computation(
+        correlation_uuid=test_computation_info.correlation_uuid
+    )
+    legend_keys = list(read_computation.artifacts[0].attachments.legend.legend_data.keys())
+
+    assert legend_keys == ['long_first_label', 'a']
 
 
 def test_read_duplicate_computation(

@@ -4,8 +4,8 @@ from typing import List, Optional, Set
 import sqlalchemy
 from pydantic.json_schema import JsonSchemaValue
 from semver import Version
-from sqlalchemy import Column, Computed, ForeignKey, Integer, Table, asc
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, Table, asc
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.base.plugin_info import AssetsFinal, Concern, DemoConfig, PluginState
@@ -48,10 +48,10 @@ class PluginInfoTable(ClimatoologyTableBase):
     teaser: Mapped[str]
     purpose: Mapped[str]
     methodology: Mapped[str]
-    sources: Mapped[Optional[List[dict]]] = mapped_column(JSONB)
-    demo_config: Mapped[DemoConfig] = mapped_column(JSONB)
+    sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
+    demo_config: Mapped[DemoConfig] = mapped_column(JSON)
     computation_shelf_life: Mapped[Optional[timedelta]]
-    assets: Mapped[AssetsFinal] = mapped_column(JSONB)
-    operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSONB)
+    assets: Mapped[AssetsFinal] = mapped_column(JSON)
+    operator_schema: Mapped[JsonSchemaValue] = mapped_column(JSON)
     library_version: Mapped[Version] = mapped_column(DbSemver)
     latest: Mapped[bool] = mapped_column(default=False)

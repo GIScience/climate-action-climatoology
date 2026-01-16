@@ -3,8 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from geoalchemy2 import Geometry, WKTElement
-from sqlalchemy import Computed, ForeignKey, UniqueConstraint, asc
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Computed, ForeignKey, UniqueConstraint, asc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.store.database.models import DbUuidAsString
@@ -31,14 +30,14 @@ class ComputationTable(ClimatoologyTableBase):
     deduplication_key: Mapped[UUID] = mapped_column(Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid'))
     cache_epoch: Mapped[Optional[int]]
     valid_until: Mapped[datetime] = mapped_column(index=True)
-    params: Mapped[Optional[dict]] = mapped_column(JSONB)
-    requested_params: Mapped[dict] = mapped_column(JSONB)
+    params: Mapped[Optional[dict]] = mapped_column(JSON)
+    requested_params: Mapped[dict] = mapped_column(JSON)
     aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'), index=True)
     plugin: Mapped[PluginInfoTable] = relationship()
     message: Mapped[Optional[str]]
-    artifact_errors: Mapped[dict[str, str]] = mapped_column(JSONB)
+    artifact_errors: Mapped[dict[str, str]] = mapped_column(JSON)
 
 
 class ComputationLookupTable(ClimatoologyTableBase):
@@ -49,7 +48,7 @@ class ComputationLookupTable(ClimatoologyTableBase):
     request_ts: Mapped[datetime]
     aoi_name: Mapped[str]
     aoi_id: Mapped[str]
-    aoi_properties: Mapped[Optional[dict]] = mapped_column(JSONB)
+    aoi_properties: Mapped[Optional[dict]] = mapped_column(JSON)
     is_demo: Mapped[bool] = mapped_column(index=True)
     computation_id: Mapped[UUID] = mapped_column(
         DbUuidAsString, ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.computation.correlation_uuid')

@@ -2,8 +2,8 @@ from typing import Optional, Set
 from uuid import UUID
 
 import sqlalchemy
-from sqlalchemy import ForeignKey
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy import JSON, ForeignKey
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from climatoology.base.artifact import ArtifactModality, Attachments
@@ -26,6 +26,6 @@ class ArtifactTable(ClimatoologyTableBase):
     tags: Mapped[Set[str]] = mapped_column(ARRAY(sqlalchemy.String))
     summary: Mapped[str]
     description: Mapped[Optional[str]]
-    sources: Mapped[Optional[list[dict]]] = mapped_column(JSONB)
-    attachments: Mapped[Attachments] = mapped_column(JSONB)
+    sources: Mapped[Optional[list[dict]]] = mapped_column(JSON)
+    attachments: Mapped[Attachments] = mapped_column(JSON)
     filename: Mapped[str]
