@@ -137,3 +137,11 @@ def test_legend_retrieval(mocked_utility_response):
     computed_result = operator.get_class_legend()
 
     assert expected_result == computed_result
+
+
+def test_adjust_work_units_model_validate(mocked_utility_response):
+    operator = LulcUtility(base_url='http://localhost')
+
+    adjusted_units = operator.adjust_work_units(units=[lulc_unit_a])
+
+    assert [LulcWorkUnit.model_validate(dict(u), extra='forbid') for u in adjusted_units]

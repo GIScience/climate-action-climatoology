@@ -354,6 +354,14 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
     testing.assert_geodataframe_equal(response_gdf, expected_output)
 
 
+def test_adjust_work_units_model_validate(mocked_utility_response):
+    operator = NaturalnessUtility(base_url='http://localhost')
+
+    adjusted_units = operator.adjust_work_units(units=[NATURALNESS_UNIT])
+
+    assert [NaturalnessWorkUnit.model_validate(dict(u), extra='forbid') for u in adjusted_units]
+
+
 @pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 4], [100, 9]])
 def test_split_vectors_exceeding_max_unit_size(max_unit_size, expected_groups, mocked_utility_response, caplog):
     # (h, w) of default vectors = (221, 223)

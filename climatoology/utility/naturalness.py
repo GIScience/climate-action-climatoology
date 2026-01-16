@@ -175,7 +175,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityError('Connection to utility cannot be established') from e
         except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityError('Query failed due to an error') from e
+            raise PlatformUtilityError(f'Query failed due to: {e}') from e
         else:
             return rasterio.open(BytesIO(response.content), mode='r')
 
@@ -212,7 +212,7 @@ class NaturalnessUtility(PlatformHttpUtility):
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityError('Connection to utility cannot be established') from e
         except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityError('Query failed due to an error') from e
+            raise PlatformUtilityError(f'Query failed due to: {e}') from e
 
     @staticmethod
     def adjust_work_units(units: List[NaturalnessWorkUnit], max_unit_size: int = 1000) -> List[NaturalnessWorkUnit]:
@@ -220,7 +220,12 @@ class NaturalnessUtility(PlatformHttpUtility):
         for unit in units:
             request_shapes = GeoSeries([unit.aoi])
             bounds = generate_bounds(request_shapes, max_unit_size=max_unit_size, resolution=unit.resolution)
-            adjusted_units.extend([unit.model_copy(update={'bbox': tuple(b)}, deep=True) for b in bounds])
+
+            u = unit.model_copy(deep=True)
+            for b in bounds:
+                u.aoi = b.geometry
+                adjusted_units.append(u)
+
         return adjusted_units
 
     @staticmethod
