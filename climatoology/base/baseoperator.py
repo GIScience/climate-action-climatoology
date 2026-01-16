@@ -79,7 +79,7 @@ class BaseOperator(ABC, Generic[T_co]):
             version=info.version,
             repository=info.repository,
             purpose=info.purpose.read_text(),
-            methodology=info.purpose.read_text(),
+            methodology=info.methodology.read_text(),
             sources=info.sources,
             assets=info.assets,
             operator_schema=self._model.model_json_schema(),
