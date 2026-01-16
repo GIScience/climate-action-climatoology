@@ -206,7 +206,7 @@ class LulcUtility(PlatformHttpUtility):
         except requests.exceptions.ConnectionError as e:
             raise PlatformUtilityError('Connection to utility cannot be established') from e
         except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityError('Query failed due to an error') from e
+            raise PlatformUtilityError(f'Query failed due to: {e}') from e
         else:
             return rio.open(BytesIO(response.content), mode='r')
 
@@ -253,5 +253,10 @@ class LulcUtility(PlatformHttpUtility):
             bounds = generate_bounds(
                 request_shapes, max_unit_size=max_unit_size, max_unit_area=max_unit_area, resolution=10.0
             )
-            adjusted_units.extend([unit.model_copy(update={'area_coords': tuple(b)}, deep=True) for b in bounds])
+
+            u = unit.model_copy(deep=True)
+            for b in bounds:
+                u.aoi = b.geometry
+                adjusted_units.append(u)
+
         return adjusted_units
