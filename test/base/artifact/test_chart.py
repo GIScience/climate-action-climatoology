@@ -62,14 +62,6 @@ def test_chart_check_data():
             chart_type=ChartType.PIE,
         )
 
-    data = Chart2dData(
-        x=[1, 2],
-        y=[1, 2],
-        chart_type=ChartType.PIE,
-    )
-    assert data.x == [1, 2]
-    assert data.y == [1, 2]
-
 
 def test_chart_explode_color():
     chart_data = Chart2dData(
@@ -126,6 +118,23 @@ def test_create_concise_chart_artifact(
 
     assert generated_artifact == default_artifact_copy
     assert plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+
+
+def test_pie_chart_labels(default_computation_resources, default_artifact_metadata):
+    method_input = Chart2dData(
+        x=['A', 'B', 'C'],
+        y=[1, 2, 3],
+        chart_type=ChartType.PIE,
+    )
+
+    generated_artifact = create_chart_artifact(
+        data=method_input,
+        metadata=default_artifact_metadata,
+        resources=default_computation_resources,
+    )
+
+    plot = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+    assert plot['data'][0]['labels'] == ('A', 'B', 'C')
 
 
 @pytest.mark.parametrize('chart_type', [ChartType.SCATTER, ChartType.LINE, ChartType.BAR, ChartType.PIE])
