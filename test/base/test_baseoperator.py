@@ -16,7 +16,7 @@ from climatoology.base.artifact import Artifact, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import AoiProperties, ComputationResources, ComputationScope
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError
-from climatoology.base.plugin_info import PluginInfo
+from climatoology.base.plugin_info import DemoConfig, PluginInfo
 from test.conftest import TestModel
 
 
@@ -84,13 +84,20 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_plugin
 
     computed_info = operator.info_enriched
 
-    assert computed_info.library_version == Version(1, 0, 0)
+    assert (
+        computed_info.purpose
+        == """The purpose of this base is to present basic library properties in terms of enforcing similar capabilities between
+Climate Action event components."""
+    )
+    assert computed_info.methodology == 'This is a test base'
     assert computed_info.operator_schema == {
         'properties': {'test': {'title': 'Test', 'type': 'string'}},
         'required': ['test'],
         'title': 'MinimalTestModel',
         'type': 'object',
     }
+    assert isinstance(computed_info.demo_config, DemoConfig)
+    assert computed_info.library_version == Version(1, 0, 0)
 
 
 def test_operator_startup_checks_for_aoi_fields(default_plugin_info):
