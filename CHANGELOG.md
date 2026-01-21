@@ -15,6 +15,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   warning ([#268](https://gitlab.heigit.org/climate-action/climatoology/-/issues/268))
 - Correctly update the `aoi` parameter of utility work units when adjusting the bounds to meet the `max_unit_size`
   limits ([#266](https://gitlab.heigit.org/climate-action/climatoology/-/issues/266))
+- `compute_vector` method of the Naturalness Utility now uses the raster endpoint and does zonal statistics locally, to
+  avoid requesting invalid dimensions from SentinelHub when the vector features are smaller than the resolution
+  ([#261](https://gitlab.heigit.org/climate-action/climatoology/-/issues/261))
 - Revert `jsonb` types in the database to `json` to retain input order of
   keys ([#245](https://gitlab.heigit.org/climate-action/climatoology/-/issues/245))
 - Enriched info correctly reads from the methodology
