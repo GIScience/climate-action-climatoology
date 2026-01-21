@@ -96,6 +96,12 @@ select = [
 [tool.coverage.run]
 omit = ["test/*"]
 
+[tool.pytest]
+filterwarnings = [
+    "ignore::DeprecationWarning:pyparsing.*:",
+    "ignore::DeprecationWarning:bibtexparser.*:"
+]
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
