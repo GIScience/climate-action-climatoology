@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import date, timedelta
 from typing import Any, Callable, Generator, List, Optional
 
+import pyproj
 import rasterio
 import requests
 from geopandas import GeoSeries
@@ -145,6 +146,31 @@ def compute_raster(
                     yield dataset
 
 
+def _make_bound_dimensions_valid(bounds: BBox, resolution: float) -> BBox:
+    """Buffer `bounds` as required to ensure that both height and width of the returned bounds are greater than or equal
+    to `resolution`.
+
+    :param bounds: the input bounds to be adjusted (in WGS84)
+    :param resolution: the resolution of the raster data (metres)
+    :return: a `BBox` containing bounds with both dimensions >= 1
+    """
+    utm_crs = get_utm_crs(lng=bounds.min_x, lat=bounds.min_y)
+    transformer = pyproj.Transformer.from_crs(pyproj.CRS('EPSG:4326'), pyproj.CRS(utm_crs.epsg), always_xy=True)
+
+    # Transform all corners of the bounding box to avoid reprojection issues
+    xmin, ymin = bounds.lower_left
+    xmax, ymax = bounds.upper_right
+    x_t, y_t = transformer.transform((xmin, xmax, xmax, xmin), (ymin, ymin, ymax, ymax))
+    xmin, ymin, xmax, ymax = min(x_t), min(y_t), max(x_t), max(y_t)
+    xmax = max(xmin + resolution, xmax)
+    ymax = max(ymin + resolution, ymax)
+
+    x, y = transformer.transform(
+        (xmin, xmax, xmax, xmin), (ymin, ymin, ymax, ymax), direction=pyproj.enums.TransformDirection.INVERSE
+    )
+    return BBox((min(x), min(y), max(x), max(y)), crs=CRS.WGS84)
+
+
 def generate_bounds(
     target_geometries: GeoSeries,
     resolution: float,
@@ -172,12 +198,7 @@ def generate_bounds(
 
     if min(h, w) < 1:
         w, h = max(w, 1), max(h, 1)
-
-        utm_crs = get_utm_crs(lng=bounds.min_x, lat=bounds.min_y)
-        t_bounds = bounds.transform(utm_crs)
-        t_bounds.max_x = max(t_bounds.min_x + resolution, t_bounds.max_x)
-        t_bounds.max_y = max(t_bounds.min_y + resolution, t_bounds.max_y)
-        bounds = t_bounds.transform(CRS.WGS84)
+        bounds = _make_bound_dimensions_valid(bounds=bounds, resolution=resolution)
         log.debug(f'The bounds were adjusted from {bbox} to {bounds}')
 
     h_splits = math.ceil(h / max_unit_size)
@@ -189,4 +210,4 @@ def generate_bounds(
     log.debug(f'Removed {len(split_bounds) - len(intersecting_bounds)} non-overlapping bounding boxes')
     log.info(f'The geometry space was split into {len(intersecting_bounds)} bounding boxes')
 
-    return intersecting_bounds
+    return [b.apply(lambda x, y: (round(x, 7), round(y, 7))) for b in intersecting_bounds]

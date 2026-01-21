@@ -11,17 +11,24 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - Pie chart creation now correctly reads `x` data as categories and `y` data as
   values ([#267](https://gitlab.heigit.org/climate-action/climatoology/-/issues/267))
-- Assign colormap before writing the mosaic to avoid GDAL
-  warning ([#268](https://gitlab.heigit.org/climate-action/climatoology/-/issues/268))
 - Correctly update the `aoi` parameter of utility work units when adjusting the bounds to meet the `max_unit_size`
   limits ([#266](https://gitlab.heigit.org/climate-action/climatoology/-/issues/266))
 - `compute_vector` method of the Naturalness Utility now uses the raster endpoint and does zonal statistics locally, to
   avoid requesting invalid dimensions from SentinelHub when the vector features are smaller than the resolution
   ([#261](https://gitlab.heigit.org/climate-action/climatoology/-/issues/261))
+- `generate_bounds` now transforms all four corners of the bounding box to generate valid bounds for the given
+  resolution, avoiding reprojection issues which trimmed some parts of the original
+  extent ([#263](https://gitlab.heigit.org/climate-action/climatoology/-/issues/263))
 - Revert `jsonb` types in the database to `json` to retain input order of
   keys ([#245](https://gitlab.heigit.org/climate-action/climatoology/-/issues/245))
 - Enriched info correctly reads from the methodology
   file ([#269](https://gitlab.heigit.org/climate-action/climatoology/-/issues/269))
+
+### Changed
+
+- Assign colormap before writing the mosaic to avoid GDAL
+  warning ([#268](https://gitlab.heigit.org/climate-action/climatoology/-/issues/268))
+- Round bounding box before requesting LULC and Naturalness utilities
 
 ## [7.0.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.2) - 2025-12-22
 

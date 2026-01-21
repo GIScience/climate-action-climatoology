@@ -103,12 +103,12 @@ def test_compute_raster_exceeds_max_raster_size(mocked_utility_response):
     request_a = {
         'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
         'resolution': 90.0,
-        'bbox': [7.38, 47.5, 7.385, 47.510000000000005],
+        'bbox': [7.38, 47.5, 7.385, 47.51],
     }
     request_b = {
         'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
         'resolution': 90.0,
-        'bbox': [7.38, 47.510000000000005, 7.385, 47.52],
+        'bbox': [7.38, 47.51, 7.385, 47.52],
     }
     mocked_utility_response.post(
         'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_a)], body=response_raster
@@ -128,7 +128,7 @@ def test_compute_raster_smaller_than_resolution(mocked_utility_response):
     request_body = {
         'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
         'resolution': 1000.0,
-        'bbox': [7.380000000000001, 47.5, 7.392664329866816, 47.520107702971806],
+        'bbox': [7.3793845, 47.4999295, 7.3932747, 47.5201782],
     }
     with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
         mocked_utility_response.post(
@@ -239,7 +239,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
     request_a = {
         'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
         'resolution': 10.0,
-        'bbox': [7.380516, 47.508434, 7.384516, 47.513434000000004],
+        'bbox': [7.380516, 47.508434, 7.384516, 47.5134340],
     }
     mocked_utility_response.post(
         'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_a)], body=response_raster
@@ -247,7 +247,7 @@ def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
     request_b = {
         'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
         'resolution': 10.0,
-        'bbox': [7.380516, 47.513434000000004, 7.384516, 47.518434],
+        'bbox': [7.380516, 47.5134340, 7.384516, 47.518434],
     }
     mocked_utility_response.post(
         'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_b)], body=response_raster
@@ -313,7 +313,7 @@ def test_compute_vector_smaller_than_resolution(mocked_utility_response):
         request_body = {
             'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
             'resolution': 90.0,
-            'bbox': [7.380516, 47.50843399999999, 7.381685830456872, 47.50926036293937],
+            'bbox': [7.3804911, 47.5084340, 7.3817107, 47.5092604],
         }
         mocked_utility_response.post(
             'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
@@ -338,6 +338,30 @@ def test_compute_vector_smaller_than_resolution(mocked_utility_response):
         crs=CRS.from_epsg(4326),
     )
     testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
+
+
+def test_compute_vector_geometries_stay_unrounded(mocked_utility_response):
+    request_body = {
+        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
+        'resolution': 90.0,
+        'bbox': [7.38, 47.5, 7.385, 47.52],
+    }
+    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
+        mocked_utility_response.post(
+            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
+        )
+
+    vectors = gpd.GeoSeries(LineString([[7.37999999, 47.5], [7.38500001, 47.52]]), crs=4326)
+
+    operator = NaturalnessUtility(base_url='http://localhost')
+    response_gdf = operator.compute_vector(
+        index=NaturalnessIndex.NDVI,
+        aggregation_stats=['mean'],
+        vectors=[vectors],
+        time_range=TimeRange(end_date=date(2023, 6, 1)),
+    )
+
+    testing.assert_geoseries_equal(response_gdf.geometry, vectors)
 
 
 def test_compute_vector_multiple_aggregation_stats(mocked_utility_response):
