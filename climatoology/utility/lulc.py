@@ -254,8 +254,8 @@ class LulcUtility(PlatformHttpUtility):
                 request_shapes, max_unit_size=max_unit_size, max_unit_area=max_unit_area, resolution=10.0
             )
 
-            u = unit.model_copy(deep=True)
             for b in bounds:
+                u = unit.model_copy(deep=True)
                 u.aoi = b.geometry
                 adjusted_units.append(u)
 
