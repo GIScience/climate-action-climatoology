@@ -1,9 +1,8 @@
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from celery.backends.database import TaskExtended
 from geoalchemy2.shape import to_shape
-from pytz import UTC
 from semver import Version
 from sqlalchemy import String, cast, insert, select, update
 from sqlalchemy.orm import Session
