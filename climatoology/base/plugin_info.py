@@ -234,7 +234,7 @@ class PluginInfo(_PluginBaseInfo):
     demo_input_parameters: BaseModel = Field(description='The input parameters used for the demo.')
     demo_aoi: CustomAOI = Field(
         description='The AOI to use for demo computations',
-        default=CustomAOI(name='Heidelberg Demo', path=DEMO_AOI_PATH),
+        default=CustomAOI(name='Heidelberg', path=DEMO_AOI_PATH),
     )
 
     @computed_field

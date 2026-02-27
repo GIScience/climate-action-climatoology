@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.3...main)
 
+### Changed
+
+- Remove "Demo" from the name of the default demo AOI
+
 ## [7.0.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.3) - 2026-02-12
 
 ### Fix
