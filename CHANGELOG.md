@@ -9,6 +9,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
+- For vector artifacts with discrete legends, the labels in the legend must at least include all the labels in the
+  data ([#278](https://gitlab.heigit.org/climate-action/climatoology/-/issues/278))
 - Remove "Demo" from the name of the default demo AOI
 
 ## [7.0.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.3) - 2026-02-12
