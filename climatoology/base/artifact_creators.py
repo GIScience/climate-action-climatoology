@@ -206,16 +206,15 @@ def create_vector_artifact(
     legend: Optional[Legend] = None,
     pmtiles_lco: dict = None,
 ) -> Artifact:
-    """Create a vector data artifact.
-
-    This will create a GeoJSON file containing all information in `data`.
+    """Create a vector data artifact containing all information in `data`.
 
     :param data: The Geodata. Must have an active geometry column and a CRS.
     :param color: Column name for the color values, defaults to `'color'`. Column must contain
       instances of `pydantic_extra_types.color.Color` only.
     :param label: Column name for the labels of the features, defaults to `'label'`.
-    :param legend: Can be used to display a custom legend. If not provided, a distinct legend will be created from the
-      unique combinations of labels and colors.
+    :param legend: Can be used to display a custom legend. The keys of the legend data must include all observations in
+      the `label` column in `data`. If not provided, a distinct legend will be created from the unique combinations of
+      labels and colors.
     :param pmtiles_lco: Layer creation options forwarded to the PMTile creation, see
       https://gdal.org/en/stable/drivers/vector/pmtiles.html
     :param metadata: Standard Artifact attributes
@@ -240,6 +239,12 @@ def create_vector_artifact(
     data[color] = data[color].apply(lambda color_value: color_value.as_hex())
 
     assert not data[label].isna().any(), f'There are missing label values in column {label}'
+
+    if legend and isinstance(legend.legend_data, dict):
+        missing_legend_labels = set(data[label]).difference(set(legend.legend_data.keys()))
+        assert len(missing_legend_labels) < 1, (
+            f'The following labels are included in the data, but not in the legend: {missing_legend_labels}'
+        )
 
     data = data.rename(columns={color: 'color', label: 'label'})
 

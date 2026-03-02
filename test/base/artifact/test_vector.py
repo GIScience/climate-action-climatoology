@@ -441,6 +441,32 @@ def test_create_vector_artifact_fail_on_wrong_color_type(default_computation_res
         )
 
 
+def test_create_vector_artifact_fail_on_missing_legend_labels(default_artifact_metadata, default_computation_resources):
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0))],
+            'label': ['White a', 'Black b'],
+            'geometry': [Point(1, 1), Point(2, 2)],
+        },
+        crs='EPSG:4326',
+    )
+
+    legend = Legend(
+        legend_data={'White a': Color('#fff'), 'Green c': Color('#0f0')},
+        title='Custom Legend Title',
+    )
+
+    with pytest.raises(
+        AssertionError, match=r"The following labels are included in the data, but not in the legend: {'Black b'}"
+    ):
+        create_vector_artifact(
+            data=method_input,
+            metadata=default_artifact_metadata,
+            resources=default_computation_resources,
+            legend=legend,
+        )
+
+
 EXPECTED_ROUNDING_GEOJSON = """{
 "type": "FeatureCollection",
 "features": [
