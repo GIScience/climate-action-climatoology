@@ -1,6 +1,7 @@
 from logging.config import fileConfig
 from typing import Optional
 
+import alembic_postgresql_enum  # noqa: F401 (this is required to activate enum checks)
 from alembic import context
 from alembic_utils.replaceable_entity import register_entities
 from celery.backends.database.session import ResultModelBase

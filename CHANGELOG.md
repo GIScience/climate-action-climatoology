@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.3...main)
 
+### Fix
+- Bring back read-support for old `CHART`-modality artifacts until the web-app also removes support for
+  it ([#279](https://gitlab.heigit.org/climate-action/climatoology/-/issues/279))
+
 ### Changed
 
 - For vector artifacts with discrete legends, the labels in the legend must at least include all the labels in the
