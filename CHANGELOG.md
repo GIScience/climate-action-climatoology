@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.3...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.4...main)
+
+## [7.0.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.4) - 2026-03-11
 
 ### Fix
 - Bring back read-support for old `CHART`-modality artifacts until the web-app also removes support for
