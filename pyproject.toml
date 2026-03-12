@@ -40,6 +40,7 @@ dependencies = [
     "alembic-postgresql-enum (>=1.7.0,<2.0.0)",
     "plotly (>=6.0.0,<7.0.0)",
     "rasterstats (>=0.20.0,<0.21.0)",
+    "pycountry (>=24.6.1,<25.0.0)",
 ]
 
 [project.scripts]
@@ -95,6 +96,11 @@ select = [
 
 [tool.coverage.run]
 omit = ["test/*"]
+
+[tool.pytest]
+filterwarnings = [
+    "error:Computed default.*:UserWarning:alembic"
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

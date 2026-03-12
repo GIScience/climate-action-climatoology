@@ -46,6 +46,7 @@ from climatoology.base.computation import (
     ComputationState,
 )
 from climatoology.base.plugin_info import (
+    DEFAULT_LANGUAGE,
     AssetsFinal,
     Concern,
     MiscSource,
@@ -111,7 +112,7 @@ def frozen_time():
 
 @pytest.fixture
 def default_plugin_key() -> str:
-    return 'test_plugin;3.1.0'
+    return 'test_plugin-3.1.0-en'
 
 
 @pytest.fixture
@@ -127,9 +128,9 @@ def default_plugin_info(default_input_model) -> PluginInfo:
         ],
         icon=Path(__file__).parent / 'resources/test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser='Test teaser that is meant to do nothing.',
-        purpose=Path(__file__).parent / 'resources/test_purpose.md',
-        methodology=Path(__file__).parent / 'resources/test_methodology.md',
+        teaser={'en': (Path(__file__).parent / 'resources/locales/en/teaser.txt').read_text()},
+        purpose={'en': Path(__file__).parent / 'resources/locales/en/purpose.md'},
+        methodology={'en': Path(__file__).parent / 'resources/locales/en/methodology.md'},
         sources_library=Path(__file__).parent / 'resources/test.bib',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
@@ -145,8 +146,19 @@ def default_plugin_info_enriched(default_operator) -> PluginInfoEnriched:
 
 @pytest.fixture
 def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoFinal:
+    language = DEFAULT_LANGUAGE
+    teaser = default_plugin_info_enriched.teaser[language]
+    purpose = default_plugin_info_enriched.purpose[language]
+    methodology = default_plugin_info_enriched.methodology[language]
     assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
-    default_info_final = PluginInfoFinal(**default_plugin_info_enriched.model_dump(exclude={'assets'}), assets=assets)
+    default_info_final = PluginInfoFinal(
+        **default_plugin_info_enriched.model_dump(exclude={'teaser', 'purpose', 'methodology', 'assets'}),
+        language=language,
+        teaser=teaser,
+        purpose=purpose,
+        methodology=methodology,
+        assets=assets,
+    )
     return default_info_final
 
 
@@ -338,7 +350,7 @@ def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
 
 @pytest.fixture
 def default_computation_info(
-    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact_enriched, default_plugin_info
+    general_uuid, default_aoi_feature_geojson_pydantic, default_artifact_enriched, default_plugin_info_final
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
@@ -350,7 +362,11 @@ def default_computation_info(
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact_enriched],
-        plugin_info=ComputationPluginInfo(id=default_plugin_info.id, version=default_plugin_info.version),
+        plugin_info=ComputationPluginInfo(
+            id=default_plugin_info_final.id,
+            version=default_plugin_info_final.version,
+            language=default_plugin_info_final.language,
+        ),
     )
 
 

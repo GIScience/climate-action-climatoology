@@ -1,0 +1,1 @@
+A default artifact alternative meant for display only.

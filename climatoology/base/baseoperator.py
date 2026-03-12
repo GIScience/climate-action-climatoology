@@ -68,6 +68,13 @@ class BaseOperator(ABC, Generic[T_co]):
             'The DemoModel is not the same as the model expected by the Operator'
         )
 
+        read_purpose = {lang: f.read_text() for lang, f in info.purpose.items()}
+        read_methodology = {lang: f.read_text() for lang, f in info.methodology.items()}
+
+        demo_config = DemoConfig(params=info.demo_params_as_dict, name=info.demo_aoi.name, aoi=info.demo_aoi.geojson)
+        operator_schema = self._model.model_json_schema()
+        library_version = climatoology.__version__
+
         info_enriched = PluginInfoEnriched(
             name=info.name,
             authors=info.authors,
@@ -78,13 +85,13 @@ class BaseOperator(ABC, Generic[T_co]):
             id=info.id,
             version=info.version,
             repository=info.repository,
-            purpose=info.purpose.read_text(),
-            methodology=info.methodology.read_text(),
+            purpose=read_purpose,
+            methodology=read_methodology,
             sources=info.sources,
             assets=info.assets,
-            operator_schema=self._model.model_json_schema(),
-            demo_config=DemoConfig(params=info.demo_params_as_dict, name=info.demo_aoi.name, aoi=info.demo_aoi.geojson),
-            library_version=climatoology.__version__,
+            operator_schema=operator_schema,
+            demo_config=demo_config,
+            library_version=library_version,
         )
         log.debug(f'{info.name} info constructed')
         return info_enriched

@@ -24,14 +24,14 @@ def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifac
 
 def test_minio_save_display_file(mocked_object_store, general_uuid, default_artifact_enriched):
     artifact = default_artifact_enriched.model_copy(deep=True)
-    artifact.attachments = Attachments(display_filename='test_methodology.md')
+    artifact.attachments = Attachments(display_filename='test_display_file.md')
     store_id = mocked_object_store.save(artifact, file_dir=TEST_RESOURCES_DIR)
     assert len(list(mocked_object_store.client.list_objects('minio_test_bucket', recursive=True))) == 2
     with tempfile.TemporaryDirectory() as tmpdirname:
         fetched_file = mocked_object_store.fetch(
             correlation_uuid=general_uuid, store_id=store_id[1], file_name=f'{tmpdirname}/test_file.md'
         )
-        assert fetched_file.read_text() == 'This is a test base'
+        assert fetched_file.read_text() == 'A default artifact alternative meant for display only.'
 
 
 def test_minio_save_content_type(mocked_object_store, default_artifact_enriched, mocker):

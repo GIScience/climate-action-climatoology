@@ -2,8 +2,10 @@ import uuid
 from datetime import timedelta
 
 import pytest
+from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, Attachments, Legend
@@ -11,6 +13,8 @@ from climatoology.base.computation import AoiProperties
 from climatoology.base.plugin_info import PluginAuthor
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.computation import ComputationLookupTable
+from climatoology.store.database.models.plugin_info import PluginInfoTable
+from climatoology.store.exception import InfoNotReceivedError
 
 
 def test_info_to_db_and_back(default_backend_db, default_plugin_info_final, default_plugin_key):
@@ -23,10 +27,10 @@ def test_info_to_db_and_back(default_backend_db, default_plugin_info_final, defa
 
 def test_get_info_key(backend_with_computation_registered):
     key = backend_with_computation_registered.read_info_key(plugin_id='test_plugin', plugin_version=Version(3, 1, 0))
-    assert key == 'test_plugin;3.1.0'
+    assert key == 'test_plugin-3.1.0-en'
 
     key = backend_with_computation_registered.read_info_key(plugin_id='test_plugin')
-    assert key == 'test_plugin;3.1.0'
+    assert key == 'test_plugin-3.1.0-en'
 
     key = backend_with_computation_registered.read_info_key(plugin_id='test_plugin', plugin_version=Version(99, 1, 0))
     assert key is None
@@ -102,6 +106,32 @@ def test_read_info_latest_version_by_default(default_backend_db, default_plugin_
 
     read_info = default_backend_db.read_info(plugin_id=default_plugin_info_final.id)
     assert read_info == newer_plugin_info
+
+
+def test_read_info_with_language(default_backend_db, default_plugin_info_final):
+    second_language = default_plugin_info_final.model_copy(deep=True)
+    second_language.teaser = 'Das ist ein Teaser auf Deutsch.'
+    second_language.purpose = 'DE purpose'
+    second_language.methodology = 'DE methodology'
+    second_language.language = LanguageAlpha2('de')
+
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
+    _ = default_backend_db.write_info(info=second_language)
+
+    # default language
+    read_info = default_backend_db.read_info(plugin_id=default_plugin_info_final.id)
+    assert read_info == default_plugin_info_final
+
+    # custom language
+    read_info = default_backend_db.read_info(plugin_id=default_plugin_info_final.id, language='de')
+    assert read_info == second_language
+
+
+def test_read_info_with_unknown_language(default_backend_db, default_plugin_info_final):
+    _ = default_backend_db.write_info(info=default_plugin_info_final)
+
+    with pytest.raises(InfoNotReceivedError):
+        _ = default_backend_db.read_info(plugin_id=default_plugin_info_final.id, language='aa')
 
 
 def test_read_info_latest_version_by_default_with_commit_hash(default_backend_db, default_plugin_info_final):
@@ -242,7 +272,7 @@ def test_register_computation_demo(backend_with_computation_successful, default_
         correlation_uuid=user_corr_id,
         requested_params=default_computation_info.params,
         aoi=default_computation_info.aoi,
-        plugin_key=f'{default_computation_info.plugin_info.id};{default_computation_info.plugin_info.version}',
+        plugin_key=f'{default_computation_info.plugin_info.id}-{default_computation_info.plugin_info.version}-{default_computation_info.plugin_info.language}',
         computation_shelf_life=None,
         is_demo=True,
     )
@@ -455,3 +485,24 @@ def test_outdated_db_refuses_startup(db_with_postgis, alembic_runner):
         BackendDatabase(
             connection_string=db_with_postgis, user_agent='Test Climatoology Backend', assert_db_status=True
         )
+
+
+def test_upload_info_old_plugin_single_language(default_backend_db, default_plugin_info_final):
+    """
+    This test simulates the `_upload_info` method of the `BackendDatabase` from before the language feature was added,
+    to ensure that old plugins will still be able to upload their info to the new database schema
+    """
+    old_plugin_info = default_plugin_info_final.model_dump(mode='json', exclude={'authors', 'language'})
+    old_plugin_info['latest'] = True
+
+    with Session(default_backend_db.engine) as session:
+        info_insert_stmt = (
+            insert(PluginInfoTable)
+            .values(**old_plugin_info)
+            .on_conflict_do_update(index_elements=[PluginInfoTable.key], set_=old_plugin_info)
+            .returning(PluginInfoTable.key)
+        )
+        insert_return = session.execute(info_insert_stmt)
+        info_key = insert_return.scalar_one()
+
+    assert info_key == 'test_plugin-3.1.0-en'

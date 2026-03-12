@@ -17,7 +17,7 @@ from climatoology.base.computation import ComputationState
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyViewBase
 from climatoology.store.database.models.computation import ComputationLookupTable, ComputationTable
-from climatoology.store.database.models.info import PluginInfoTable
+from climatoology.store.database.models.plugin_info import PluginInfoTable
 
 
 class RawGeometry(Geometry):

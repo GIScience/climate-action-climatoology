@@ -10,10 +10,12 @@ from uuid import UUID
 import geojson_pydantic
 from celery.states import FAILURE, PENDING, RETRY, REVOKED, STARTED, SUCCESS
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
 from climatoology.base import PydanticSemver
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
+from climatoology.base.plugin_info import DEFAULT_LANGUAGE
 
 
 class ComputationResources(BaseModel):
@@ -71,6 +73,10 @@ class ComputationPluginInfo(BaseModel):
             examples=[str(Version(0, 0, 1))],  # https://github.com/pydantic/pydantic/issues/12280
         ),
     ]
+    language: LanguageAlpha2 = Field(
+        description='What language is the computation in?',
+        examples=['en', 'de'],
+    )
 
 
 class ComputationState(StrEnum):
@@ -154,7 +160,7 @@ class ComputationInfo(BaseModel):
     plugin_info: ComputationPluginInfo = Field(
         description='Basic information on the plugin that produced the computation.',
         examples=[
-            ComputationPluginInfo(id='example_plugin', version=Version(0, 0, 1)),
+            ComputationPluginInfo(id='example_plugin', version=Version(0, 0, 1), language=DEFAULT_LANGUAGE),
         ],
     )
     status: Optional[ComputationState] = Field(
