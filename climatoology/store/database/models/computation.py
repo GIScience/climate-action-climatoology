@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from climatoology.store.database.models import DbUuidAsString
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
-from climatoology.store.database.models.info import PluginInfoTable
+from climatoology.store.database.models.plugin_info import PluginInfoTable
 
 COMPUTATION_DEDUPLICATION_CONSTRAINT = 'computation_deduplication_constraint'
 

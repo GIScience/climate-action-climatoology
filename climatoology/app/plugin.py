@@ -2,6 +2,7 @@ from typing import Optional
 
 from celery import Celery
 from kombu.entity import Exchange, Queue
+from pydantic_extra_types.language_code import LanguageAlpha2
 from sqlalchemy.orm import Session
 
 import climatoology
@@ -12,7 +13,7 @@ from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal
 from climatoology.store.database.database import BackendDatabase
-from climatoology.store.database.models.info import PluginInfoTable
+from climatoology.store.database.models.plugin_info import PluginInfoTable
 from climatoology.store.object_store import MinioStorage, Storage
 
 log = get_climatoology_logger(__name__)
@@ -123,11 +124,22 @@ def _version_is_compatible(info: PluginInfoEnriched, db: BackendDatabase, celery
     return True
 
 
-def synch_info(info: PluginInfoEnriched, db: BackendDatabase, storage: Storage) -> PluginInfoFinal:
+def synch_info(
+    info: PluginInfoEnriched, db: BackendDatabase, storage: Storage
+) -> dict[LanguageAlpha2, PluginInfoFinal]:
     final_assets = storage.write_assets(plugin_id=info.id, assets=info.assets)
 
-    final_info = PluginInfoFinal(**info.model_dump(exclude={'assets'}), assets=final_assets)
+    synced_info = dict()
+    for lang in info.teaser.keys():
+        final_info = PluginInfoFinal(
+            **info.model_dump(exclude={'teaser', 'purpose', 'methodology', 'assets'}),
+            teaser=info.teaser[lang],
+            purpose=info.purpose[lang],
+            methodology=info.methodology[lang],
+            language=lang,
+            assets=final_assets,
+        )
+        _ = db.write_info(info=final_info)
+        synced_info[lang] = final_info
 
-    _ = db.write_info(info=final_info)
-
-    return final_info
+    return synced_info

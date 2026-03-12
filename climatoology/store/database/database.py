@@ -17,7 +17,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, joinedload
 from climatoology.base.artifact import ArtifactEnriched
 from climatoology.base.computation import AoiFeatureModel, ComputationInfo, ComputationPluginInfo
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import PluginAuthor, PluginInfoFinal
+from climatoology.base.plugin_info import DEFAULT_LANGUAGE, PluginAuthor, PluginInfoFinal
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.computation import (
@@ -26,7 +26,7 @@ from climatoology.store.database.models.computation import (
     ComputationTable,
     PluginInfoTable,
 )
-from climatoology.store.database.models.info import (
+from climatoology.store.database.models.plugin_info import (
     PluginAuthorTable,
     PluginInfoAutherLinkTable,
 )
@@ -79,7 +79,9 @@ class BackendDatabase:
     @staticmethod
     def _upload_info(info: PluginInfoFinal, session: Session) -> str:
         info_update_stmt = (
-            update(PluginInfoTable).where(PluginInfoTable.id == info.id, PluginInfoTable.latest).values(latest=False)
+            update(PluginInfoTable)
+            .where(PluginInfoTable.id == info.id, PluginInfoTable.version != info.version, PluginInfoTable.latest)
+            .values(latest=False)
         )
         session.execute(info_update_stmt)
         info_dict = info.model_dump(mode='json', exclude={'authors'}, exclude_none=True)
@@ -112,8 +114,14 @@ class BackendDatabase:
         link_insert_stmt = insert(PluginInfoAutherLinkTable).values(info_author_link).on_conflict_do_nothing()
         session.execute(link_insert_stmt)
 
-    def read_info_key(self, plugin_id: str, plugin_version: Optional[Version] = None) -> Optional[str]:
-        key_stmt = select(PluginInfoTable.key).where(PluginInfoTable.id == plugin_id)
+    def read_info_key(
+        self, plugin_id: str, plugin_version: Optional[Version] = None, language: str = DEFAULT_LANGUAGE
+    ) -> Optional[str]:
+        key_stmt = (
+            select(PluginInfoTable.key)
+            .where(PluginInfoTable.id == plugin_id)
+            .where(PluginInfoTable.language == language)
+        )
         if plugin_version:
             key_stmt = key_stmt.where(PluginInfoTable.version == plugin_version)
         else:
@@ -122,16 +130,19 @@ class BackendDatabase:
             result = session.execute(key_stmt).scalar_one_or_none()
         return result
 
-    def read_info(self, plugin_id: str, plugin_version: Version = None) -> PluginInfoFinal:
+    def read_info(
+        self, plugin_id: str, plugin_version: Version = None, language: str = DEFAULT_LANGUAGE
+    ) -> PluginInfoFinal:
         """Read the plugin info from the database.
 
         :param plugin_id: the id for the plugin of interest
         :param plugin_version: the plugin version to query the info for. Defaults to the latest version
+        :param language: language of the text fields in the plugin info
         :return: An _Info object for the plugin
         """
         log.debug(f'Connecting to the database and reading info for {plugin_id}')
 
-        info_key = self.read_info_key(plugin_id=plugin_id, plugin_version=plugin_version)
+        info_key = self.read_info_key(plugin_id=plugin_id, plugin_version=plugin_version, language=language)
         if not info_key:
             log.error(f'Info for {plugin_id} not available in database')
             raise InfoNotReceivedError()
@@ -225,6 +236,7 @@ class BackendDatabase:
                 computation_info.plugin_info = ComputationPluginInfo(
                     id=computation_info.plugin.id,
                     version=computation_info.plugin.version,
+                    language=computation_info.plugin.language,
                 )
                 computation_info = ComputationInfo.model_validate(computation_info)
                 log.debug(f'Computation {correlation_uuid} read from database')

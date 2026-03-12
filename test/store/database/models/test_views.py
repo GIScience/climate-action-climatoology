@@ -82,7 +82,7 @@ def test_valid_computations_view_plugin_version(
         correlation_uuid=correlation_uuid,
         requested_params=default_computation_info.requested_params,
         aoi=default_computation_info.aoi,
-        plugin_key=f'{older_plugin_info.id};{older_plugin_info.version}',
+        plugin_key=f'{older_plugin_info.id}-{older_plugin_info.version}-{older_plugin_info.language}',
         computation_shelf_life=older_plugin_info.computation_shelf_life,
     )
 
@@ -282,7 +282,7 @@ def test_usage_view_first_plugin_day_division_by_zero(
         correlation_uuid=uuid.uuid4(),
         requested_params={},
         aoi=default_aoi_feature_geojson_pydantic,
-        plugin_key=f'{default_plugin_info_final.id};{default_plugin_info_final.version}',
+        plugin_key=f'{default_plugin_info_final.id}-{default_plugin_info_final.version}-{default_plugin_info_final.language}',
         computation_shelf_life=default_plugin_info_final.computation_shelf_life,
     )
 

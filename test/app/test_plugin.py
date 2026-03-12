@@ -4,10 +4,13 @@ from unittest.mock import patch
 import pytest
 from celery import Celery
 from semver import Version
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from climatoology.app.exception import VersionMismatchError
-from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id
+from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id, synch_info
 from climatoology.base.exception import InputValidationError
+from climatoology.store.database.models.plugin_info import PluginInfoTable
 
 
 def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):
@@ -156,3 +159,20 @@ def test_version_matches_higher_not_alone(default_plugin, default_backend_db, de
 def test_extract_plugin_id():
     computed_plugin_id = extract_plugin_id('a@b')
     assert computed_plugin_id == 'a'
+
+
+def test_synch_info_multiple_languages(default_backend_db, default_plugin_info_enriched, mocked_object_store):
+    plugin_info_enriched = default_plugin_info_enriched.model_copy(deep=True)
+    plugin_info_enriched.teaser.update({'de': 'Das ist ein Teaser auf Deutsch.'})
+    plugin_info_enriched.purpose.update({'de': 'DE purpose'})
+    plugin_info_enriched.methodology.update({'de': 'DE methodology'})
+
+    synched_info = synch_info(info=plugin_info_enriched, db=default_backend_db, storage=mocked_object_store)
+
+    assert synched_info.keys() == {'de', 'en'}
+
+    with Session(default_backend_db.engine) as session:
+        select_stmt = select(PluginInfoTable.language, PluginInfoTable.latest)
+        infos = session.execute(select_stmt).all()
+
+    assert infos == [('en', True), ('de', True)]

@@ -1,6 +1,7 @@
 import json
 import re
 import tomllib
+import warnings
 from datetime import timedelta
 from enum import StrEnum
 from functools import cached_property
@@ -10,6 +11,7 @@ from typing import Annotated, Any, List, Literal, Optional, Set, Union
 
 import bibtexparser
 import geojson_pydantic
+import pycountry
 from PIL import Image
 from pydantic import (
     BaseModel,
@@ -17,12 +19,14 @@ from pydantic import (
     Field,
     FilePath,
     HttpUrl,
+    StringConstraints,
     ValidationError,
     computed_field,
     conlist,
     model_validator,
 )
 from pydantic.json_schema import JsonSchemaValue
+from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
 from climatoology.base import PydanticSemver
@@ -31,6 +35,7 @@ from climatoology.base.logging import get_climatoology_logger
 log = get_climatoology_logger(__name__)
 
 DEMO_AOI_PATH = Path(__file__).parent.parent / 'resources/Heidelberg_AOI.geojson'
+DEFAULT_LANGUAGE = LanguageAlpha2('en')
 
 
 class Concern(StrEnum):
@@ -190,13 +195,12 @@ class _PluginBaseInfo(BaseModel):
         'group multiple plugins.',
         examples=[{Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION}],
     )
-    teaser: str = Field(
-        description='A single sentence teaser for the plugins functionality. The sentence must be between 20 and 150 '
-        'characters long, start with an upper case letter and end with a full stop.',
-        examples=['Calculate your path to become CO2 neutral by 2030.'],
-        min_length=20,
-        max_length=150,
-        pattern='^[A-Z].*\\.$',
+    teaser: dict[
+        LanguageAlpha2, Annotated[str, StringConstraints(min_length=20, max_length=150, pattern='^[A-Z].*\\.$')]
+    ] = Field(
+        description='A dictionary of single sentence teasers for the plugins functionality, in each available language.'
+        'The sentence must be between 20 and 150 characters long, start with an upper case letter and end with a full stop.',
+        examples=[{'en': 'A valid teaser that starts with A.'}],
     )
     computation_shelf_life: Optional[timedelta] = Field(
         description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
@@ -210,13 +214,13 @@ class _PluginBaseInfo(BaseModel):
 class PluginInfo(_PluginBaseInfo):
     """A dataclass to provide the basic information about a plugin."""
 
-    purpose: FilePath = Field(
-        description='A markdown file that describes: What will this plugin accomplish?',
-        examples=['purpose.md'],
+    purpose: dict[LanguageAlpha2, FilePath] = Field(
+        description='A dictionary of markdown files that describe, in each available language: What will this plugin accomplish?',
+        examples=[{'en': Path('purpose_en.md'), LanguageAlpha2('de'): Path('purpose_de.md')}],
     )
-    methodology: FilePath = Field(
-        description='A markdown file that explains: How does this plugin achieve its goal?',
-        examples=['methodology.md'],
+    methodology: dict[LanguageAlpha2, FilePath] = Field(
+        description='A dictionary of markdown files that explain, in each available language: How does this plugin achieve its goal?',
+        examples=[{'en': Path('methodology.md')}],
     )
     icon: FilePath = Field(description='The path to the icon image.', examples=[Path('icon.png')])
     sources_library: Optional[FilePath] = Field(
@@ -297,6 +301,12 @@ class PluginInfo(_PluginBaseInfo):
         assert self.assets, "assets weren't created correctly"
         assert isinstance(self.sources, list), 'there was a problem generating the source list for the plugin'
         assert isinstance(self.demo_params_as_dict, dict), "the demo input parameters couldn't be loaded"
+        assert DEFAULT_LANGUAGE in self.teaser.keys(), (
+            f'{DEFAULT_LANGUAGE.name} localisation required, only {set(self.teaser.keys())} given'
+        )
+        assert self.teaser.keys() == self.purpose.keys() == self.methodology.keys(), (
+            f'Localisation-set between string fields not aligned: teaser: {set(self.teaser.keys())}, purpose: {set(self.purpose.keys())}, methodology: {set(self.methodology.keys())}'
+        )
 
         return self
 
@@ -317,13 +327,13 @@ class PluginInfoEnriched(_PluginBaseInfo):
         description='The link to the source code of the plugin.',
         examples=[HttpUrl('https://gitlab.heigit.org/climate-action/net_zero')],
     )
-    purpose: str = Field(
-        description='What will this plugin accomplish?',
-        examples=['This plugin provides information on a special aspect of climate action.'],
+    purpose: dict[LanguageAlpha2, str] = Field(
+        description='A dictionary of strings that describe, in each available language: what will this plugin accomplish?',
+        examples=[{'en': 'This plugin provides information on a special aspect of climate action.'}],
     )
-    methodology: str = Field(
-        description='How does this plugin achieve its goal?',
-        examples=['This plugin uses a combination of data source A and method B to accomplish the purpose.'],
+    methodology: dict[LanguageAlpha2, str] = Field(
+        description='A dictionary of strings that describe, in each available language: how does this plugin achieve its goal?',
+        examples=[{'en': 'This plugin uses a combination of data source A and method B to accomplish the purpose.'}],
     )
     sources: list[Source] = Field(
         description='A list of sources that were used in the process or are related. ',
@@ -394,6 +404,26 @@ class PluginInfoEnriched(_PluginBaseInfo):
 
 
 class PluginInfoFinal(PluginInfoEnriched):
+    language: LanguageAlpha2 = Field(
+        description='In what language are the text fields of this info instance?',
+        examples=['en', 'de'],
+    )
+    teaser: str = Field(
+        description='A single sentence teaser for the plugins functionality. The sentence must be between 20 and 150 '
+        'characters long, start with an upper case letter and end with a full stop.',
+        examples=['Calculate your path to become CO2 neutral by 2030.'],
+        min_length=20,
+        max_length=150,
+        pattern='^[A-Z].*\\.$',
+    )
+    purpose: str = Field(
+        description='What will this plugin accomplish?',
+        examples=['This plugin provides information on a special aspect of climate action.'],
+    )
+    methodology: str = Field(
+        description='How does this plugin achieve its goal?',
+        examples=['This plugin uses a combination of data source A and method B to accomplish the purpose.'],
+    )
     assets: AssetsFinal = Field(description='Static assets', examples=[AssetsFinal(icon='icon.png')])
 
 
@@ -451,9 +481,11 @@ def generate_plugin_info(
     name: str,
     authors: List[PluginAuthor],
     concerns: Set[Concern],
-    teaser: str,
-    purpose: Path,
-    methodology: Path,
+    teaser: Optional[str] = None,
+    purpose: Optional[Path] = None,
+    methodology: Optional[Path] = None,
+    lang: LanguageAlpha2 = DEFAULT_LANGUAGE,
+    localisation_directory: Optional[Path] = Path('resources') / 'locales',
     icon: Path,
     demo_input_parameters: BaseModel,
     demo_aoi: CustomAOI = CustomAOI(name='Heidelberg Demo', path=DEMO_AOI_PATH),
@@ -469,12 +501,22 @@ def generate_plugin_info(
       considerable amount of contributions to the plugin. The list should adhere to the research-paper order i.e. by
       amount of contributions, descending.
     :param concerns: The domains or topics the plugin is tackling.
-    :param teaser: A single sentence teaser for the plugins' functionality. The sentence must be between 20 and 150
-      characters long, start with an upper case letter and end with a full stop.
+    :param teaser: A single sentence teaser for the plugin's functionality. The sentence must be between 20 and 150
+      characters long, start with an upper case letter and end with a full stop. If not provided, the teaser will be
+      read from `teaser.txt` files within language folders in the `localisation_directory`.
     :param purpose: What will this plugin accomplish? Provide a text file that can have
-      [markdown](https://www.markdownguide.org/) formatting.
+      [markdown](https://www.markdownguide.org/) formatting. If not provided, the purpose will be read from `purpose.md`
+      files within language folders in the `localisation_directory`.
     :param methodology: How does this plugin achieve its goal? Provide a text file that can have
-      [markdown](https://www.markdownguide.org/) formatting.
+      [markdown](https://www.markdownguide.org/) formatting. If not provided, the methodology will be read from
+      `methodology.md` files within language folders in the `localisation_directory`.
+    :param lang: The 2 letter language code of the plugin info text. Will only be used if `teaser`, `purpose` and
+      `methodology` are all provided. Defaults to `en`.
+    :param localisation_directory: Use this parameter to localise your plugin. It replaces the deprecated input of
+      `teaser`, `purpose` and `methodology`. The path must point to a folder containing dedicated language folders for
+      each translation of the teaser, purpose and methodology. The path has to follow the structure:
+      {localisation_directory}/{lang}/{files} with files being `teaser.txt`, `purpose.md`, and `methodology.md`.
+      Defaults to ./resources/locales/ .
     :param icon: The path to an image or icon that can be used to represent the plugin. Make sure the file is committed
       to the repository and HeiGIT has all legal rights to it (without attribution!).
     :param demo_input_parameters: the input parameters for the plugin.
@@ -490,6 +532,20 @@ def generate_plugin_info(
       plugin. Defaults to all sources.
     :return: A PluginInfo object that can be used to announce the plugin on the platform.
     """
+    if teaser and purpose and methodology:
+        warnings.deprecated(
+            'The use of teaser, purpose and methodology is deprecated. Use `localisation_directory` to localise your plugin.'
+        )
+
+        teaser = {lang: teaser}
+        purpose = {lang: purpose}
+        methodology = {lang: methodology}
+    else:
+        # This is a temporary work-around for backward compatibility. Once providing teaser, purpose and methodology
+        # individually to this function becomes unsupported, this function will go into `PluginInfo` where the
+        # individual fields (teaser, purpose, methodology) become computed fields and the input
+        # `localisation_directory` becomes a new optional input parameter.
+        teaser, purpose, methodology = extract_info_localisations(localisation_directory=localisation_directory)
 
     return PluginInfo(
         name=name,
@@ -506,3 +562,26 @@ def generate_plugin_info(
         demo_input_parameters=demo_input_parameters,
         demo_aoi=demo_aoi,
     )
+
+
+def extract_info_localisations(localisation_directory: Path) -> tuple[dict, dict, dict]:
+    # This function is meant to disappear in the `PluginInfo` object to make these fields computed fields once the
+    # deprecation grace-period is over
+    teaser = {}
+    purpose = {}
+    methodology = {}
+    for lang_path in localisation_directory.iterdir():
+        if lang_path.is_dir():
+            lang = LanguageAlpha2(lang_path.stem)
+            if pycountry.languages.get(alpha_2=lang) is None:
+                log.debug(
+                    f'The localisation directory contains folder {lang_path} which does not adhere to the two letter '
+                    f'language naming convention. Skipping.'
+                )
+                continue
+
+            teaser[lang] = (lang_path / 'teaser.txt').read_text()
+            purpose[lang] = lang_path / 'purpose.md'
+            methodology[lang] = lang_path / 'methodology.md'
+
+    return teaser, purpose, methodology

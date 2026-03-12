@@ -7,7 +7,8 @@ from pytest_alembic.tests import (  # noqa: F401 don't remove these unused impor
     test_up_down_consistency,
     test_upgrade,
 )
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 
 def test_offline_migration_from_cli():
@@ -30,3 +31,13 @@ def test_online_migration_from_cli(monkeypatch, db_connection_params, db_with_po
     engine = create_engine(db_with_postgis)
     with engine.connect() as connection:
         assert engine.dialect.has_table(connection, 'info')
+
+
+def test_database_migration_values(default_plugin_info_final, alembic_runner, alembic_engine):
+    """This is a convenient test for checking the actual values of migrated columns."""
+    alembic_runner.migrate_up_to('head')
+    with Session(alembic_engine) as session:
+        plugin_key = session.execute(
+            text(f"select key from ca_base.plugin_info where id='{default_plugin_info_final.id}'")
+        ).scalar_one()
+    assert plugin_key == 'test_plugin-3.1.0-en'

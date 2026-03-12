@@ -3,12 +3,13 @@ from typing import List, Optional, Set
 
 import sqlalchemy
 from pydantic.json_schema import JsonSchemaValue
+from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
-from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, Table, asc
+from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, String, Table, asc
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.base.plugin_info import AssetsFinal, Concern, DemoConfig, PluginState
+from climatoology.base.plugin_info import DEFAULT_LANGUAGE, AssetsFinal, Concern, DemoConfig, PluginState
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
@@ -35,9 +36,14 @@ class PluginInfoTable(ClimatoologyTableBase):
     __tablename__ = 'plugin_info'
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
-    key: Mapped[str] = mapped_column(Computed("id::text || ';'::text || version::text"), primary_key=True)
+    key: Mapped[str] = mapped_column(
+        Computed("id::text || '-'::text || version::text || '-'::text || language::text"), primary_key=True
+    )
     id: Mapped[str]
     version: Mapped[Version] = mapped_column(DbSemver)
+    language: Mapped[LanguageAlpha2] = mapped_column(String(2), server_default=DEFAULT_LANGUAGE)
+    # Note: the "long" layout of this table having one entry per language is deliberate. The string fields below
+    # (e.g. methodology) cannot be JSON because they require multiline text which is not available for JSON values.
     name: Mapped[str]
     authors: Mapped[List[PluginAuthorTable]] = relationship(
         secondary=PluginInfoAutherLinkTable, order_by=asc(PluginInfoAutherLinkTable.c.author_seat)

@@ -19,6 +19,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   data ([#278](https://gitlab.heigit.org/climate-action/climatoology/-/issues/278))
 - Remove "Demo" from the name of the default demo AOI
 
+### Added
+
+- Plugin info text can now be supplied in multiple
+  languages ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
+
 ## [7.0.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.3) - 2026-02-12
 
 ### Fix
