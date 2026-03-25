@@ -67,7 +67,7 @@ To make sure the database is up to date, run `poetry run alembic upgrade head`.
 Then run `poetry run alembic revision --autogenerate -m "<headline of your change>"`.
 You should then review the generated file in detail before committing it.
 
-You can also view the migration history with `alembic history`.
+Other useful commands, such as `alembic downgrade <rev>`, `alembic check` and `alembic history` can be found in the [alembic documentation](https://alembic.sqlalchemy.org/en/latest/api/commands.html).
 
 ## Install
 
