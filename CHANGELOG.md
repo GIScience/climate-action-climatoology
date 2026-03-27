@@ -7,9 +7,18 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.4...main)
 
+### Added
+
+- Plugin info text can now be supplied in multiple
+  languages ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
+- Computations can now make use of [GNU gettext](https://www.gnu.org/software/gettext/)
+  via [pybabel](https://babel.pocoo.org/en/latest/cmdline.html) and the new function `tr` and `N_` to translate their
+  results ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
+
 ## [7.0.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.4) - 2026-03-11
 
 ### Fix
+
 - Bring back read-support for old `CHART`-modality artifacts until the web-app also removes support for
   it ([#279](https://gitlab.heigit.org/climate-action/climatoology/-/issues/279))
 
@@ -18,11 +27,6 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - For vector artifacts with discrete legends, the labels in the legend must at least include all the labels in the
   data ([#278](https://gitlab.heigit.org/climate-action/climatoology/-/issues/278))
 - Remove "Demo" from the name of the default demo AOI
-
-### Added
-
-- Plugin info text can now be supplied in multiple
-  languages ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
 
 ## [7.0.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.3) - 2026-02-12
 

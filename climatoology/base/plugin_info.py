@@ -16,6 +16,7 @@ from PIL import Image
 from pydantic import (
     BaseModel,
     ConfigDict,
+    DirectoryPath,
     Field,
     FilePath,
     HttpUrl,
@@ -128,6 +129,11 @@ class Assets(BaseModel):
         ],
         default=dict(),
     )
+    localisation_directory: Optional[DirectoryPath] = Field(
+        description='The directory where your string translation files for GNU `gettext` can be found.',
+        examples=[Path('/path/to/locales')],
+        default=None,
+    )
 
 
 class AssetsFinal(BaseModel):
@@ -229,6 +235,11 @@ class PluginInfo(_PluginBaseInfo):
         examples=[Path('sources_library.json')],
         default=None,
     )
+    localisation_directory: Optional[DirectoryPath] = Field(
+        description='The directory where your string translation files for GNU `gettext` can be found.',
+        examples=[Path('/path/to/locales')],
+        default=None,
+    )
     info_source_keys: Optional[set[str]] = Field(
         description='A list of keys/IDs to optionally subset the sources library to only include the base sources for '
         'the plugin. Defaults to all sources.',
@@ -279,7 +290,9 @@ class PluginInfo(_PluginBaseInfo):
         # The conversion and validation from a dict to the Source type will happen on Asset instantiation
         # noinspection PyTypeChecker
         sources_library: dict[str, Source] = _convert_bib(self.sources_library)
-        assets = Assets(sources_library=sources_library, icon=self.icon)
+        assets = Assets(
+            sources_library=sources_library, icon=self.icon, localisation_directory=self.localisation_directory
+        )
         return assets
 
     @computed_field
@@ -485,7 +498,7 @@ def generate_plugin_info(
     purpose: Optional[Path] = None,
     methodology: Optional[Path] = None,
     lang: LanguageAlpha2 = DEFAULT_LANGUAGE,
-    localisation_directory: Optional[Path] = Path('resources') / 'locales',
+    localisation_directory: Optional[Path] = None,
     icon: Path,
     demo_input_parameters: BaseModel,
     demo_aoi: CustomAOI = CustomAOI(name='Heidelberg Demo', path=DEMO_AOI_PATH),
@@ -541,6 +554,8 @@ def generate_plugin_info(
         purpose = {lang: purpose}
         methodology = {lang: methodology}
     else:
+        if localisation_directory is None:
+            localisation_directory = Path('resources') / 'locales'
         # This is a temporary work-around for backward compatibility. Once providing teaser, purpose and methodology
         # individually to this function becomes unsupported, this function will go into `PluginInfo` where the
         # individual fields (teaser, purpose, methodology) become computed fields and the input
@@ -551,6 +566,7 @@ def generate_plugin_info(
         name=name,
         authors=authors,
         state=state,
+        localisation_directory=localisation_directory,
         concerns=concerns,
         teaser=teaser,
         computation_shelf_life=computation_shelf_life,

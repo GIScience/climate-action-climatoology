@@ -9,6 +9,7 @@ import geoalchemy2
 from alembic.command import check
 from alembic.config import Config
 from alembic.util.exc import CommandError
+from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 from sqlalchemy import NullPool, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -162,6 +163,7 @@ class BackendDatabase:
         aoi: AoiFeatureModel,
         plugin_key: str,
         computation_shelf_life: Optional[timedelta],
+        language: LanguageAlpha2 = DEFAULT_LANGUAGE,
         is_demo: bool = False,
     ) -> UUID:
         with Session(self.engine) as session:
@@ -184,6 +186,7 @@ class BackendDatabase:
                 'requested_params': requested_params,
                 'aoi_geom': aoi.geometry.wkt,
                 'plugin_key': plugin_key,
+                'language': language,
                 'artifact_errors': {},
             }
             computation_insert_stmt = (

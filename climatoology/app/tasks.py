@@ -13,7 +13,9 @@ from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnrich
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import AoiFeatureModel, ComputationInfo, ComputationScope
 from climatoology.base.exception import InputValidationError
+from climatoology.base.i18n import set_language
 from climatoology.base.logging import get_climatoology_logger
+from climatoology.base.plugin_info import DEFAULT_LANGUAGE
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import Storage
 
@@ -57,7 +59,7 @@ class CAPlatformComputeTask(Task):
             (computation_info_store_id,) = self.storage.save(result, file_dir=Path(temp_dir))
             return computation_info_store_id
 
-    def run(self, *, aoi: dict, params: dict, **kwargs: Any) -> dict:
+    def run(self, *, aoi: dict, params: dict, lang: str = DEFAULT_LANGUAGE, **kwargs: Any) -> dict:
         correlation_uuid = UUID(self.request.correlation_id)
 
         if kwargs:
@@ -68,6 +70,8 @@ class CAPlatformComputeTask(Task):
         try:
             self.update_state(task_id=str(correlation_uuid), state='STARTED')
             log.debug('Acquired compute request')
+
+            set_language(lang=lang, localisation_dir=self.operator.info_enriched.assets.localisation_directory)
 
             aoi = AoiFeatureModel(**aoi)
 
