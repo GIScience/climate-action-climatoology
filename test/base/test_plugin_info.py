@@ -24,6 +24,7 @@ def test_generate_plugin_info_function(default_plugin_info: PluginInfo):
         name=default_plugin_info.name,
         authors=default_plugin_info.authors,
         concerns=default_plugin_info.concerns,
+        teaser=default_plugin_info.teaser,
         localisation_directory=Path(__file__).parent.parent / 'resources/locales',
         icon=default_plugin_info.icon,
         demo_input_parameters=default_plugin_info.demo_input_parameters,
@@ -50,7 +51,7 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
         ],
         icon=Path(__file__).parent.parent / 'resources/test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': (Path(__file__).parent.parent / 'resources/locales/en/teaser.txt').read_text()},
+        teaser='Test teaser that is meant to do nothing.',
         purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
         methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
         sources_library=Path(__file__).parent.parent / 'resources/test.bib',
@@ -62,7 +63,7 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
         name=default_plugin_info.name,
         authors=default_plugin_info.authors,
         concerns=default_plugin_info.concerns,
-        teaser=default_plugin_info.teaser['en'],
+        teaser=default_plugin_info.teaser,
         purpose=default_plugin_info.purpose['en'],
         methodology=default_plugin_info.methodology['en'],
         icon=default_plugin_info.icon,
@@ -141,7 +142,7 @@ def test_sources_are_optional(default_input_model):
             )
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': 'Test teaser that is meant to do nothing.'},
+        teaser='Test teaser that is meant to do nothing.',
         purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
         methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
@@ -174,7 +175,7 @@ def test_invalid_sources(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={'en': 'Test teaser that is meant to do nothing.'},
+            teaser='Test teaser that is meant to do nothing.',
             purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
@@ -195,7 +196,7 @@ def test_short_teaser(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={'en': 'This.'},
+            teaser='This.',
             purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
@@ -215,9 +216,7 @@ def test_long_teaser(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={
-                'en': 'This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.'
-            },
+            teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
             purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
@@ -237,7 +236,7 @@ def test_small_start_teaser(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={'en': 'this plugin does nothing.'},
+            teaser='this plugin does nothing.',
             purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
@@ -257,7 +256,7 @@ def test_no_fullstop_teaser(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={'en': 'This plugin does nothing'},
+            teaser='This plugin does nothing',
             purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
@@ -276,7 +275,7 @@ def test_default_plugin_state(default_input_model):
             )
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': 'Test teaser that is meant to do nothing.'},
+        teaser='Test teaser that is meant to do nothing.',
         purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
         methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
@@ -296,7 +295,7 @@ def test_plugin_state(default_input_model):
             )
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': 'Test teaser that is meant to do nothing.'},
+        teaser='Test teaser that is meant to do nothing.',
         purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
         methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
@@ -317,7 +316,7 @@ def test_shelf_life(default_input_model):
             )
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': 'Test teaser that is meant to do nothing.'},
+        teaser='Test teaser that is meant to do nothing.',
         purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
         methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
@@ -338,7 +337,7 @@ def test_repository_url(default_input_model):
             )
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': 'Test teaser that is meant to do nothing.'},
+        teaser='Test teaser that is meant to do nothing.',
         purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
         methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
@@ -359,7 +358,7 @@ def test_english_enforced(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={'de': 'Test teaser that is meant to do nothing.'},
+            teaser='Test teaser that is meant to do nothing.',
             purpose={'de': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'de': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
@@ -369,7 +368,7 @@ def test_english_enforced(default_input_model):
 def test_language_set_equal(default_input_model):
     with pytest.raises(
         expected_exception=ValidationError,
-        match=r"Localisation-set between string fields not aligned: teaser: {'en'}, purpose: {'de'}, methodology: {'fr'}",
+        match=r"Localisation-set between string fields not aligned: purpose: {'de'} and methodology: {'fr'}",
     ):
         _ = PluginInfo(
             name='Test Plugin',
@@ -382,7 +381,7 @@ def test_language_set_equal(default_input_model):
                 )
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-            teaser={'en': 'Test teaser that is meant to do nothing.'},
+            teaser='Test teaser that is meant to do nothing.',
             purpose={'de': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
             methodology={'fr': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
             demo_input_parameters=default_input_model,

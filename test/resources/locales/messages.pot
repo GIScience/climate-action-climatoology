@@ -1,15 +1,14 @@
-# Translations template for test_plugin.
-# Copyright (C) 2026 HeiGIT gGmbH
-# This file is distributed under the same license as the test_plugin
-# project.
+# Translations template for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: test_plugin VERSION\n"
+"Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-26 14:53+0100\n"
+"POT-Creation-Date: 2026-03-27 11:37+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,42 +17,74 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: test/conftest.py:305
+#: test/conftest.py:138
+msgid "Test teaser that is meant to do nothing."
+msgstr ""
+
+#: test/conftest.py:275
+msgid "ID"
+msgstr ""
+
+#: test/conftest.py:275
+msgid "A required integer parameter."
+msgstr ""
+
+#: test/conftest.py:277
+msgid "Execution time"
+msgstr ""
+
+#: test/conftest.py:278
+msgid "The time for the compute to run (in seconds)"
+msgstr ""
+
+#: test/conftest.py:283
+msgid "Name"
+msgstr ""
+
+#: test/conftest.py:283
+msgid "An optional name parameter."
+msgstr ""
+
+#: test/conftest.py:308
 msgid "placeholder_text"
 msgstr ""
 
-#: test/base/artifact/test_artifact_creators.py:10
-#: test/base/artifact/test_artifact_creators.py:34
+#: test/app/test_plugin.py:173
+msgid "OPT1"
+msgstr ""
+
+#: test/base/artifact/test_artifact_creators.py:9
+#: test/base/artifact/test_artifact_creators.py:33
 msgid "index_1"
 msgstr ""
 
-#: test/base/artifact/test_artifact_creators.py:10
-#: test/base/artifact/test_artifact_creators.py:34
+#: test/base/artifact/test_artifact_creators.py:9
+#: test/base/artifact/test_artifact_creators.py:33
 msgid "index_2"
 msgstr ""
 
-#: test/base/artifact/test_artifact_creators.py:10
-#: test/base/artifact/test_artifact_creators.py:34
+#: test/base/artifact/test_artifact_creators.py:9
+#: test/base/artifact/test_artifact_creators.py:33
 msgid "index_name"
 msgstr ""
 
-#: test/base/artifact/test_artifact_creators.py:11
-#: test/base/artifact/test_artifact_creators.py:35
+#: test/base/artifact/test_artifact_creators.py:10
+#: test/base/artifact/test_artifact_creators.py:34
 msgid "column_1"
 msgstr ""
 
-#: test/base/artifact/test_artifact_creators.py:11
-#: test/base/artifact/test_artifact_creators.py:35
+#: test/base/artifact/test_artifact_creators.py:10
+#: test/base/artifact/test_artifact_creators.py:34
 msgid "column_2"
+msgstr ""
+
+#: test/base/artifact/test_artifact_creators.py:12
+#: test/base/artifact/test_artifact_creators.py:36
+msgid "value_1"
 msgstr ""
 
 #: test/base/artifact/test_artifact_creators.py:13
 #: test/base/artifact/test_artifact_creators.py:37
-msgid "value_1"
-msgstr ""
-
-#: test/base/artifact/test_artifact_creators.py:14
-#: test/base/artifact/test_artifact_creators.py:38
 msgid "value_2"
 msgstr ""
 

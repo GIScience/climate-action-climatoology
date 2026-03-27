@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: test_plugin VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-26 14:53+0100\n"
-"PO-Revision-Date: 2026-03-26 15:16+0100\n"
+"POT-Creation-Date: 2026-03-27 11:37+0100\n"
+"PO-Revision-Date: 2026-03-27 11:38+0100\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -20,41 +20,79 @@ msgstr ""
 "Generated-By: Babel 2.18.0\n"
 "X-Generator: Poedit 3.9\n"
 
-#: test/conftest.py:305
+#: test/conftest.py:138
+msgid "Test teaser that is meant to do nothing."
+msgstr "Deutscher Klappentext mit etwas Länge."
+
+#: test/conftest.py:275
+msgid "ID"
+msgstr "Identifikationsnummer"
+
+#: test/conftest.py:275
+msgid "A required integer parameter."
+msgstr "Eine verpflichtende Ganzzahlangabe."
+
+#: test/conftest.py:277
+msgid "Execution time"
+msgstr "Ausführungsdauer"
+
+#: test/conftest.py:278
+msgid "The time for the compute to run (in seconds)"
+msgstr "Wie lange die Berechnung dauern soll (in Sekunden)"
+
+#: test/conftest.py:283
+msgid "Name"
+msgstr "Der Name"
+
+#: test/conftest.py:283
+msgid "An optional name parameter."
+msgstr "Ein optionaler Parameter."
+
+#: test/conftest.py:308
 msgid "placeholder_text"
 msgstr "German Text"
 
-#: test/base/artifact/test_artifact_creators.py:10
-#: test/base/artifact/test_artifact_creators.py:34
+#: test/app/test_plugin.py:173
+msgid "OPT1"
+msgstr "Option Eins"
+
+#: test/base/artifact/test_artifact_creators.py:9
+#: test/base/artifact/test_artifact_creators.py:33
 msgid "index_1"
 msgstr "de_index_1"
 
-#: test/base/artifact/test_artifact_creators.py:10
-#: test/base/artifact/test_artifact_creators.py:34
+#: test/base/artifact/test_artifact_creators.py:9
+#: test/base/artifact/test_artifact_creators.py:33
 msgid "index_2"
 msgstr "de_index_2"
 
-#: test/base/artifact/test_artifact_creators.py:10
-#: test/base/artifact/test_artifact_creators.py:34
+#: test/base/artifact/test_artifact_creators.py:9
+#: test/base/artifact/test_artifact_creators.py:33
 msgid "index_name"
 msgstr "de_index_name"
 
-#: test/base/artifact/test_artifact_creators.py:11
-#: test/base/artifact/test_artifact_creators.py:35
+#: test/base/artifact/test_artifact_creators.py:10
+#: test/base/artifact/test_artifact_creators.py:34
 msgid "column_1"
 msgstr "de_column_1"
 
-#: test/base/artifact/test_artifact_creators.py:11
-#: test/base/artifact/test_artifact_creators.py:35
+#: test/base/artifact/test_artifact_creators.py:10
+#: test/base/artifact/test_artifact_creators.py:34
 msgid "column_2"
 msgstr "de_column_2"
 
-#: test/base/artifact/test_artifact_creators.py:13
-#: test/base/artifact/test_artifact_creators.py:37
+#: test/base/artifact/test_artifact_creators.py:12
+#: test/base/artifact/test_artifact_creators.py:36
 msgid "value_1"
 msgstr "de_value_1"
 
-#: test/base/artifact/test_artifact_creators.py:14
-#: test/base/artifact/test_artifact_creators.py:38
+#: test/base/artifact/test_artifact_creators.py:13
+#: test/base/artifact/test_artifact_creators.py:37
 msgid "value_2"
 msgstr "de_value_2"
+
+#~ msgid "A good string."
+#~ msgstr "Ein guter Text."
+
+#~ msgid "String for Good"
+#~ msgstr "Text der gutes Tut"

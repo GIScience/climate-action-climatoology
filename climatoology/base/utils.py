@@ -40,3 +40,17 @@ def deep_apply_dataframe(
     result_df.columns = [func(c) if c not in exclude_column_names else c for c in result_df.columns]
 
     return result_df
+
+
+def deep_apply_dict(data: dict, func: Callable, target_keys: set) -> dict:
+    result_dict = dict()
+    for k, v in data.items():
+        if isinstance(v, dict):
+            new_value = deep_apply_dict(data=v, func=func, target_keys=target_keys)
+        elif k in target_keys:
+            new_value = func(v)
+        else:
+            new_value = v
+        result_dict[k] = new_value
+
+    return result_dict

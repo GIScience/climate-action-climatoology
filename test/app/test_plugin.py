@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from celery import Celery
+from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 from climatoology.app.exception import VersionMismatchError
 from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id, synch_info
 from climatoology.base.exception import InputValidationError
+from climatoology.base.i18n import N_
 from climatoology.store.database.models.plugin_info import PluginInfoTable
 
 
@@ -163,13 +165,70 @@ def test_extract_plugin_id():
 
 def test_synch_info_multiple_languages(default_backend_db, default_plugin_info_enriched, mocked_object_store):
     plugin_info_enriched = default_plugin_info_enriched.model_copy(deep=True)
-    plugin_info_enriched.teaser.update({'de': 'Das ist ein Teaser auf Deutsch.'})
-    plugin_info_enriched.purpose.update({'de': 'DE purpose'})
-    plugin_info_enriched.methodology.update({'de': 'DE methodology'})
+
+    # Mark an Enum value for translation to ensure it is NOT translated.
+    # Enums cannot be translated because the plugin requires the exact value to be provided, so it can instantiate the
+    # Enum from the value.
+    # In the future, we could manually add a translation mapping to the `$defs` of the dumped operator schema.
+    opt1 = N_('OPT1')
 
     synched_info = synch_info(info=plugin_info_enriched, db=default_backend_db, storage=mocked_object_store)
 
     assert synched_info.keys() == {'de', 'en'}
+    assert synched_info[LanguageAlpha2('de')].teaser == 'Deutscher Klappentext mit etwas Länge.'
+
+    # This is the only place that we assert the json schema
+    assert synched_info[LanguageAlpha2('de')].operator_schema == {
+        '$defs': {
+            'Option': {'enum': [opt1, 'OPT2'], 'title': 'Option', 'type': 'string'},
+            'Mapping': {
+                'properties': {
+                    'key': {
+                        'default': 'value',
+                        'title': 'Key',
+                        'type': 'string',
+                    },
+                },
+                'title': 'Mapping',
+                'type': 'object',
+            },
+        },
+        'properties': {
+            'execution_time': {
+                'default': 0.0,
+                'description': 'Wie lange die Berechnung dauern soll (in Sekunden)',
+                'examples': [10.0],
+                'title': 'Ausführungsdauer',
+                'type': 'number',
+            },
+            'id': {
+                'description': 'Eine verpflichtende Ganzzahlangabe.',
+                'examples': [1],
+                'title': 'Identifikationsnummer',
+                'type': 'integer',
+            },
+            'mapping': {
+                '$ref': '#/$defs/Mapping',
+                'default': {
+                    'key': 'value',
+                },
+            },
+            'name': {
+                'default': 'John Doe',
+                'description': 'Ein optionaler Parameter.',
+                'examples': ['John Doe'],
+                'title': 'Der Name',
+                'type': 'string',
+            },
+            'option': {
+                '$ref': '#/$defs/Option',
+                'default': 'OPT1',
+            },
+        },
+        'required': ['id'],
+        'title': 'TestModel',
+        'type': 'object',
+    }
 
     with Session(default_backend_db.engine) as session:
         select_stmt = select(PluginInfoTable.language, PluginInfoTable.latest)

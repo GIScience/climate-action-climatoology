@@ -46,7 +46,7 @@ from climatoology.base.computation import (
     ComputationScope,
     ComputationState,
 )
-from climatoology.base.i18n import set_language, tr
+from climatoology.base.i18n import N_, set_language, tr
 from climatoology.base.plugin_info import (
     DEFAULT_LANGUAGE,
     AssetsFinal,
@@ -135,10 +135,7 @@ def default_plugin_info(default_input_model) -> PluginInfo:
         ],
         icon=Path(__file__).parent / 'resources/test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={
-            'en': (Path(__file__).parent / 'resources/locales/en/teaser.txt').read_text(),
-            'de': (Path(__file__).parent / 'resources/locales/de/teaser.txt').read_text(),
-        },
+        teaser=N_('Test teaser that is meant to do nothing.'),
         purpose={
             'en': Path(__file__).parent / 'resources/locales/en/purpose.md',
             'de': Path(__file__).parent / 'resources/locales/de/purpose.md',
@@ -164,7 +161,7 @@ def default_plugin_info_enriched(default_operator) -> PluginInfoEnriched:
 @pytest.fixture
 def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoFinal:
     language = DEFAULT_LANGUAGE
-    teaser = default_plugin_info_enriched.teaser[language]
+    teaser = default_plugin_info_enriched.teaser
     purpose = default_plugin_info_enriched.purpose[language]
     methodology = default_plugin_info_enriched.methodology[language]
     assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
@@ -180,9 +177,9 @@ def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoFinal:
 
 
 @pytest.fixture
-def default_plugin_info_final_de(default_plugin_info_enriched) -> PluginInfoFinal:
+def default_plugin_info_final_de(default_plugin_info_enriched, set_to_german) -> PluginInfoFinal:
     language = LanguageAlpha2('de')
-    teaser = default_plugin_info_enriched.teaser[language]
+    teaser = tr(default_plugin_info_enriched.teaser)
     purpose = default_plugin_info_enriched.purpose[language]
     methodology = default_plugin_info_enriched.methodology[language]
     assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
@@ -264,18 +261,29 @@ def extensive_artifact_enriched(extensive_artifact, general_uuid) -> ArtifactEnr
     )
 
 
+class Option(StrEnum):
+    OPT1 = 'OPT1'
+    OPT2 = 'OPT2'
+
+
+class Mapping(BaseModel):
+    key: str = 'value'
+
+
 class TestModel(BaseModel):
     __test__ = False
-    id: int = Field(title='ID', description='A required integer parameter.', examples=[1])
+    id: int = Field(title=N_('ID'), description=N_('A required integer parameter.'), examples=[1])
     execution_time: float = Field(
-        title='Execution time',
-        description='The time for the compute to run (in seconds)',
+        title=N_('Execution time'),
+        description=N_('The time for the compute to run (in seconds)'),
         examples=[10.0],
         default=0.0,
     )
     name: str = Field(
-        title='Name', description='An optional name parameter.', examples=['John Doe'], default='John Doe'
+        title=N_('Name'), description=N_('An optional name parameter.'), examples=['John Doe'], default='John Doe'
     )
+    option: Option = Option.OPT1
+    mapping: Mapping = Mapping()
 
 
 @pytest.fixture
@@ -400,7 +408,7 @@ def default_computation_info(
         deduplication_key=uuid.UUID('412bef28-577e-2aa1-5163-77ec18d1acc6'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
-        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
+        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0, 'option': 'OPT1', 'mapping': {'key': 'value'}},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact_enriched],
@@ -423,7 +431,7 @@ def default_computation_info_de(
         deduplication_key=uuid.UUID('c7e7c6e5-af43-9ca3-e02d-de41280fcd0b'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
-        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
+        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0, 'option': 'OPT1', 'mapping': {'key': 'value'}},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
         artifacts=[default_artifact_enriched_de],

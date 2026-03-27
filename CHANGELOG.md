@@ -9,11 +9,12 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Added
 
-- Plugin info text can now be supplied in multiple
-  languages ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
-- Computations can now make use of [GNU gettext](https://www.gnu.org/software/gettext/)
-  via [pybabel](https://babel.pocoo.org/en/latest/cmdline.html) and the new function `tr` and `N_` to translate their
-  results ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
+- Plugin info text and computations can now make use of [GNU gettext](https://www.gnu.org/software/gettext/)
+  via [pybabel](https://babel.pocoo.org/en/latest/cmdline.html) and the new functions `tr` and `N_` to translate their
+  results.
+  A special function `translate_dataframe` is provided as a convenience helper.
+  See the plugin showcase for an example of how to use this
+  functionality ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
 
 ## [7.0.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.4) - 2026-03-11
 

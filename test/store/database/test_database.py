@@ -167,7 +167,7 @@ def test_read_info_operator_schema_order_is_retained(default_backend_db, default
         plugin_id=default_plugin_info_final.id, plugin_version=default_plugin_info_final.version
     )
 
-    assert list(read_info.operator_schema['properties'].keys()) == ['id', 'execution_time', 'name']
+    assert list(read_info.operator_schema['properties'].keys()) == ['id', 'execution_time', 'name', 'option', 'mapping']
 
 
 def test_add_authors(default_backend_db, default_plugin_info_final):
