@@ -26,7 +26,7 @@ def test_valid_computations_view(backend_with_computation_successful, general_uu
     expected_view = {
         'correlation_uuid': general_uuid,
         'plugin_name': 'Test Plugin',
-        'params': {'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
+        'params': {'id': 1, 'name': 'John Doe', 'execution_time': 0.0, 'option': 'OPT1', 'mapping': {'key': 'value'}},
         'aoi': default_aoi_geom_shapely,
     }
 

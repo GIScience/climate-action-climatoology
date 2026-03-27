@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import DEFAULT_LANGUAGE
-from climatoology.base.utils import deep_apply_dataframe
+from climatoology.base.utils import deep_apply_dataframe, deep_apply_dict
 
 log = get_climatoology_logger(__name__)
 
@@ -81,3 +81,7 @@ def translate_dataframe(
         exclude_column_names=exclude_column_names,
         exclude_columns=exclude_columns,
     )
+
+
+def deep_translate_dict(data: dict, target_keys: set) -> dict:
+    return deep_apply_dict(data=data, func=tr, target_keys=target_keys)

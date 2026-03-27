@@ -10,6 +10,7 @@ from climatoology.app.exception import VersionMismatchError
 from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSettings
 from climatoology.app.tasks import CAPlatformComputeTask
 from climatoology.base.baseoperator import BaseOperator
+from climatoology.base.i18n import deep_translate_dict, set_language, tr
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal
 from climatoology.store.database.database import BackendDatabase
@@ -130,14 +131,21 @@ def synch_info(
     final_assets = storage.write_assets(plugin_id=info.id, assets=info.assets)
 
     synced_info = dict()
-    for lang in info.teaser.keys():
+    for lang in info.purpose.keys():
+        set_language(lang=lang, localisation_dir=info.assets.localisation_directory)
+
+        unchanged_info = info.model_dump(exclude={'teaser', 'purpose', 'methodology', 'assets', 'operator_schema'})
+        translated_teaser = tr(info.teaser)
+        translated_schema = deep_translate_dict(data=info.operator_schema, target_keys={'title', 'description'})
+
         final_info = PluginInfoFinal(
-            **info.model_dump(exclude={'teaser', 'purpose', 'methodology', 'assets'}),
-            teaser=info.teaser[lang],
+            **unchanged_info,
+            teaser=translated_teaser,
             purpose=info.purpose[lang],
             methodology=info.methodology[lang],
             language=lang,
             assets=final_assets,
+            operator_schema=translated_schema,
         )
         _ = db.write_info(info=final_info)
         synced_info[lang] = final_info

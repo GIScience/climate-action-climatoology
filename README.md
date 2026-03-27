@@ -89,7 +89,8 @@ To update the respective files in case of changes run
 
 ```shell
 pybabel extract test/ -o test/resources/locales/messages.pot --keyword=tr --copyright-holder="HeiGIT gGmbH" --project=test_plugin
-pybabel update --init-missing -i test/resources/locales/messages.pot -d test/resources/locales/ -l de -l en
+pybabel update --init-missing -i test/resources/locales/messages.pot -d test/resources/locales/ -l de
+pybabel update --init-missing -i test/resources/locales/messages.pot -d test/resources/locales/ -l en
 ```
 
 Then `pybabel compile -d test/resources/locales/` once the `.po` file has been updated (or just hit save in 'poedit', a

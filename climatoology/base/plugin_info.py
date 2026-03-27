@@ -201,13 +201,15 @@ class _PluginBaseInfo(BaseModel):
         'group multiple plugins.',
         examples=[{Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION}],
     )
-    teaser: dict[
-        LanguageAlpha2, Annotated[str, StringConstraints(min_length=20, max_length=150, pattern='^[A-Z].*\\.$')]
-    ] = Field(
-        description='A dictionary of single sentence teasers for the plugins functionality, in each available language.'
-        'The sentence must be between 20 and 150 characters long, start with an upper case letter and end with a full stop.',
-        examples=[{'en': 'A valid teaser that starts with A.'}],
-    )
+    teaser: Annotated[
+        str,
+        StringConstraints(min_length=20, max_length=150, pattern='^[A-Z].*\\.$'),
+        Field(
+            description="A single sentence teaser for the plugin's functionality."
+            'The sentence must be between 20 and 150 characters long, start with an upper case letter and end with a full stop.',
+            examples=['A valid teaser that starts with A.'],
+        ),
+    ]
     computation_shelf_life: Optional[timedelta] = Field(
         description='How long are computations valid (at most). Computations will be valid within a fixed time frame '
         'of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of 0 means '
@@ -314,11 +316,11 @@ class PluginInfo(_PluginBaseInfo):
         assert self.assets, "assets weren't created correctly"
         assert isinstance(self.sources, list), 'there was a problem generating the source list for the plugin'
         assert isinstance(self.demo_params_as_dict, dict), "the demo input parameters couldn't be loaded"
-        assert DEFAULT_LANGUAGE in self.teaser.keys(), (
-            f'{DEFAULT_LANGUAGE.name} localisation required, only {set(self.teaser.keys())} given'
+        assert self.purpose.keys() == self.methodology.keys(), (
+            f'Localisation-set between string fields not aligned: purpose: {set(self.purpose.keys())} and methodology: {set(self.methodology.keys())}'
         )
-        assert self.teaser.keys() == self.purpose.keys() == self.methodology.keys(), (
-            f'Localisation-set between string fields not aligned: teaser: {set(self.teaser.keys())}, purpose: {set(self.purpose.keys())}, methodology: {set(self.methodology.keys())}'
+        assert DEFAULT_LANGUAGE in self.purpose.keys(), (
+            f'{DEFAULT_LANGUAGE.name} localisation required, only {set(self.purpose.keys())} given'
         )
 
         return self
@@ -545,12 +547,11 @@ def generate_plugin_info(
       plugin. Defaults to all sources.
     :return: A PluginInfo object that can be used to announce the plugin on the platform.
     """
-    if teaser and purpose and methodology:
+    if purpose and methodology:
         warnings.deprecated(
-            'The use of teaser, purpose and methodology is deprecated. Use `localisation_directory` to localise your plugin.'
+            'The use of purpose and methodology is deprecated. Use `localisation_directory` to localise your plugin.'
         )
 
-        teaser = {lang: teaser}
         purpose = {lang: purpose}
         methodology = {lang: methodology}
     else:
@@ -560,7 +561,7 @@ def generate_plugin_info(
         # individually to this function becomes unsupported, this function will go into `PluginInfo` where the
         # individual fields (teaser, purpose, methodology) become computed fields and the input
         # `localisation_directory` becomes a new optional input parameter.
-        teaser, purpose, methodology = extract_info_localisations(localisation_directory=localisation_directory)
+        purpose, methodology = extract_info_localisations(localisation_directory=localisation_directory)
 
     return PluginInfo(
         name=name,
@@ -580,10 +581,9 @@ def generate_plugin_info(
     )
 
 
-def extract_info_localisations(localisation_directory: Path) -> tuple[dict, dict, dict]:
+def extract_info_localisations(localisation_directory: Path) -> tuple[dict, dict]:
     # This function is meant to disappear in the `PluginInfo` object to make these fields computed fields once the
     # deprecation grace-period is over
-    teaser = {}
     purpose = {}
     methodology = {}
     for lang_path in localisation_directory.iterdir():
@@ -596,8 +596,7 @@ def extract_info_localisations(localisation_directory: Path) -> tuple[dict, dict
                 )
                 continue
 
-            teaser[lang] = (lang_path / 'teaser.txt').read_text()
             purpose[lang] = lang_path / 'purpose.md'
             methodology[lang] = lang_path / 'methodology.md'
 
-    return teaser, purpose, methodology
+    return purpose, methodology
