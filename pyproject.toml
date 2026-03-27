@@ -41,6 +41,7 @@ dependencies = [
     "plotly (>=6.0.0,<7.0.0)",
     "rasterstats (>=0.20.0,<0.21.0)",
     "pycountry (>=24.6.1,<25.0.0)",
+    "babel (>=2.18.0,<3.0.0)",
 ]
 
 [project.scripts]

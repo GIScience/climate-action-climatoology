@@ -37,8 +37,27 @@ def test_generate_plugin_info_function(default_plugin_info: PluginInfo):
     assert generated_info == default_plugin_info
 
 
-def test_generate_plugin_info_function_no_localisation(default_plugin_info: PluginInfo):
+def test_generate_plugin_info_function_no_localisation(default_plugin_info: PluginInfo, default_input_model):
     """Testing the deprecated functionality of providing only one language."""
+    expected_info = PluginInfo(
+        name='Test Plugin',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser={'en': (Path(__file__).parent.parent / 'resources/locales/en/teaser.txt').read_text()},
+        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
+        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+        sources_library=Path(__file__).parent.parent / 'resources/test.bib',
+        computation_shelf_life=timedelta(days=1),
+        demo_input_parameters=default_input_model,
+    )
+
     generated_info = generate_plugin_info(
         name=default_plugin_info.name,
         authors=default_plugin_info.authors,
@@ -55,7 +74,7 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
         demo_aoi=default_plugin_info.demo_aoi,
     )
 
-    assert generated_info == default_plugin_info
+    assert generated_info == expected_info
 
 
 def test_info_computed_fields(default_plugin_info):
@@ -371,7 +390,7 @@ def test_language_set_equal(default_input_model):
 
 
 def test_extract_info_localisations():
-    localisations = extract_info_localisations(Path(__file__).parent.parent / 'resources/locales_multiple')
+    localisations = extract_info_localisations(Path(__file__).parent.parent / 'resources/locales')
 
     for loc in localisations:
         assert set(loc.keys()) == {'en', 'de'}

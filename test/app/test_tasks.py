@@ -6,14 +6,26 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 import shapely
+from celery.utils.threads import LocalStack
 from pydantic import BaseModel
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask
-from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality
+from climatoology.base.artifact import (
+    Artifact,
+    ArtifactEnriched,
+    ArtifactModality,
+)
+from climatoology.base.artifact_creators import create_markdown_artifact
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import AoiProperties, ComputationResources
-from climatoology.base.plugin_info import PluginInfo
+from climatoology.base.computation import (
+    AoiProperties,
+    ComputationResources,
+)
+from climatoology.base.plugin_info import (
+    PluginInfo,
+)
+from test.conftest import TestModel
 
 
 def test_computation_task_init(default_computation_task):
@@ -143,6 +155,125 @@ def test_computation_task_run_input_validated(
         aoi_properties=default_aoi_properties,
         params=default_computation_task.operator._model(id=99, name='John Doe'),
     )
+
+
+def test_computation_task_run_default_language(
+    default_computation_task,
+    default_aoi_feature_pure_dict,
+    backend_with_computation_registered,
+    default_computation_info,
+    mocked_object_store,
+    general_uuid,
+):
+    computed_result = default_computation_task.run(
+        aoi=default_aoi_feature_pure_dict,
+        params={'id': 1},
+    )
+
+    assert computed_result == default_computation_info.model_dump(mode='json')
+
+    stored_object = mocked_object_store.fetch(
+        correlation_uuid=general_uuid, store_id=computed_result['artifacts'][0]['filename']
+    )
+    stored_artifact_content = stored_object.read_text()
+    assert stored_artifact_content == 'English Text'
+
+
+def test_computation_task_run_other_language(
+    default_computation_task_de,
+    default_aoi_feature_pure_dict,
+    backend_with_computation_registered,
+    default_computation_info_de,
+    mocked_object_store,
+    general_uuid_de,
+):
+    computed_result = default_computation_task_de.run(
+        aoi=default_aoi_feature_pure_dict,
+        lang='de',
+        params={'id': 1},
+    )
+
+    assert computed_result == default_computation_info_de.model_dump(mode='json')
+
+    stored_object = mocked_object_store.fetch(
+        correlation_uuid=general_uuid_de, store_id=computed_result['artifacts'][0]['filename']
+    )
+    stored_artifact_content = stored_object.read_text()
+    assert stored_artifact_content == 'German Text'
+
+
+def test_computation_task_run_unknown_language(
+    default_computation_task_de,
+    default_aoi_feature_pure_dict,
+    backend_with_computation_registered,
+    default_computation_info_de,
+    mocked_object_store,
+    general_uuid_de,
+):
+    computed_result = default_computation_task_de.run(
+        aoi=default_aoi_feature_pure_dict,
+        lang='aa',
+        params={'id': 1},
+    )
+
+    assert computed_result == default_computation_info_de.model_dump(mode='json')
+
+    stored_object = mocked_object_store.fetch(
+        correlation_uuid=general_uuid_de, store_id=computed_result['artifacts'][0]['filename']
+    )
+    stored_artifact_content = stored_object.read_text()
+    assert stored_artifact_content == 'English Text'
+
+
+def test_computation_task_run_i18n_not_initialised(
+    default_artifact_metadata,
+    default_aoi_feature_pure_dict,
+    backend_with_computation_registered,
+    mocked_object_store,
+    general_uuid,
+    default_plugin_info,
+):
+    custom_plugin_info = default_plugin_info.model_copy(deep=True)
+    custom_plugin_info.localisation_directory = None
+    custom_plugin_info.assets.localisation_directory = None
+
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> PluginInfo:
+            return custom_plugin_info
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[Artifact]:
+            artifact = create_markdown_artifact(
+                text='some text',
+                metadata=default_artifact_metadata,
+                resources=resources,
+            )
+            return [artifact]
+
+    compute_task = CAPlatformComputeTask(
+        operator=TestOperator(), storage=mocked_object_store, backend_db=backend_with_computation_registered
+    )
+    compute_task.update_state = Mock()
+    request = Mock()
+    request.correlation_id = str(general_uuid)
+    compute_task.request_stack = LocalStack()
+    compute_task.request_stack.push(request)
+
+    computed_result = compute_task.run(
+        aoi=default_aoi_feature_pure_dict,
+        params={'id': 1},
+    )
+
+    stored_object = mocked_object_store.fetch(
+        correlation_uuid=general_uuid, store_id=computed_result['artifacts'][0]['filename']
+    )
+    stored_artifact_content = stored_object.read_text()
+    assert stored_artifact_content == 'some text'
 
 
 def test_save_computation_info(

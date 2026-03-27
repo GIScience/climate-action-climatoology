@@ -3,7 +3,8 @@ from typing import List, Optional
 from uuid import UUID
 
 from geoalchemy2 import Geometry, WKTElement
-from sqlalchemy import JSON, Computed, ForeignKey, UniqueConstraint, asc
+from pydantic_extra_types.language_code import LanguageAlpha2
+from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.store.database.models import DbUuidAsString
@@ -27,7 +28,10 @@ class ComputationTable(ClimatoologyTableBase):
     )
 
     correlation_uuid: Mapped[UUID] = mapped_column(DbUuidAsString, primary_key=True)
-    deduplication_key: Mapped[UUID] = mapped_column(Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid'))
+    deduplication_key: Mapped[UUID] = mapped_column(
+        Computed('md5(requested_params::text||st_astext(aoi_geom)||language::text)::uuid')
+    )
+    language: Mapped[LanguageAlpha2] = mapped_column(String(2))
     cache_epoch: Mapped[Optional[int]]
     valid_until: Mapped[datetime] = mapped_column(index=True)
     params: Mapped[Optional[dict]] = mapped_column(JSON)

@@ -174,7 +174,7 @@ class ArtifactMetadata(BaseModel):
     filename: str = Field(
         description='The name of the file that stores the artifact. Omit the extension.',
         examples=['my_first_artifact'],
-        default_factory=lambda: uuid.uuid4(),
+        default_factory=lambda: str(uuid.uuid4()),
     )
     summary: str = Field(
         description='A short description of the artifact that could be used in a caption.',

@@ -106,6 +106,12 @@ class ComputationInfo(BaseModel):
         '`cache_epoch`.',
         examples=[uuid.uuid4()],
     )
+    language: LanguageAlpha2 = Field(
+        title='Language',
+        description='Language of the computation.',
+        examples=[DEFAULT_LANGUAGE],
+        default=DEFAULT_LANGUAGE,
+    )
     cache_epoch: Optional[int] = Field(
         description='The cache epoch identifies fixed time spans within which computations are '
         'valid. It can be used in combination with the `deduplication_key` to deduplicate non-expired computations. ',

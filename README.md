@@ -82,5 +82,18 @@ Run `poetry install --with test,dev` to create the environment.
 Don't forget to run `poetry run pre-commit install` to activate the specified [pre-commit](https://pre-commit.com/)
 hooks.
 
+### Testing
+
+Some test use [GNU gettext](https://www.gnu.org/software/gettext/) functionality.
+To update the respective files in case of changes run
+
+```shell
+pybabel extract test/ -o test/resources/locales/messages.pot --keyword=tr --copyright-holder="HeiGIT gGmbH" --project=test_plugin
+pybabel update --init-missing -i test/resources/locales/messages.pot -d test/resources/locales/ -l de -l en
+```
+
+Then `pybabel compile -d test/resources/locales/` once the `.po` file has been updated (or just hit save in 'poedit', a
+nice tool to edit po files)
+
 ---
 <img alt="HeiGIT Logo" src="docs/logo.png"  width="40%">

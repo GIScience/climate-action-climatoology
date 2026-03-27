@@ -86,9 +86,10 @@ def test_operator_info_enrichment_does_overwrite_additional_parts(default_plugin
 
     assert computed_info.purpose == {
         'en': """The purpose of this base is to present basic library properties in terms of enforcing similar capabilities between
-Climate Action event components."""
+Climate Action event components.""",
+        'de': 'Der Zweck auf Deutsch',
     }
-    assert computed_info.methodology == {'en': 'This is a test base'}
+    assert computed_info.methodology == {'en': 'This is a test base', 'de': 'Die Methoden auf Deutsch'}
     assert computed_info.operator_schema == {
         'properties': {'test': {'title': 'Test', 'type': 'string'}},
         'required': ['test'],

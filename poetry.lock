@@ -178,6 +178,21 @@ files = [
 ]
 
 [[package]]
+name = "babel"
+version = "2.18.0"
+description = "Internationalization utilities"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "babel-2.18.0-py3-none-any.whl", hash = "sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35"},
+    {file = "babel-2.18.0.tar.gz", hash = "sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d"},
+]
+
+[package.extras]
+dev = ["backports.zoneinfo ; python_version < \"3.9\"", "freezegun (>=1.0,<2.0)", "jinja2 (>=3.0)", "pytest (>=6.0)", "pytest-cov", "pytz", "setuptools", "tzdata ; sys_platform == \"win32\""]
+
+[[package]]
 name = "bibtexparser"
 version = "1.4.4"
 description = "Bibtex parser for python 3"
@@ -860,14 +875,14 @@ python-dateutil = ">=2.7"
 
 [[package]]
 name = "geoalchemy2"
-version = "0.18.3"
+version = "0.18.4"
 description = "Using SQLAlchemy with Spatial Databases"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "geoalchemy2-0.18.3-py3-none-any.whl", hash = "sha256:3b6ffe3753c2c1657174ed2decbc21da8ab25c68898e81dd603e7255c2823dc6"},
-    {file = "geoalchemy2-0.18.3.tar.gz", hash = "sha256:9e84e6b1394d10c035c3105125171e7002d1debf93ba4ad99851862f495dd39e"},
+    {file = "geoalchemy2-0.18.4-py3-none-any.whl", hash = "sha256:89e6680dcbb6b8d8c784dcaa889e48ab2783aa42487ee5730fdbd7a7c7ddf6ec"},
+    {file = "geoalchemy2-0.18.4.tar.gz", hash = "sha256:5719e2bb040d5c406d5d03425fec87997ce9351843b053ca11373a0f5a31971b"},
 ]
 
 [package.dependencies]
@@ -3449,4 +3464,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13.5,<3.14"
-content-hash = "586db797a8bfa875829a627d240a6d9b9a4d1ea0fb5f969dd6463a377bd629ff"
+content-hash = "7cf123a17b5567a85fc7027c2da81cd2859f9ff1893e7b11dac42df87885d0b9"

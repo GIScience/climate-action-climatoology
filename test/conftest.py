@@ -17,6 +17,7 @@ from celery.backends.database.session import ResultModelBase
 from celery.utils.threads import LocalStack
 from freezegun import freeze_time
 from pydantic import BaseModel, Field, HttpUrl
+from pydantic_extra_types.language_code import LanguageAlpha2
 from pytest_alembic import Config
 from pytest_postgresql.janitor import DatabaseJanitor
 from semver import Version
@@ -45,6 +46,7 @@ from climatoology.base.computation import (
     ComputationScope,
     ComputationState,
 )
+from climatoology.base.i18n import set_language, tr
 from climatoology.base.plugin_info import (
     DEFAULT_LANGUAGE,
     AssetsFinal,
@@ -105,6 +107,11 @@ def general_uuid() -> uuid.UUID:
 
 
 @pytest.fixture
+def general_uuid_de() -> uuid.UUID:
+    return uuid.uuid4()
+
+
+@pytest.fixture
 def frozen_time():
     with freeze_time(datetime(2018, 1, 1, 12, tzinfo=UTC), ignore=['celery']) as frozen_time:
         yield frozen_time
@@ -128,10 +135,20 @@ def default_plugin_info(default_input_model) -> PluginInfo:
         ],
         icon=Path(__file__).parent / 'resources/test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
-        teaser={'en': (Path(__file__).parent / 'resources/locales/en/teaser.txt').read_text()},
-        purpose={'en': Path(__file__).parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent / 'resources/locales/en/methodology.md'},
+        teaser={
+            'en': (Path(__file__).parent / 'resources/locales/en/teaser.txt').read_text(),
+            'de': (Path(__file__).parent / 'resources/locales/de/teaser.txt').read_text(),
+        },
+        purpose={
+            'en': Path(__file__).parent / 'resources/locales/en/purpose.md',
+            'de': Path(__file__).parent / 'resources/locales/de/purpose.md',
+        },
+        methodology={
+            'en': Path(__file__).parent / 'resources/locales/en/methodology.md',
+            'de': Path(__file__).parent / 'resources/locales/de/methodology.md',
+        },
         sources_library=Path(__file__).parent / 'resources/test.bib',
+        localisation_directory=Path(__file__).parent / 'resources/locales',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
     )
@@ -147,6 +164,24 @@ def default_plugin_info_enriched(default_operator) -> PluginInfoEnriched:
 @pytest.fixture
 def default_plugin_info_final(default_plugin_info_enriched) -> PluginInfoFinal:
     language = DEFAULT_LANGUAGE
+    teaser = default_plugin_info_enriched.teaser[language]
+    purpose = default_plugin_info_enriched.purpose[language]
+    methodology = default_plugin_info_enriched.methodology[language]
+    assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
+    default_info_final = PluginInfoFinal(
+        **default_plugin_info_enriched.model_dump(exclude={'teaser', 'purpose', 'methodology', 'assets'}),
+        language=language,
+        teaser=teaser,
+        purpose=purpose,
+        methodology=methodology,
+        assets=assets,
+    )
+    return default_info_final
+
+
+@pytest.fixture
+def default_plugin_info_final_de(default_plugin_info_enriched) -> PluginInfoFinal:
+    language = LanguageAlpha2('de')
     teaser = default_plugin_info_enriched.teaser[language]
     purpose = default_plugin_info_enriched.purpose[language]
     methodology = default_plugin_info_enriched.methodology[language]
@@ -213,6 +248,13 @@ def default_artifact_enriched(default_artifact, general_uuid) -> ArtifactEnriche
 
 
 @pytest.fixture
+def default_artifact_enriched_de(default_artifact, general_uuid_de) -> ArtifactEnriched:
+    return ArtifactEnriched(
+        **default_artifact.model_dump(exclude={'sources'}), rank=0, correlation_uuid=general_uuid_de
+    )
+
+
+@pytest.fixture
 def extensive_artifact_enriched(extensive_artifact, general_uuid) -> ArtifactEnriched:
     return ArtifactEnriched(
         **extensive_artifact.model_dump(exclude={'sources'}),
@@ -255,7 +297,7 @@ def default_operator(default_plugin_info, default_artifact_metadata) -> BaseOper
             params: TestModel,
         ) -> List[Artifact]:
             time.sleep(params.execution_time)
-            artifact_text = (Path(__file__).parent / 'resources/test_artifact_file.md').read_text()
+            artifact_text = tr('placeholder_text')
             artifact = create_markdown_artifact(
                 text=artifact_text,
                 metadata=default_artifact_metadata,
@@ -355,7 +397,7 @@ def default_computation_info(
     return ComputationInfo(
         correlation_uuid=general_uuid,
         request_ts=datetime(2018, 1, 1, 12),
-        deduplication_key=uuid.UUID('24209215-3397-e96c-2bf2-084116c66532'),
+        deduplication_key=uuid.UUID('412bef28-577e-2aa1-5163-77ec18d1acc6'),
         cache_epoch=17532,
         valid_until=datetime(2018, 1, 2),
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
@@ -371,6 +413,29 @@ def default_computation_info(
 
 
 @pytest.fixture
+def default_computation_info_de(
+    general_uuid_de, default_aoi_feature_geojson_pydantic, default_artifact_enriched_de, default_plugin_info_final
+) -> ComputationInfo:
+    return ComputationInfo(
+        correlation_uuid=general_uuid_de,
+        request_ts=datetime(2018, 1, 1, 12),
+        language=LanguageAlpha2('de'),
+        deduplication_key=uuid.UUID('c7e7c6e5-af43-9ca3-e02d-de41280fcd0b'),
+        cache_epoch=17532,
+        valid_until=datetime(2018, 1, 2),
+        params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0},
+        requested_params={'id': 1},
+        aoi=default_aoi_feature_geojson_pydantic,
+        artifacts=[default_artifact_enriched_de],
+        plugin_info=ComputationPluginInfo(
+            id=default_plugin_info_final.id,
+            version=default_plugin_info_final.version,
+            language=LanguageAlpha2('de'),
+        ),
+    )
+
+
+@pytest.fixture
 def default_computation_task(
     default_operator, mocked_object_store, default_backend_db, general_uuid
 ) -> CAPlatformComputeTask:
@@ -380,6 +445,21 @@ def default_computation_task(
     compute_task.update_state = Mock()
     request = Mock()
     request.correlation_id = str(general_uuid)
+    compute_task.request_stack = LocalStack()
+    compute_task.request_stack.push(request)
+    return compute_task
+
+
+@pytest.fixture
+def default_computation_task_de(
+    default_operator, mocked_object_store, default_backend_db, general_uuid_de
+) -> CAPlatformComputeTask:
+    compute_task = CAPlatformComputeTask(
+        operator=default_operator, storage=mocked_object_store, backend_db=default_backend_db
+    )
+    compute_task.update_state = Mock()
+    request = Mock()
+    request.correlation_id = str(general_uuid_de)
     compute_task.request_stack = LocalStack()
     compute_task.request_stack.push(request)
     return compute_task
@@ -498,11 +578,14 @@ def default_backend_db(db_with_tables) -> BackendDatabase:
 def backend_with_computation_registered(
     default_backend_db,
     default_computation_info,
+    default_computation_info_de,
     default_plugin_info_final,
+    default_plugin_info_final_de,
     default_plugin_key,
     set_basic_envs,
     frozen_time,
 ) -> BackendDatabase:
+    # default is EN
     default_backend_db.write_info(info=default_plugin_info_final)
     default_backend_db.register_computation(
         correlation_uuid=default_computation_info.correlation_uuid,
@@ -514,10 +597,29 @@ def backend_with_computation_registered(
     default_backend_db.add_validated_params(
         correlation_uuid=default_computation_info.correlation_uuid, params=default_computation_info.params
     )
+
+    # add another computation in DE
+    default_backend_db.write_info(info=default_plugin_info_final_de)
+    default_backend_db.register_computation(
+        correlation_uuid=default_computation_info_de.correlation_uuid,
+        requested_params=default_computation_info_de.requested_params,
+        aoi=default_computation_info_de.aoi,
+        language=LanguageAlpha2('de'),
+        plugin_key='test_plugin-3.1.0-de',
+        computation_shelf_life=default_plugin_info_final_de.computation_shelf_life,
+    )
+    default_backend_db.add_validated_params(
+        correlation_uuid=default_computation_info_de.correlation_uuid, params=default_computation_info_de.params
+    )
     with Session(default_backend_db.engine) as session:
         session.execute(
             insert(TaskExtended).values(
                 id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.PENDING
+            )
+        )
+        session.execute(
+            insert(TaskExtended).values(
+                id='2', task_id=default_computation_info_de.correlation_uuid, status=ComputationState.PENDING
             )
         )
         session.commit()
@@ -628,3 +730,8 @@ def default_sources() -> list[MiscSource]:
             url='https://www.nasa.gov/nh/pluto-the-other-red-planet',
         )
     ]
+
+
+@pytest.fixture
+def set_to_german():
+    set_language(lang='de', localisation_dir=Path(__file__).parent / 'resources/locales')
