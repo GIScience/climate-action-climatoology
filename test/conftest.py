@@ -650,7 +650,13 @@ def backend_with_computation_successful(backend_with_computation_registered, def
 
 @pytest.fixture
 def alembic_config(
-    general_uuid, default_plugin_info_final, default_computation_info, default_artifact_enriched
+    general_uuid,
+    default_plugin_info_final,
+    default_plugin_info_final_de,
+    default_computation_info,
+    default_computation_info_de,
+    default_artifact_enriched,
+    default_artifact_enriched_de,
 ) -> Config:
     return Config(
         config_options={'script_location': 'climatoology/store/database/migration'},
@@ -715,6 +721,58 @@ def alembic_config(
                     'request_ts': datetime.now(),
                     'computation_id': str(general_uuid),
                 }
+            ],
+            'bf7b34435593': [
+                {
+                    '__tablename__': 'ca_base.plugin_info',
+                    'id': default_plugin_info_final_de.id,
+                    'version': str(default_plugin_info_final_de.version),
+                    'language': default_plugin_info_final_de.language,
+                    'name': default_plugin_info_final_de.name,
+                    'repository': str(default_plugin_info_final_de.repository),
+                    'state': str(default_plugin_info_final_de.state).upper(),
+                    'concerns': ['CLIMATE_ACTION__GHG_EMISSION'],
+                    'teaser': default_plugin_info_final_de.teaser,
+                    'purpose': default_plugin_info_final_de.purpose,
+                    'methodology': default_plugin_info_final_de.methodology,
+                    'demo_config': default_plugin_info_final_de.demo_config.model_dump(mode='json'),
+                    'assets': default_plugin_info_final_de.assets.model_dump(mode='json'),
+                    'operator_schema': default_plugin_info_final_de.operator_schema,
+                    'library_version': str(default_plugin_info_final_de.library_version),
+                    'latest': True,
+                },
+                {
+                    '__tablename__': 'ca_base.computation',
+                    'correlation_uuid': str(default_computation_info_de.correlation_uuid),
+                    'language': default_computation_info_de.language,
+                    'valid_until': datetime.now(),
+                    'params': default_computation_info_de.params,
+                    'requested_params': default_computation_info_de.requested_params,
+                    'aoi_geom': default_computation_info_de.aoi.geometry.wkt,
+                    'plugin_key': f'{default_computation_info_de.plugin_info.id}-{default_computation_info_de.plugin_info.version}-{default_computation_info_de.plugin_info.language}',
+                    'artifact_errors': default_computation_info_de.artifact_errors,
+                },
+                {
+                    '__tablename__': 'ca_base.computation_lookup',
+                    'user_correlation_uuid': str(default_computation_info_de.correlation_uuid),
+                    'request_ts': datetime.now(),
+                    'aoi_name': 'AOI Name',
+                    'aoi_id': 'aoi_id',
+                    'is_demo': False,
+                    'computation_id': str(default_computation_info_de.correlation_uuid),
+                },
+                {
+                    '__tablename__': 'ca_base.artifact',
+                    'rank': 0,
+                    'correlation_uuid': str(default_computation_info_de.correlation_uuid),
+                    'name': default_artifact_enriched_de.name,
+                    'tags': default_artifact_enriched_de.tags,
+                    'modality': default_artifact_enriched_de.modality.value,
+                    'primary': default_artifact_enriched_de.primary,
+                    'summary': default_artifact_enriched_de.summary,
+                    'attachments': default_artifact_enriched_de.attachments.model_dump(mode='json'),
+                    'filename': default_artifact_enriched_de.filename,
+                },
             ],
         },
     )
