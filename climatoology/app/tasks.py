@@ -1,21 +1,34 @@
 import sys
 import tempfile
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import plotly
 import shapely
 from celery import Task
 from celery.signals import task_revoked
-from shapely import set_srid
+from pydantic import BaseModel
+from shapely import MultiPolygon
 
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import AoiFeatureModel, ComputationInfo, ComputationScope
+from climatoology.base.computation import (
+    AoiFeatureModel,
+    AoiProperties,
+    ComputationInfo,
+    ComputationPluginInfo,
+    ComputationResources,
+    ComputationScope,
+    StandAloneComputationInfo,
+)
 from climatoology.base.exception import InputValidationError
 from climatoology.base.i18n import set_language
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import DEFAULT_LANGUAGE
+from climatoology.base.utils import shapely_from_geojson_pydantic
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import Storage
 
@@ -73,12 +86,11 @@ class CAPlatformComputeTask(Task):
 
             set_language(lang=lang, localisation_dir=self.operator.info_enriched.assets.localisation_directory)
 
-            aoi = AoiFeatureModel(**aoi)
+            aoi_feature = AoiFeatureModel(**aoi)
 
             # through difficult typing above we know it's a MultiPolygon but the type checker cannot know
             # noinspection PyTypeChecker
-            aoi_shapely_geom: shapely.MultiPolygon = shapely.geometry.shape(context=aoi.geometry)
-            aoi_shapely_geom = set_srid(geometry=aoi_shapely_geom, srid=4326)
+            aoi_shapely_geom: MultiPolygon = shapely_from_geojson_pydantic(geojson_geom=aoi_feature.geometry)
 
             validated_params = self.operator.validate_params(params)
             self.backend_db.add_validated_params(
@@ -88,7 +100,10 @@ class CAPlatformComputeTask(Task):
 
             with ComputationScope(correlation_uuid) as resources:
                 artifacts = self.operator.compute_unsafe(
-                    resources=resources, aoi=aoi_shapely_geom, aoi_properties=aoi.properties, params=validated_params
+                    resources=resources,
+                    aoi=aoi_shapely_geom,
+                    aoi_properties=aoi_feature.properties,
+                    params=validated_params,
                 )
                 artifact_errors = resources.artifact_errors
                 self.storage.save_all(artifacts, file_dir=resources.computation_dir)
@@ -115,6 +130,69 @@ class CAPlatformComputeTask(Task):
             raise e
 
         return output
+
+
+def run_standalone(
+    operator: BaseOperator,
+    computation_id: UUID,
+    aoi_geom: shapely.MultiPolygon,
+    aoi_properties: AoiProperties,
+    params: BaseModel,
+    lang: str,
+    output_dir: Path,
+) -> StandAloneComputationInfo:
+    resources = ComputationResources(correlation_uuid=computation_id, computation_dir=output_dir)
+
+    validated_params = operator.validate_params(params=params.model_dump())
+
+    set_language(lang=lang, localisation_dir=operator.info_enriched.assets.localisation_directory)
+
+    artifacts = operator.compute_unsafe(
+        resources=resources, aoi=aoi_geom, aoi_properties=aoi_properties, params=validated_params
+    )
+    render_charts(artifacts=artifacts, file_dir=resources.computation_dir, output_dir=output_dir)
+    write_individual_artifact_metadata(artifacts=artifacts, output_dir=output_dir)
+
+    aoi_feature = AoiFeatureModel(type='Feature', geometry=aoi_geom, properties=aoi_properties)
+    plugin_info = ComputationPluginInfo(
+        id=operator.info_enriched.id, version=operator.info_enriched.version, language=lang
+    )
+    computation_info = StandAloneComputationInfo(
+        correlation_uuid=computation_id,
+        request_ts=datetime.now(),
+        deduplication_key=uuid.uuid4(),
+        cache_epoch=None,
+        language=lang,
+        valid_until=datetime.now(),
+        params=validated_params.model_dump(mode='json'),
+        requested_params=params.model_dump(mode='json'),
+        aoi=aoi_feature,
+        plugin_info=plugin_info,
+        artifacts=artifacts,
+        artifact_errors=resources.artifact_errors,
+        output_dir=output_dir,
+    )
+
+    with open(output_dir / COMPUTATION_INFO_FILENAME, 'x') as out_file:
+        out_file.write(computation_info.model_dump_json(indent=4))
+
+    return computation_info
+
+
+def render_charts(artifacts: list[ArtifactEnriched], file_dir: Path, output_dir: Path) -> None:
+    rendered_artifacts = []
+    for artifact in artifacts:
+        if artifact.modality == ArtifactModality.CHART_PLOTLY:
+            fig = plotly.io.read_json(file_dir / artifact.filename)
+            fig.write_html(output_dir / f'{artifact.filename}_rendered.html')
+            rendered_artifacts.append(artifact.name)
+    log.debug(f'Rendered {rendered_artifacts}')
+
+
+def write_individual_artifact_metadata(artifacts: list[ArtifactEnriched], output_dir: Path) -> None:
+    for artifact in artifacts:
+        with open(output_dir / f'{artifact.filename}.{COMPUTATION_INFO_FILENAME}', 'x') as artifact_metadata_file:
+            artifact_metadata_file.write(artifact.model_dump_json(indent=4))
 
 
 @task_revoked.connect

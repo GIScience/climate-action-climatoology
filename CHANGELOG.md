@@ -20,6 +20,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   A special function `translate_dataframe` is provided as a convenience helper.
   See the plugin showcase for an example of how to use this
   functionality ([#123](https://gitlab.heigit.org/climate-action/climatoology/-/issues/123))
+- `run_standalone_computation` function to run plugins locally without the
+  infrastructure ([#77](https://gitlab.heigit.org/climate-action/climatoology/-/issues/77))
 
 ## [7.0.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.4) - 2026-03-11
 
