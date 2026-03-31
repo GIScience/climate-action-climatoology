@@ -266,7 +266,7 @@ class Chart2dData(BaseModel):
         'the sum.',
         examples=[['first', 'second', 'third']],
     )
-    x_label: Optional[str] = Field(title='x label', description='The label for the x-axis', default=None)
+    x_label: str = Field(title='x label', description='The label for the x-axis', default='x')
     y: Union[conlist(float, min_length=1), conlist(str, min_length=1)] = Field(
         title='Y values',
         description='Data values on the Y axis. '
@@ -276,7 +276,7 @@ class Chart2dData(BaseModel):
         '(string).',
         examples=[[3, 2, 1]],
     )
-    y_label: Optional[str] = Field(title='y label', description='The label for the y-axis', default=None)
+    y_label: str = Field(title='y label', description='The label for the y-axis', default='y')
     chart_type: ChartType = Field(
         title='Chart Type', description='The type of chart to be created.', examples=[ChartType.SCATTER]
     )

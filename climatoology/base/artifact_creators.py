@@ -145,24 +145,53 @@ def create_chart_artifact(
     """
     log.debug(f'Creating basic {data.chart_type} chart artifact')
 
+    chart_df = DataFrame(data={data.x_label: data.x, data.y_label: data.y, 'color': data.color})
+    chart_df['color'] = chart_df['color'].apply(lambda x: x.as_hex())
+
     match data.chart_type:
         case ChartType.SCATTER:
-            fig = px.scatter(x=data.x, y=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+            fig = px.scatter(
+                chart_df,
+                x=data.x_label,
+                y=data.y_label,
+                color='color',
+                color_discrete_sequence=chart_df['color'],
+                hover_data={'color': False},
+            )
             fig = fig.update_traces(marker_size=10)
+            fig.layout.showlegend = False
 
         case ChartType.LINE:
-            fig = px.line(x=data.x, y=data.y, markers=True, color_discrete_sequence=[data.color.as_hex()])
+            fig = px.line(
+                chart_df,
+                x=data.x_label,
+                y=data.y_label,
+                color_discrete_sequence=chart_df['color'],
+                markers=True,
+            )
 
         case ChartType.BAR:
-            fig = px.bar(x=data.x, y=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+            fig = px.bar(
+                chart_df,
+                x=data.x_label,
+                y=data.y_label,
+                color='color',
+                color_discrete_sequence=chart_df['color'],
+                hover_data={'color': False},
+            )
+            fig.layout.showlegend = False
 
         case ChartType.PIE:
-            fig = px.pie(names=data.x, values=data.y, color_discrete_sequence=[c.as_hex() for c in data.color])
+            fig = px.pie(
+                chart_df,
+                names=data.x_label,
+                values=data.y_label,
+                color_discrete_sequence=chart_df['color'],
+            )
 
         case _:
             raise ValueError(f'{data.chart_type} is not a supported chart type.')
 
-    fig.update_layout({'xaxis': {'title': data.x_label}, 'yaxis': {'title': data.y_label}})
     result = create_plotly_chart_artifact(figure=fig, metadata=metadata, resources=resources)
 
     return result
