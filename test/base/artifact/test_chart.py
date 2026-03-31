@@ -100,9 +100,6 @@ def test_create_concise_chart_artifact(
     method_input = Chart2dData(
         x=[1, 2, 3],
         y=[3, 2, 1],
-        x_label='x title',
-        y_label='y title',
-        color=Color('green'),
         chart_type=chart_type,
     )
 
@@ -141,12 +138,19 @@ def test_pie_chart_labels(default_computation_resources, default_artifact_metada
 def test_create_extensive_chart_artifact(
     chart_type, default_computation_resources, extensive_artifact, extensive_artifact_metadata
 ):
+    if chart_type == ChartType.LINE:
+        colors_as_hex = '#af0000'
+        colors = Color(colors_as_hex)
+    else:
+        colors_as_hex = ['#af0000', '#00af00', '#0000af']
+        colors = [Color(c) for c in colors_as_hex]
+
     method_input = Chart2dData(
         x=[1, 2, 3],
         y=[3, 2, 1],
         x_label='x title',
         y_label='y title',
-        color=Color('green'),
+        color=colors,
         chart_type=chart_type,
     )
     method_input_copy = method_input.model_copy(deep=True)
@@ -163,6 +167,16 @@ def test_create_extensive_chart_artifact(
 
     assert generated_artifact == extensive_artifact_copy
     assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
+
+    generated_fig = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+
+    if chart_type in (ChartType.SCATTER, ChartType.BAR):
+        assert [generated_fig.data[i].marker.color for i in range(3)] == [c.as_hex() for c in colors]
+        assert all(['color=' not in data.hovertemplate for data in generated_fig.data])
+    elif chart_type == ChartType.LINE:
+        assert generated_fig.data[0].line.color == colors_as_hex
+    elif chart_type == ChartType.PIE:
+        assert generated_fig.layout.piecolorway == tuple(colors_as_hex)
 
 
 def test_create_concise_plotly_chart_artifact(

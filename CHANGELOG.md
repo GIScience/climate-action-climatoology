@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.0.4...main)
 
+### Fix
+
+- Chart artifacts created with `create_chart_artifact` now correctly assign multiple
+  colors ([#288](https://gitlab.heigit.org/climate-action/climatoology/-/issues/288))
+
 ### Added
 
 - Plugin info text and computations can now make use of [GNU gettext](https://www.gnu.org/software/gettext/)
