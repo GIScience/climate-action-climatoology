@@ -1,7 +1,12 @@
 import re
-from unittest.mock import patch
+import tempfile
+from datetime import datetime
+from pathlib import Path
+from typing import List
+from unittest.mock import ANY, patch
 
 import pytest
+import shapely
 from celery import Celery
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
@@ -9,10 +14,112 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from climatoology.app.exception import VersionMismatchError
-from climatoology.app.plugin import _create_plugin, _version_is_compatible, extract_plugin_id, synch_info
+from climatoology.app.plugin import (
+    _create_plugin,
+    _version_is_compatible,
+    extract_plugin_id,
+    run_standalone_computation,
+    synch_info,
+)
+from climatoology.base.artifact import Artifact, ArtifactEnriched, Chart2dData, ChartType
+from climatoology.base.artifact_creators import create_chart_artifact
+from climatoology.base.baseoperator import BaseOperator
+from climatoology.base.computation import (
+    AoiProperties,
+    ComputationInfo,
+    ComputationResources,
+    StandAloneComputationInfo,
+)
 from climatoology.base.exception import InputValidationError
 from climatoology.base.i18n import N_
+from climatoology.base.plugin_info import PluginInfo
 from climatoology.store.database.models.plugin_info import PluginInfoTable
+from test.conftest import TestModel
+
+
+def test_run_standalone_computation(
+    default_operator,
+    default_input_model,
+    default_computation_info,
+    default_aoi_geom_shapely,
+    default_aoi_properties,
+    general_uuid,
+    frozen_time,
+):
+    base_computation_info = default_computation_info.model_copy(deep=True)
+    with (
+        tempfile.TemporaryDirectory() as result_dir_str,
+        patch('climatoology.app.tasks.uuid.uuid4', return_value=general_uuid),
+    ):
+        result_dir = Path(result_dir_str) / 'test-results'
+
+        expected_computation_info = StandAloneComputationInfo(
+            **base_computation_info.model_dump(), output_dir=result_dir
+        )
+        expected_computation_info.requested_params = ANY
+        expected_computation_info.deduplication_key = ANY
+        expected_computation_info.cache_epoch = None
+        expected_computation_info.valid_until = datetime.now()
+
+        computation_info = run_standalone_computation(
+            operator=default_operator,
+            output_dir=result_dir,
+            aoi_geom=default_aoi_geom_shapely,
+            aoi_properties=default_aoi_properties,
+            params=default_input_model,
+        )
+
+        assert computation_info.model_dump() == expected_computation_info.model_dump()
+
+        result = result_dir / 'test_artifact_file.md'
+        assert result.is_file()
+        assert result.read_text() == 'English Text'
+
+        artifact_metadata = result_dir / 'test_artifact_file.md.metadata.json'
+        assert artifact_metadata.is_file()
+        assert ArtifactEnriched.model_validate_json(artifact_metadata.read_text())
+
+        metadata = result_dir / 'metadata.json'
+        assert metadata.is_file()
+        assert ComputationInfo.model_validate_json(metadata.read_text())
+
+
+def test_run_standalone_computation_renders_charts(default_plugin_info, default_input_model, default_artifact_metadata):
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy(deep=True)
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[Artifact]:
+            assert isinstance(aoi, shapely.MultiPolygon)
+            chart = Chart2dData(x=[1, 2], y=[3, 4], chart_type=ChartType.LINE)
+            artifact = create_chart_artifact(data=chart, metadata=default_artifact_metadata, resources=resources)
+            return [artifact]
+
+    with tempfile.TemporaryDirectory() as result_dir_str:
+        result_dir = Path(result_dir_str) / 'test-results'
+
+        geom = shapely.MultiPolygon()
+        properties = AoiProperties(name='Standalone Computation', id='aa')
+
+        _ = run_standalone_computation(
+            operator=TestOperator(),
+            output_dir=result_dir,
+            aoi_geom=geom,
+            aoi_properties=properties,
+            params=default_input_model,
+        )
+
+        result = result_dir / 'test_artifact_file.json'
+        assert result.is_file()
+
+        result = result_dir / 'test_artifact_file.json_rendered.html'
+        assert result.is_file()
 
 
 def test_plugin_creation(default_operator, default_settings, mocked_object_store, default_backend_db):

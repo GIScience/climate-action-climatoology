@@ -1,6 +1,9 @@
 from typing import Callable
 
+import geojson_pydantic
+import shapely
 from pandas import DataFrame
+from shapely import set_srid
 
 
 def deep_apply_dataframe(
@@ -16,13 +19,14 @@ def deep_apply_dataframe(
     Deep apply `func` to the provided dataframe.
 
     :param df: the dataframe.
-    :param apply_index_name: whether or not to apply the func to the index name (MultiIndex not supported). Defaults
+    :param func: the function to apply. Can be any callable, but we do no checking if the datatype or similar are fitting.
+    :param apply_index_name: whether to apply the func to the index name (MultiIndex not supported). Defaults
       to True.
-    :param apply_index_values: whether or not to apply the func to the values of the index (MultiIndex not supported).
+    :param apply_index_values: whether to apply the func to the values of the index (MultiIndex not supported).
       Defaults to True.
-    :param exclude_columns: columns for which the values should not be considered. By default all columns will be
+    :param exclude_columns: columns for which the values should not be considered. By default, all columns will be
       considered.
-    :param exclude_column_names: column names which should not be considered. By default all column names will be
+    :param exclude_column_names: column names which should not be considered. By default, all column names will be
       considered.
     :return: a copy of the dataframe after applying func.
     """
@@ -54,3 +58,9 @@ def deep_apply_dict(data: dict, func: Callable, target_keys: set) -> dict:
         result_dict[k] = new_value
 
     return result_dict
+
+
+def shapely_from_geojson_pydantic(geojson_geom: geojson_pydantic.geometries.Geometry) -> shapely.Geometry:
+    shapely_geom = shapely.geometry.shape(context=geojson_geom)
+    shapely_geom = set_srid(geometry=shapely_geom, srid=4326)
+    return shapely_geom

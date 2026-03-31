@@ -178,3 +178,7 @@ class ComputationInfo(BaseModel):
         examples=[{'First Indicator': 'Start date must be before end date', 'Last Indicator': ''}],
         default={},
     )
+
+
+class StandAloneComputationInfo(ComputationInfo):
+    output_dir: Path
