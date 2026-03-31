@@ -21,7 +21,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     op.add_column('computation', sa.Column('language', sa.String(length=2), nullable=True), schema='ca_base')
-    op.execute(sa.text("update ca_base.computation set language='en' where language is null"))
+    op.execute(
+        sa.text(
+            "update ca_base.computation set language=CASE WHEN params->>'language' IS NOT NULL THEN params->>'language' ELSE 'en' END"
+        )
+    )
+
     op.alter_column('computation', 'language', nullable=False, schema='ca_base')
 
     op.drop_column('computation', 'deduplication_key', schema='ca_base')
@@ -61,6 +66,22 @@ def downgrade() -> None:
         'computation',
         ['plugin_key', 'deduplication_key', 'cache_epoch'],
         schema='ca_base',
+    )
+
+    op.execute(
+        sa.text(
+            """
+            UPDATE
+                ca_base.computation
+            SET
+                params = (LEFT(params::text, -1) || CASE
+                    WHEN params::text = '{}' THEN ''
+                    ELSE ','
+                END || '\"language\":\"' || LANGUAGE || '\"}')::json
+            WHERE
+                params->>'language' IS NULL;
+            """
+        )
     )
 
     op.drop_column('computation', 'language', schema='ca_base')

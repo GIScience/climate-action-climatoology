@@ -37,7 +37,9 @@ def test_database_migration_values(default_plugin_info_final, alembic_runner, al
     """This is a convenient test for checking the actual values of migrated columns."""
     alembic_runner.migrate_up_to('head')
     with Session(alembic_engine) as session:
-        plugin_key = session.execute(
-            text(f"select key from ca_base.plugin_info where id='{default_plugin_info_final.id}'")
-        ).scalar_one()
-    assert plugin_key == 'test_plugin-3.1.0-en'
+        plugin_key = (
+            session.execute(text(f"select key from ca_base.plugin_info where id='{default_plugin_info_final.id}'"))
+            .scalars()
+            .all()
+        )
+    assert 'test_plugin-3.1.0-en' in plugin_key

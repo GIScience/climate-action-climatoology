@@ -147,11 +147,24 @@ def downgrade() -> None:
         op.f('plugin_info_author_link_info_key_fkey'), 'plugin_info_author_link', schema='ca_base', type_='foreignkey'
     )
     op.drop_constraint('info_pkey', 'plugin_info', schema='ca_base', type_='primary')
-    op.create_primary_key('info_pkey', 'plugin_info', ['key'], schema='ca_base')
 
     op.execute(
         sa.text('update ca_base.computation set plugin_key=key from ca_base.plugin_info where plugin_key=new_key')
     )
+    op.execute(
+        sa.text(
+            'update ca_base.plugin_info_author_link set info_key=key from ca_base.plugin_info where info_key=new_key'
+        )
+    )
+    op.execute(
+        sa.text(
+            "DELETE FROM ca_base.plugin_info_author_link pial USING ca_base.plugin_info pi WHERE pi.new_key=pial.info_key AND NOT pi.language = 'en'"
+        )
+    )
+    op.execute(sa.text("DELETE FROM ca_base.plugin_info WHERE NOT ca_base.plugin_info.language = 'en';"))
+
+    op.create_primary_key('info_pkey', 'plugin_info', ['key'], schema='ca_base')
+
     op.create_foreign_key(
         'computation_plugin_key_fkey',
         'computation',
@@ -161,11 +174,7 @@ def downgrade() -> None:
         source_schema='ca_base',
         referent_schema='ca_base',
     )
-    op.execute(
-        sa.text(
-            'update ca_base.plugin_info_author_link set info_key=key from ca_base.plugin_info where info_key=new_key'
-        )
-    )
+
     op.create_foreign_key(
         'author_info_link_table_info_key_fkey',
         'plugin_info_author_link',
