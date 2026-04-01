@@ -40,7 +40,7 @@ dependencies = [
     "alembic-postgresql-enum (>=1.7.0,<2.0.0)",
     "plotly (>=6.0.0,<7.0.0)",
     "rasterstats (>=0.20.0,<0.21.0)",
-    "pycountry (>=24.6.1,<25.0.0)",
+    "pycountry (>=26.2.16,<26.3.0)",
     "babel (>=2.18.0,<3.0.0)",
 ]
 
