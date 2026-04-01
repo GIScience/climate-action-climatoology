@@ -1,7 +1,7 @@
 stages:
   - test
   - test-coverage
-  - deploy
+  - downstream
 
 unit_tests:
   stage: test
@@ -91,16 +91,16 @@ optional_linting:
     exit_codes:
       - 1
 
-gateway_canary_rebuild:
-  stage: deploy
+gateway_trigger_development_pipeline:
+  stage: downstream
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   trigger:
     project: climate-action/api-gateway
     branch: development
 
-showcase_canary_rebuild:
-  stage: deploy
+showcase_trigger_development_pipeline:
+  stage: downstream
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   trigger:
