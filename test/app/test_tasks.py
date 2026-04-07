@@ -54,10 +54,10 @@ def test_computation_task_run(
 def test_computation_task_run_must_return_results(
     default_plugin_info, default_aoi_geom_shapely, default_aoi_properties, default_computation_resources
 ):
-    class TestModel(BaseModel):
+    class LocalTestModel(BaseModel):
         pass
 
-    class TestOperator(BaseOperator[TestModel]):
+    class TestOperator(BaseOperator[LocalTestModel]):
         def info(self) -> PluginInfo:
             return default_plugin_info.model_copy()
 
@@ -66,7 +66,7 @@ def test_computation_task_run_must_return_results(
             resources: ComputationResources,
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
-            params: TestModel,
+            params: LocalTestModel,
         ) -> List[Artifact]:
             return []
 
@@ -75,7 +75,7 @@ def test_computation_task_run_must_return_results(
         operator.compute_unsafe(
             aoi=default_aoi_geom_shapely,
             aoi_properties=default_aoi_properties,
-            params=TestModel(),
+            params=LocalTestModel(),
             resources=default_computation_resources,
         )
 

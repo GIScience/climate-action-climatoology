@@ -133,16 +133,18 @@ class NaturalnessUtility(PlatformHttpUtility):
         log.debug('Extracting aggregated raster statistics.')
 
         vectors = [v.to_crs(4326) for v in vectors]
-        vectors = gpd.GeoSeries(pd.concat(vectors), crs=4326)
+        projected_vectors = gpd.GeoSeries(pd.concat(vectors), crs=4326)
 
         init_unit = NaturalnessWorkUnit(
-            time_range=time_range, resolution=resolution, aoi=shapely.geometry.box(*vectors.total_bounds)
+            time_range=time_range, resolution=resolution, aoi=shapely.geometry.box(*projected_vectors.total_bounds)
         )
-        units = self.adjust_work_units(units=[init_unit], max_unit_size=max_raster_size, intersecting_features=vectors)
+        units = self.adjust_work_units(
+            units=[init_unit], max_unit_size=max_raster_size, intersecting_features=projected_vectors
+        )
 
         with self.compute_raster(index=index, units=units, max_unit_size=max_raster_size) as raster:
             vectors_with_stats = zonal_stats(
-                vectors=vectors,
+                vectors=projected_vectors,
                 raster=raster.read(1),
                 stats=aggregation_stats,
                 affine=rasterio.transform.from_bounds(*raster.bounds, width=raster.width, height=raster.height),
@@ -151,9 +153,9 @@ class NaturalnessUtility(PlatformHttpUtility):
                 all_touched=True,
             )
 
-        vectors_processed = gpd.GeoDataFrame.from_features(vectors_with_stats, crs=vectors.crs)
+        vectors_processed = gpd.GeoDataFrame.from_features(vectors_with_stats, crs=projected_vectors.crs)
         vectors_processed.index = [v['id'] for v in vectors_with_stats]
-        vectors_processed.index = vectors_processed.index.astype(vectors.index.dtype)
+        vectors_processed.index = vectors_processed.index.astype(projected_vectors.index.dtype)
         return vectors_processed
 
     def __fetch_raster_data(self, index: NaturalnessIndex, unit: NaturalnessWorkUnit) -> rasterio.DatasetReader:

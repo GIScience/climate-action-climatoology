@@ -47,6 +47,6 @@ def test_translate_dataframe_exclude_column_name(set_to_german):
         ],
     )
 
-    translated_df = translate_dataframe(input_df, exclude_column_names=('column_2'))
+    translated_df = translate_dataframe(input_df, exclude_column_names=('column_2',))
 
     assert_frame_equal(translated_df, expected_df)

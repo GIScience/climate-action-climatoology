@@ -32,7 +32,7 @@ def test_naturalness_connection_issues(mocked_utility_response):
 
     operator = NaturalnessUtility(base_url='http://localhost')
     with pytest.raises(PlatformUtilityError):
-        with operator.compute_raster(index='NDVI', units=[NATURALNESS_UNIT]):
+        with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT]):
             pass
 
 
