@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 
 import pytest
+from pydantic_extra_types import Color
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 from sqlalchemy import select
@@ -295,7 +296,7 @@ def test_read_computation_legend_order_is_retained(
         **default_artifact_metadata.model_dump(exclude={'filename'}),
         modality=ArtifactModality.VECTOR_MAP_LAYER,
         filename='test_aoi.geojson',
-        attachments=Attachments(legend=Legend(legend_data={'long_first_label': '#000', 'a': '#fff'})),
+        attachments=Attachments(legend=Legend(legend_data={'long_first_label': Color('#000'), 'a': Color('#fff')})),
     )
     test_computation_info.artifacts = [
         ArtifactEnriched(

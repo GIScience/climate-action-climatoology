@@ -34,6 +34,8 @@ def tr(message_id: str) -> str:
     been declared with `N_` and run through the gettext extraction pipeline.
     """
     try:
+        # noinspection PyUnresolvedReferences
+        # GNU gettext function _ is globally installed on computation start and info upload
         translated_string = _(message_id)
     except NameError as e:
         log.warning('Gettext is not properly installed, returning message id instead of translated string.', exc_info=e)
@@ -57,8 +59,8 @@ def translate_dataframe(
     *,
     translate_index_name: bool = True,
     translate_index_values: bool = True,
-    exclude_columns: tuple[str] = (),
-    exclude_column_names: tuple[str] = (),
+    exclude_columns: tuple[str] = tuple(),
+    exclude_column_names: tuple[str] = tuple(),
 ):
     """
     Deep translate the provided dataframe.

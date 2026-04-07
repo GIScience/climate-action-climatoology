@@ -496,7 +496,7 @@ def generate_plugin_info(
     name: str,
     authors: List[PluginAuthor],
     concerns: Set[Concern],
-    teaser: Optional[str] = None,
+    teaser: str,
     purpose: Optional[Path] = None,
     methodology: Optional[Path] = None,
     lang: LanguageAlpha2 = DEFAULT_LANGUAGE,
@@ -517,8 +517,7 @@ def generate_plugin_info(
       amount of contributions, descending.
     :param concerns: The domains or topics the plugin is tackling.
     :param teaser: A single sentence teaser for the plugin's functionality. The sentence must be between 20 and 150
-      characters long, start with an upper case letter and end with a full stop. If not provided, the teaser will be
-      read from `teaser.txt` files within language folders in the `localisation_directory`.
+      characters long, start with an upper case letter and end with a full stop.
     :param purpose: What will this plugin accomplish? Provide a text file that can have
       [markdown](https://www.markdownguide.org/) formatting. If not provided, the purpose will be read from `purpose.md`
       files within language folders in the `localisation_directory`.
@@ -552,8 +551,8 @@ def generate_plugin_info(
             'The use of purpose and methodology is deprecated. Use `localisation_directory` to localise your plugin.'
         )
 
-        purpose = {lang: purpose}
-        methodology = {lang: methodology}
+        purpose_dict = {lang: purpose}
+        methodology_dict = {lang: methodology}
     else:
         if localisation_directory is None:
             localisation_directory = Path('resources') / 'locales'
@@ -561,7 +560,7 @@ def generate_plugin_info(
         # individually to this function becomes unsupported, this function will go into `PluginInfo` where the
         # individual fields (teaser, purpose, methodology) become computed fields and the input
         # `localisation_directory` becomes a new optional input parameter.
-        purpose, methodology = extract_info_localisations(localisation_directory=localisation_directory)
+        purpose_dict, methodology_dict = extract_info_localisations(localisation_directory=localisation_directory)
 
     return PluginInfo(
         name=name,
@@ -571,8 +570,8 @@ def generate_plugin_info(
         concerns=concerns,
         teaser=teaser,
         computation_shelf_life=computation_shelf_life,
-        purpose=purpose,
-        methodology=methodology,
+        purpose=purpose_dict,
+        methodology=methodology_dict,
         icon=icon,
         sources_library=sources_library,
         info_source_keys=info_source_keys,

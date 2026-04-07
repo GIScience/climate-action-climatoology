@@ -121,7 +121,7 @@ class MinioStorage(Storage):
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} from {file_dir}/{artifact.filename}')
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id=artifact.filename)
-        content_type = mimetypes.guess_type(artifact.filename)[0]
+        content_type = mimetypes.guess_type(artifact.filename)[0] or 'application/octet-stream'
         object_type = (
             DataGroup.METADATA.value if artifact.modality == ArtifactModality.COMPUTATION_INFO else DataGroup.DATA.value
         )
@@ -140,7 +140,9 @@ class MinioStorage(Storage):
             display_object_name = Storage.generate_object_name(
                 artifact.correlation_uuid, store_id=artifact.attachments.display_filename
             )
-            display_content_type = mimetypes.guess_type(artifact.attachments.display_filename)[0]
+            display_content_type = (
+                mimetypes.guess_type(artifact.attachments.display_filename)[0] or 'application/octet-stream'
+            )
             self.client.fput_object(
                 bucket_name=self.__bucket,
                 object_name=display_object_name,
@@ -224,7 +226,7 @@ class MinioStorage(Storage):
         )
         binary_icon = _convert_icon_to_thumbnail(icon_path)
 
-        content_type = mimetypes.guess_type(object_name)[0]
+        content_type = mimetypes.guess_type(object_name)[0] or 'application/octet-stream'
         self.client.put_object(
             bucket_name=self.__bucket,
             object_name=object_name,

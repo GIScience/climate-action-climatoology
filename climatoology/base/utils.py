@@ -12,8 +12,8 @@ def deep_apply_dataframe(
     *,
     apply_index_name: bool = True,
     apply_index_values: bool = True,
-    exclude_columns: tuple[str] = (),
-    exclude_column_names: tuple[str] = (),
+    exclude_columns: tuple[str] = tuple(),
+    exclude_column_names: tuple[str] = tuple(),
 ) -> DataFrame:
     """
     Deep apply `func` to the provided dataframe.
