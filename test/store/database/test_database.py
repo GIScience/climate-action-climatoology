@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, Attachments, Legend
 from climatoology.base.computation import AoiProperties
 from climatoology.base.plugin_info import PluginAuthor
-from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.computation import ComputationLookupTable
 from climatoology.store.database.models.plugin_info import PluginInfoTable
 from climatoology.store.exception import InfoNotReceivedError
@@ -471,21 +470,6 @@ def test_update_failed_computation(default_plugin, default_backend_db, default_c
     db_computation = default_backend_db.read_computation(correlation_uuid=default_computation_info.correlation_uuid)
     assert db_computation.cache_epoch is None
     assert db_computation.message == 'Custom failure message'
-
-
-def test_outdated_db_refuses_startup(db_with_postgis, alembic_runner):
-    alembic_runner.migrate_up_to('45b227b8bee7')
-
-    BackendDatabase(connection_string=db_with_postgis, user_agent='Test Climatoology Backend')
-    with pytest.raises(
-        RuntimeError,
-        match=r'The target database is not compatible with the expectations by '
-        r'climatoology. Make sure to update your database e.g. by running the '
-        r'alembic migration or contacting your admin.',
-    ):
-        BackendDatabase(
-            connection_string=db_with_postgis, user_agent='Test Climatoology Backend', assert_db_status=True
-        )
 
 
 def test_upload_info_old_plugin_single_language(default_backend_db, default_plugin_info_final):

@@ -1,5 +1,6 @@
 import subprocess
 
+import pytest
 from pytest_alembic.tests import (  # noqa: F401 don't remove these unused imports, they assure that the basic default
     # alembic tests are run
     test_model_definitions_match_ddl,
@@ -10,6 +11,31 @@ from pytest_alembic.tests import (  # noqa: F401 don't remove these unused impor
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
+from climatoology.store.database.database import BackendDatabase
+from test.conftest import connection_to_string
+
+
+def test_assert_db_status(alembic_runner):
+    BackendDatabase(
+        connection_string=alembic_runner.connection_executor.connection.url, user_agent='Test Climatoology Backend'
+    )
+    with pytest.raises(
+        RuntimeError, match=r'The target database is not compatible with the expectations by climatoology.*'
+    ):
+        BackendDatabase(
+            connection_string=alembic_runner.connection_executor.connection.url,
+            user_agent='Test Climatoology Backend',
+            assert_db_status=True,
+        )
+
+    alembic_runner.migrate_up_to('head')
+    db = BackendDatabase(
+        connection_string=alembic_runner.connection_executor.connection.url,
+        user_agent='Test Climatoology Backend',
+        assert_db_status=True,
+    )
+    assert db
+
 
 def test_offline_migration_from_cli():
     completed_process = subprocess.run(['alembic', 'upgrade', '3d4313578291', '--sql'], capture_output=True)
@@ -18,17 +44,19 @@ def test_offline_migration_from_cli():
     assert 'CREATE TABLE info (\n' in output
 
 
-def test_online_migration_from_cli(monkeypatch, db_connection_params, db_with_postgis):
+def test_online_migration_from_cli(monkeypatch, db_fixture_basic):
     # Mimic having an env file or setting the env vars
-    monkeypatch.setenv('postgres_host', db_connection_params['host'])
-    monkeypatch.setenv('postgres_port', str(db_connection_params['port']))
-    monkeypatch.setenv('postgres_database', db_connection_params['database'])
-    monkeypatch.setenv('postgres_user', db_connection_params['user'])
-    monkeypatch.setenv('postgres_password', db_connection_params['password'])
+    monkeypatch.setenv('postgres_host', db_fixture_basic.info.host)
+    monkeypatch.setenv('postgres_port', str(db_fixture_basic.info.port))
+    monkeypatch.setenv('postgres_database', db_fixture_basic.info.dbname)
+    monkeypatch.setenv('postgres_user', db_fixture_basic.info.user)
+    monkeypatch.setenv('postgres_password', db_fixture_basic.info.password)
+
+    connection_str = connection_to_string(db_fixture_basic)
 
     completed_process = subprocess.run(['alembic', 'upgrade', '3d4313578291'], capture_output=True)
     assert completed_process.returncode == 0, completed_process.stderr.decode()
-    engine = create_engine(db_with_postgis)
+    engine = create_engine(connection_str)
     with engine.connect() as connection:
         assert engine.dialect.has_table(connection, 'info')
 
