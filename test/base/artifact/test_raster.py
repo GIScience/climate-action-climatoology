@@ -383,7 +383,7 @@ def test_disallow_colormap_for_incompatible_dtype(default_computation_resources,
 
 
 def test_rasterinfo_from_rasterio(default_computation_resources):
-    with rasterio.open(f'{os.path.dirname(__file__)}/../../resources/test_raster_a.tiff') as raster:
+    with rasterio.open(f'{os.path.dirname(__file__)}/../../resources/rasters/test_raster_lulc_a.tiff') as raster:
         colormap = raster.colormap(1)
         generated_info = RasterInfo(
             data=raster.read(), crs=raster.crs, transformation=raster.transform, colormap=colormap

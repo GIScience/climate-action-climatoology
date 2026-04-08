@@ -1,218 +1,194 @@
-import os
 from datetime import date
 
 import geopandas as gpd
 import pandas as pd
 import pytest
 import rasterio
+import shapely
 from geopandas import testing
+from numpy.testing import assert_allclose
 from pandas.testing import assert_index_equal
 from pyproj import CRS
-from rasterio.coords import BoundingBox
 from requests import Response
 from responses import matchers
-from shapely import LineString, Point, geometry
+from shapely import LineString, geometry
 from shapely.geometry.polygon import Polygon
 
 from climatoology.utility.api import TimeRange
 from climatoology.utility.exception import PlatformUtilityError
 from climatoology.utility.naturalness import NaturalnessIndex, NaturalnessUtility, NaturalnessWorkUnit
+from test.conftest import TEST_RESOURCES_DIR
 
-NATURALNESS_UNIT = NaturalnessWorkUnit(
-    aoi=geometry.box(7.38, 47.5, 7.385, 47.52),
+NATURALNESS_UNIT_A = NaturalnessWorkUnit(
+    aoi=geometry.box(8.67, 49.41, 8.69, 49.43),
+    time_range=TimeRange(end_date=date(2023, 6, 1)),
+)
+
+NATURALNESS_UNIT_B = NaturalnessWorkUnit(
+    aoi=geometry.box(8.69, 49.41, 8.71, 49.43),
     time_range=TimeRange(end_date=date(2023, 6, 1)),
 )
 
 
-def test_naturalness_connection_issues(mocked_utility_response):
+@pytest.fixture
+def default_naturalness_utility():
+    yield NaturalnessUtility(base_url='http://localhost')
+
+
+@pytest.fixture
+def mock_naturalness_raster_a(mocked_utility_response):
+    request_body = {
+        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
+        'resolution': 90.0,
+        'bbox': [8.67, 49.41, 8.69, 49.43],
+    }
+
+    with open(TEST_RESOURCES_DIR / 'rasters/test_raster_0-1_a_res90.tiff', 'rb') as raster:
+        mocked_utility_response.post(
+            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
+        )
+        yield mocked_utility_response
+
+
+@pytest.fixture
+def mock_naturalness_raster_b(mocked_utility_response):
+    request_body = {
+        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
+        'resolution': 90.0,
+        'bbox': [8.69, 49.41, 8.71, 49.43],
+    }
+
+    with open(TEST_RESOURCES_DIR / 'rasters/test_raster_0-1_b_res90.tiff', 'rb') as raster:
+        mocked_utility_response.post(
+            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
+        )
+        yield mocked_utility_response
+
+
+@pytest.fixture
+def mock_naturalness_raster_small(mocked_utility_response):
+    expected_bounds = [8.6790199, 49.4198258, 8.6802661, 49.4206388]
+    request_body_small = {
+        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
+        'resolution': 90.0,
+        'bbox': expected_bounds,
+    }
+    with open(TEST_RESOURCES_DIR / 'rasters/test_raster_small_res90.tiff', 'rb') as raster_small:
+        mocked_utility_response.post(
+            'http://localhost/NDVI/raster',
+            match=[matchers.json_params_matcher(request_body_small)],
+            body=raster_small.read(),
+        )
+        yield mocked_utility_response
+
+
+def test_naturalness_connection_issues(mocked_utility_response, default_naturalness_utility):
     response = Response()
     response.status_code = 409
 
     mocked_utility_response.return_value = response
 
-    operator = NaturalnessUtility(base_url='http://localhost')
     with pytest.raises(PlatformUtilityError):
-        with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT]):
+        with default_naturalness_utility.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT_A]):
             pass
 
 
-def test_compute_raster_with_invalid_inputs(mocked_utility_response):
-    operator = NaturalnessUtility(base_url='http://localhost')
+def test_compute_raster_with_invalid_inputs(mocked_utility_response, default_naturalness_utility):
     with pytest.raises(AssertionError):
-        with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[]):
+        with default_naturalness_utility.compute_raster(index=NaturalnessIndex.NDVI, units=[]):
             pass
 
 
-def test_compute_raster_single_unit(mocked_utility_response):
-    request_body = {
-        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-        'resolution': 90.0,
-        'bbox': [7.38, 47.5, 7.385, 47.52],
-    }
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
-        )
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT]) as raster:
-        assert raster.shape == (221, 42)
+def test_compute_raster_single_unit(mock_naturalness_raster_a, default_naturalness_utility):
+    with default_naturalness_utility.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT_A]) as raster:
+        assert raster.shape == (25, 16)
         assert raster.count == 1
         assert raster.dtypes[0] == rasterio.float32
-        assert raster.bounds == BoundingBox(7.38, 47.5, 7.385, 47.52)
+        assert raster.bounds == NATURALNESS_UNIT_A.aoi.bounds
 
 
-def test_compute_raster_multi_unit(mocked_utility_response):
-    units = [
-        NaturalnessWorkUnit(
-            aoi=geometry.box(7.38, 47.5, 7.381, 47.51),
-            time_range=TimeRange(end_date=date(2023, 6, 1)),
-        ),
-        NaturalnessWorkUnit(
-            aoi=geometry.box(7.382, 47.51, 7.383, 47.52),
-            time_range=TimeRange(end_date=date(2023, 6, 1)),
-        ),
-    ]
+def test_compute_raster_multi_unit(mock_naturalness_raster_a, mock_naturalness_raster_b, default_naturalness_utility):
+    units = [NATURALNESS_UNIT_A, NATURALNESS_UNIT_B]
 
-    request_body_a = units[0].model_dump(mode='json', exclude={'aoi'})
-    request_body_a['bbox'] = list(units[0].aoi.bounds)
-    request_body_b = units[1].model_dump(mode='json', exclude={'aoi'})
-    request_body_b['bbox'] = list(units[1].aoi.bounds)
+    expected_bounds = (8.67, 49.41, 8.71, 49.43)
 
-    with (
-        open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster_a,
-        open(f'{os.path.dirname(__file__)}/../resources/test_raster_b.tiff', 'rb') as raster_b,
-    ):
-        mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body_a)], body=raster_a.read()
-        )
-        mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body_b)], body=raster_b.read()
-        )
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-
-    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=units):
-        mocked_utility_response.assert_call_count(url='http://localhost/NDVI/raster', count=2)
+    with default_naturalness_utility.compute_raster(index=NaturalnessIndex.NDVI, units=units) as raster:
+        assert raster.shape == (25, 32)
+        assert_allclose(raster.bounds, expected_bounds)
 
 
-def test_compute_raster_exceeds_max_raster_size(mocked_utility_response):
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        response_raster = raster.read()
-
-    request_a = {
-        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-        'resolution': 90.0,
-        'bbox': [7.38, 47.5, 7.385, 47.51],
-    }
-    request_b = {
-        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-        'resolution': 90.0,
-        'bbox': [7.38, 47.51, 7.385, 47.52],
-    }
-    mocked_utility_response.post(
-        'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_a)], body=response_raster
-    )
-    mocked_utility_response.post(
-        'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_b)], body=response_raster
-    )
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-
-    # default unit dimensions (25, 5)
-    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[NATURALNESS_UNIT], max_unit_size=15) as raster:
-        mocked_utility_response.assert_call_count(url='http://localhost/NDVI/raster', count=2)
-
-
-def test_compute_raster_smaller_than_resolution(mocked_utility_response):
-    request_body = {
-        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-        'resolution': 1000.0,
-        'bbox': [7.3793845, 47.4999295, 7.3932747, 47.5201782],
-    }
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
-        )
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-    unit = NaturalnessWorkUnit(
-        aoi=geometry.box(7.38, 47.5, 7.385, 47.52),
+def test_compute_raster_exceeds_max_raster_size(
+    mock_naturalness_raster_a, mock_naturalness_raster_b, default_naturalness_utility
+):
+    """Assert that a requested area that exceeds the max_unit_size is separated into multiple chunks to query from the
+    naturalness utility.
+    """
+    naturalness_unit = NaturalnessWorkUnit(
+        aoi=geometry.box(8.67, 49.41, 8.71, 49.43),
         time_range=TimeRange(end_date=date(2023, 6, 1)),
-        resolution=1000,
     )
 
-    with operator.compute_raster(index=NaturalnessIndex.NDVI, units=[unit]) as raster:
-        mocked_utility_response.assert_call_count(url='http://localhost/NDVI/raster', count=1)
+    with default_naturalness_utility.compute_raster(
+        index=NaturalnessIndex.NDVI, units=[naturalness_unit], max_unit_size=30
+    ) as raster:
+        assert_allclose(raster.bounds, naturalness_unit.aoi.bounds)
 
 
-def test_compute_vector_single_unit(mocked_utility_response):
-    vectors = gpd.GeoSeries(
-        index=['first', 'second'],
-        data=[
-            Polygon([[7.380516, 47.508434], [7.380516, 47.507434], [7.381516, 47.507434]]),
-            Polygon([[7.382516, 47.508434], [7.382516, 47.507434], [7.383516, 47.507434]]),
-        ],
-        crs=CRS.from_epsg(4326),
+def test_compute_raster_smaller_than_resolution(mock_naturalness_raster_small, default_naturalness_utility):
+    """If the requested area has a dimension smaller than 1 pixel, the requested area should first be buffered,
+    to ensure the requested dimensions >= 1.
+    """
+    invalid_small_bounds = [8.6790252, 49.4198277, 8.6797126, 49.4200740]  # dimensions: 50m x 27m
+
+    unit = NaturalnessWorkUnit(
+        aoi=shapely.geometry.box(*invalid_small_bounds),
+        time_range=TimeRange(end_date=date(2023, 6, 1)),
     )
 
-    request_body = {
-        'time_range': {
-            'start_date': '2022-06-01',
-            'end_date': '2023-06-01',
-        },
-        'bbox': [7.380516, 47.507434, 7.383516, 47.508434],
-        'resolution': 90,
-    }
+    with default_naturalness_utility.compute_raster(index=NaturalnessIndex.NDVI, units=[unit]) as raster:
+        assert raster.shape == (1, 1)
 
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
-        )
 
-    operator = NaturalnessUtility(base_url='http://localhost')
+def test_compute_vector_single_unit(mock_naturalness_raster_a, default_naturalness_utility):
+    vectors = [
+        Polygon([[8.67, 49.41], [8.69, 49.41], [8.69, 49.42], [8.67, 49.42], [8.67, 49.41]]),
+        Polygon([[8.67, 49.42], [8.69, 49.42], [8.69, 49.43], [8.67, 49.43], [8.67, 49.42]]),
+    ]
+    request_gdf = gpd.GeoSeries(index=['first', 'second'], data=vectors, crs=CRS.from_epsg(4326))
+
     agg_stats = ['mean']
-
     time_range = TimeRange(end_date=date(2023, 6, 1))
 
-    response_gdf = operator.compute_vector(
-        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
+    response_gdf = default_naturalness_utility.compute_vector(
+        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[request_gdf], time_range=time_range
     )
 
     expected_output = gpd.GeoDataFrame(
         index=['first', 'second'],
-        data={'mean': [0.149369, 0.045897]},
-        geometry=[
-            Polygon([[7.380516, 47.508434], [7.380516, 47.507434], [7.381516, 47.507434]]),
-            Polygon([[7.382516, 47.508434], [7.382516, 47.507434], [7.383516, 47.507434]]),
-        ],
+        data={'mean': [0.5, 0.5]},
+        geometry=vectors,
         crs=CRS.from_epsg(4326),
     )
     testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
 
 
 @pytest.mark.parametrize('index_dtype', ['str', 'int', 'float'])
-def test_compute_vector_retain_index_dtype(index_dtype, mocked_utility_response):
-    vectors = gpd.GeoSeries(
+def test_compute_vector_retain_index_dtype(index_dtype, mock_naturalness_raster_a, default_naturalness_utility):
+    request_gdf = gpd.GeoSeries(
         index=[1, 2],
         data=[
-            Polygon([[7.380516, 47.508434], [7.380516, 47.507434], [7.381516, 47.507434]]),
-            Polygon([[7.382516, 47.508434], [7.382516, 47.507434], [7.383516, 47.507434]]),
+            Polygon([[8.67, 49.41], [8.69, 49.41], [8.69, 49.42], [8.67, 49.42], [8.67, 49.41]]),
+            Polygon([[8.67, 49.42], [8.69, 49.42], [8.69, 49.43], [8.67, 49.43], [8.67, 49.42]]),
         ],
         crs=CRS.from_epsg(4326),
     )
-    vectors.index = vectors.index.astype(index_dtype)
+    request_gdf.index = request_gdf.index.astype(index_dtype)
 
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post('http://localhost/NDVI/raster', body=raster.read())
-
-    operator = NaturalnessUtility(base_url='http://localhost')
     agg_stats = ['mean']
-
     time_range = TimeRange(end_date=date(2023, 6, 1))
 
-    response_gdf = operator.compute_vector(
-        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
+    response_gdf = default_naturalness_utility.compute_vector(
+        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[request_gdf], time_range=time_range
     )
 
     match index_dtype:
@@ -224,181 +200,124 @@ def test_compute_vector_retain_index_dtype(index_dtype, mocked_utility_response)
             assert_index_equal(response_gdf.index, pd.Index([1.0, 2.0]))
 
 
-def test_compute_vector_exceeds_max_raster_size(mocked_utility_response):
-    vectors = [
-        gpd.GeoSeries(
-            index=['1'],
-            data=[LineString([[7.380516, 47.508434], [7.384516, 47.518434]])],
-            crs=CRS.from_epsg(4326),
-        )
-    ]
+def test_compute_vector_exceeds_max_raster_size(
+    mock_naturalness_raster_a, mock_naturalness_raster_b, default_naturalness_utility
+):
+    """If the total vector bounds exceed the max_raster_size, the raster requests should be split into bounds that don't
+    exceed this limit.
+    """
+    vectors = [shapely.geometry.box(8.67, 49.41, 8.71, 49.43)]
+    request_gdf = [gpd.GeoSeries(index=['1'], data=vectors, crs=CRS.from_epsg(4326))]
 
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        response_raster = raster.read()
-
-    request_a = {
-        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-        'resolution': 10.0,
-        'bbox': [7.380516, 47.508434, 7.384516, 47.5134340],
-    }
-    mocked_utility_response.post(
-        'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_a)], body=response_raster
-    )
-    request_b = {
-        'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-        'resolution': 10.0,
-        'bbox': [7.380516, 47.5134340, 7.384516, 47.518434],
-    }
-    mocked_utility_response.post(
-        'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_b)], body=response_raster
-    )
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-    agg_stats = ['mean']
+    expected_output = gpd.GeoDataFrame(index=['1'], data={'mean': [0.5]}, geometry=vectors, crs=CRS.from_epsg(4326))
 
     time_range = TimeRange(end_date=date(2023, 6, 1))
-
-    # dimensions of example vectors here: h, w = (111, 32)
-    response_gdf = operator.compute_vector(
-        index=NaturalnessIndex.NDVI,
-        aggregation_stats=agg_stats,
-        vectors=vectors,
-        time_range=time_range,
-        max_raster_size=100,
-        resolution=10,
-    )
-
-    mocked_utility_response.assert_call_count(url='http://localhost/NDVI/raster', count=2)
-
-    expected_output = gpd.GeoDataFrame(
-        index=['1'],
-        data={'mean': [0.15999547640482584]},
-        geometry=[LineString([[7.380516, 47.508434], [7.384516, 47.518434]])],
-        crs=CRS.from_epsg(4326),
-    )
-    testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
-
-
-@pytest.mark.parametrize(['max_unit_size', 'expected_groups'], [[200, 1], [20, 2]])
-def test_compute_vector_exceeds_max_raster_size_only_intersecting_bounds(
-    max_unit_size, expected_groups, mocked_utility_response, caplog
-):
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post('http://localhost/NDVI/raster', body=raster.read())
-
-    # dimensions of example vectors here: h, w = (111, 32)
-    operator = NaturalnessUtility(base_url='http://localhost')
-    vectors = gpd.GeoSeries(
-        data=[
-            Point([7.380516, 47.508434]),
-            Point([7.384516, 47.518434]),
-        ],
-        crs=CRS.from_epsg(4326),
-    )
-
-    _ = operator.compute_vector(
-        index=NaturalnessIndex.NDVI,
-        aggregation_stats=['median'],
-        vectors=[vectors],
-        time_range=TimeRange(end_date=date(2023, 6, 1)),
-        max_raster_size=max_unit_size,
-        resolution=10,
-    )
-
-    mocked_utility_response.assert_call_count(url='http://localhost/NDVI/raster', count=expected_groups)
-
-
-def test_compute_vector_smaller_than_resolution(mocked_utility_response):
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        request_body = {
-            'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
-            'resolution': 90.0,
-            'bbox': [7.3804911, 47.5084340, 7.3817107, 47.5092604],
-        }
-        mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
-        )
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-    vectors = gpd.GeoSeries(
-        data=[Point([7.380516, 47.508434])],
-        crs=CRS.from_epsg(4326),
-    )
-
-    response_gdf = operator.compute_vector(
+    response_gdf = default_naturalness_utility.compute_vector(
         index=NaturalnessIndex.NDVI,
         aggregation_stats=['mean'],
-        vectors=[vectors],
-        time_range=TimeRange(end_date=date(2023, 6, 1)),
+        vectors=request_gdf,
+        time_range=time_range,
+        max_raster_size=30,
+        resolution=90,
     )
 
-    expected_output = gpd.GeoDataFrame(
-        data={'mean': [0.262496]},
-        geometry=[Point([7.380516, 47.508434])],
-        crs=CRS.from_epsg(4326),
-    )
     testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
 
 
-def test_compute_vector_geometries_stay_unrounded(mocked_utility_response):
-    request_body = {
+def test_compute_vector_exceeds_max_raster_size_only_intersecting_bounds(
+    mocked_utility_response, mock_naturalness_raster_a, default_naturalness_utility
+):
+    """If vector's total bounds exceeds the max_raster_size, the extent should be split into smaller bounds and bounds
+    that don't intersect with the required vectors should be dropped.
+    """
+    vectors = [
+        LineString([[8.67, 49.41], [8.68, 49.42]]),
+        LineString([[8.68, 49.46], [8.69, 49.47]]),
+    ]
+    vectors = gpd.GeoSeries(data=vectors, crs=CRS.from_epsg(4326))
+
+    expected_output = gpd.GeoDataFrame(data={'mean': [1.0, 0.0]}, geometry=vectors, crs=CRS.from_epsg(4326))
+
+    request_body_c = {
         'time_range': {'start_date': '2022-06-01', 'end_date': '2023-06-01'},
         'resolution': 90.0,
-        'bbox': [7.38, 47.5, 7.385, 47.52],
+        'bbox': [8.67, 49.45, 8.69, 49.47],
     }
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
+    with (
+        open(TEST_RESOURCES_DIR / 'rasters/test_raster_0-1_c_res90.tiff', 'rb') as raster_c,
+    ):
         mocked_utility_response.post(
-            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body)], body=raster.read()
+            'http://localhost/NDVI/raster', match=[matchers.json_params_matcher(request_body_c)], body=raster_c.read()
         )
 
-    vectors = gpd.GeoSeries(LineString([[7.37999999, 47.5], [7.38500001, 47.52]]), crs=4326)
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-    response_gdf = operator.compute_vector(
+    response_gdf = default_naturalness_utility.compute_vector(
         index=NaturalnessIndex.NDVI,
         aggregation_stats=['mean'],
         vectors=[vectors],
         time_range=TimeRange(end_date=date(2023, 6, 1)),
+        max_raster_size=26,
+        resolution=90,
     )
 
-    testing.assert_geoseries_equal(response_gdf.geometry, vectors)
-
-
-def test_compute_vector_multiple_aggregation_stats(mocked_utility_response):
-    vectors = gpd.GeoSeries(
-        index=['1'],
-        data=[
-            Polygon([[7.380516, 47.508434], [7.380516, 47.507434], [7.381516, 47.507434]]),
-        ],
-        crs=CRS.from_epsg(4326),
-    )
-
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_c.tiff', 'rb') as raster:
-        mocked_utility_response.post('http://localhost/NDVI/raster', body=raster.read())
-
-    operator = NaturalnessUtility(base_url='http://localhost')
-    agg_stats = ['mean', 'max']
-
-    time_range = TimeRange(end_date=date(2023, 6, 1))
-
-    response_gdf = operator.compute_vector(
-        index=NaturalnessIndex.NDVI, aggregation_stats=agg_stats, vectors=[vectors], time_range=time_range
-    )
-
-    expected_output = gpd.GeoDataFrame(
-        index=['1'],
-        data={'mean': [0.149369], 'max': [0.3697051703929901]},
-        geometry=[
-            Polygon([[7.380516, 47.508434], [7.380516, 47.507434], [7.381516, 47.507434]]),
-        ],
-        crs=CRS.from_epsg(4326),
-    )
     testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
 
 
-def test_adjust_work_units_model_validate(mocked_utility_response):
-    operator = NaturalnessUtility(base_url='http://localhost')
+def test_compute_vector_smaller_than_resolution(mock_naturalness_raster_small, default_naturalness_utility):
+    """If the vector bounds are less than the raster resolution in either dimension, valid bounds (>0 dimension) should
+    be created.
+    """
+    vectors = [LineString([[8.6790252, 49.4198277], [8.6797126, 49.4200740]])]
+    request_gdf = gpd.GeoSeries(data=vectors, crs=CRS.from_epsg(4326))
 
-    adjusted_units = operator.adjust_work_units(units=[NATURALNESS_UNIT])
+    expected_output = gpd.GeoDataFrame(data={'mean': [0.0]}, geometry=vectors, crs=CRS.from_epsg(4326))
+
+    response_gdf = default_naturalness_utility.compute_vector(
+        index=NaturalnessIndex.NDVI,
+        aggregation_stats=['mean'],
+        vectors=[request_gdf],
+        time_range=TimeRange(end_date=date(2023, 6, 1)),
+    )
+
+    testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
+
+
+def test_compute_vector_geometries_input_not_edited(mock_naturalness_raster_a, default_naturalness_utility):
+    """The input vector geometries shouldn't be edited."""
+    vectors = [
+        Polygon([[8.67, 49.41], [8.69, 49.41], [8.69, 49.42], [8.67, 49.42], [8.67, 49.41]]),
+        Polygon([[8.67, 49.42], [8.69, 49.42], [8.69, 49.43], [8.67, 49.43], [8.67, 49.42]]),
+    ]
+    request_gdf = gpd.GeoSeries(index=['first', 'second'], data=vectors, crs=CRS.from_epsg(4326))
+
+    response_gdf = default_naturalness_utility.compute_vector(
+        index=NaturalnessIndex.NDVI,
+        aggregation_stats=['mean'],
+        vectors=[request_gdf],
+        time_range=TimeRange(end_date=date(2023, 6, 1)),
+    )
+
+    testing.assert_geoseries_equal(response_gdf.geometry, request_gdf)
+
+
+def test_compute_vector_multiple_aggregation_stats(mock_naturalness_raster_a, default_naturalness_utility):
+    vectors = [shapely.geometry.box(8.67, 49.41, 8.69, 49.43)]
+    request_gdf = gpd.GeoSeries(data=vectors, crs=CRS.from_epsg(4326))
+
+    expected_output = gpd.GeoDataFrame(
+        data={'mean': [0.5], 'min': [0.0], 'max': [1.0]}, geometry=vectors, crs=CRS.from_epsg(4326)
+    )
+
+    response_gdf = default_naturalness_utility.compute_vector(
+        index=NaturalnessIndex.NDVI,
+        aggregation_stats=['mean', 'min', 'max'],
+        vectors=[request_gdf],
+        time_range=TimeRange(end_date=date(2023, 6, 1)),
+    )
+
+    testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
+
+
+def test_adjust_work_units_model_validate(mocked_utility_response, default_naturalness_utility):
+    adjusted_units = default_naturalness_utility.adjust_work_units(units=[NATURALNESS_UNIT_A])
 
     assert [NaturalnessWorkUnit.model_validate(dict(u), extra='forbid') for u in adjusted_units]

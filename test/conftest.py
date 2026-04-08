@@ -73,6 +73,8 @@ from climatoology.utility.api import HealthCheck
 
 pytest_plugins = ('celery.contrib.pytest',)
 
+TEST_RESOURCES_DIR = Path(__file__).parent / 'resources'
+
 
 @pytest.fixture
 def set_basic_envs(monkeypatch):
