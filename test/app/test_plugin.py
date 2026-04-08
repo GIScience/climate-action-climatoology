@@ -69,7 +69,7 @@ def test_run_standalone_computation(
             params=default_input_model,
         )
 
-        assert computation_info.model_dump() == expected_computation_info.model_dump()
+        assert computation_info == expected_computation_info
 
         result = result_dir / 'test_artifact_file.md'
         assert result.is_file()
