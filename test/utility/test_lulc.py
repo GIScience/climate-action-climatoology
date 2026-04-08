@@ -31,7 +31,7 @@ def test_lulc_when_passing_zero_units(mocked_utility_response):
 
 
 def test_lulc_when_passing_single_unit(mocked_utility_response):
-    with open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster:
+    with open(f'{os.path.dirname(__file__)}/../resources/rasters/test_raster_lulc_a.tiff', 'rb') as raster:
         mocked_utility_response.post('http://localhost/segment/', body=raster.read())
 
     operator = LulcUtility(base_url='http://localhost')
@@ -45,8 +45,8 @@ def test_lulc_when_passing_single_unit(mocked_utility_response):
 
 def test_lulc_when_passing_multiple_units(mocked_utility_response):
     with (
-        open(f'{os.path.dirname(__file__)}/../resources/test_raster_a.tiff', 'rb') as raster_a,
-        open(f'{os.path.dirname(__file__)}/../resources/test_raster_b.tiff', 'rb') as raster_b,
+        open(f'{os.path.dirname(__file__)}/../resources/rasters/test_raster_lulc_a.tiff', 'rb') as raster_a,
+        open(f'{os.path.dirname(__file__)}/../resources/rasters/test_raster_lulc_b.tiff', 'rb') as raster_b,
     ):
         request_body_a = lulc_unit_a.model_dump(mode='json', exclude={'aoi'})
         request_body_a['area_coords'] = list(lulc_unit_a.aoi.bounds)
