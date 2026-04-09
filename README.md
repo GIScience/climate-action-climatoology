@@ -78,7 +78,7 @@ You need to have read-access to this repository, then run
 ## Contributing
 
 This Package uses [poetry](https://python-poetry.org/) for environment management.
-Run `poetry install --with test,dev` to create the environment.
+Run `poetry sync --with test,dev` to create the environment.
 Don't forget to run `poetry run pre-commit install` to activate the specified [pre-commit](https://pre-commit.com/)
 hooks.
 
