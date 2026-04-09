@@ -1,5 +1,4 @@
 import tempfile
-from pathlib import Path
 from unittest.mock import ANY, patch
 
 import pytest
@@ -7,8 +6,7 @@ import pytest
 from climatoology.base.artifact import Attachments
 from climatoology.base.plugin_info import Assets, AssetsFinal, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
-
-TEST_RESOURCES_DIR = Path(__file__).parent.parent / 'resources'
+from test.conftest import TEST_RESOURCES_DIR
 
 
 def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifact_enriched):
@@ -71,7 +69,7 @@ def test_get_icon_url(mocked_object_store):
     ],
 )
 def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, expected_length):
-    icon_path = Path(__file__).parent.parent / 'resources' / icon_filename
+    icon_path = TEST_RESOURCES_DIR / icon_filename
     assets = Assets(icon=icon_path)
     with patch(
         'climatoology.store.object_store._convert_icon_to_thumbnail', side_effect=_convert_icon_to_thumbnail
@@ -90,7 +88,7 @@ def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, e
 
 
 def test_minio_synchronise_asset(mocked_object_store):
-    assets = Assets(icon=Path(__file__).parent.parent / 'resources/test_icon.png')
+    assets = Assets(icon=TEST_RESOURCES_DIR / 'test_icon.png')
     mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
     assert mocked_object_store.client.stat_object(
         bucket_name='minio_test_bucket', object_name='assets/test_plugin/latest/ICON.png'
