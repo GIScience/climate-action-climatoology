@@ -17,6 +17,7 @@ from climatoology.base.plugin_info import (
     filter_sources,
     generate_plugin_info,
 )
+from test.conftest import TEST_RESOURCES_DIR
 
 
 def test_generate_plugin_info_function(default_plugin_info: PluginInfo):
@@ -25,7 +26,7 @@ def test_generate_plugin_info_function(default_plugin_info: PluginInfo):
         authors=default_plugin_info.authors,
         concerns=default_plugin_info.concerns,
         teaser=default_plugin_info.teaser,
-        localisation_directory=Path(__file__).parent.parent / 'resources/locales',
+        localisation_directory=TEST_RESOURCES_DIR / 'locales',
         icon=default_plugin_info.icon,
         demo_input_parameters=default_plugin_info.demo_input_parameters,
         state=default_plugin_info.state,
@@ -49,12 +50,12 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
-        sources_library=Path(__file__).parent.parent / 'resources/test.bib',
+        purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
+        sources_library=TEST_RESOURCES_DIR / 'test.bib',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
     )
@@ -133,7 +134,7 @@ def test_filter_sources_subsetting(default_sources):
 def test_sources_are_optional(default_input_model):
     info = PluginInfo(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -143,8 +144,8 @@ def test_sources_are_optional(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+        purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
     )
     assert info.assets.sources_library == dict()
@@ -166,7 +167,7 @@ def test_invalid_sources(default_input_model):
     with pytest.raises(pydantic.ValidationError, match=r'.*ArticleSource\.pages.*'):
         PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -176,10 +177,10 @@ def test_invalid_sources(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='Test teaser that is meant to do nothing.',
-            purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
-            sources_library=Path(__file__).parent.parent / 'resources/invalid_test.bib',
+            sources_library=TEST_RESOURCES_DIR / 'invalid_test.bib',
         )
 
 
@@ -187,7 +188,7 @@ def test_short_teaser(default_input_model):
     with pytest.raises(expected_exception=ValidationError, match=r'String should have at least 20 characters'):
         PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -197,8 +198,8 @@ def test_short_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='This.',
-            purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -207,7 +208,7 @@ def test_long_teaser(default_input_model):
     with pytest.raises(expected_exception=ValidationError, match=r'String should have at most 150 characters'):
         PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -217,8 +218,8 @@ def test_long_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
-            purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -227,7 +228,7 @@ def test_small_start_teaser(default_input_model):
     with pytest.raises(expected_exception=ValidationError, match=r'String should match pattern'):
         PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -237,8 +238,8 @@ def test_small_start_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='this plugin does nothing.',
-            purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -247,7 +248,7 @@ def test_no_fullstop_teaser(default_input_model):
     with pytest.raises(expected_exception=ValidationError, match=r'String should match pattern'):
         PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -257,8 +258,8 @@ def test_no_fullstop_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='This plugin does nothing',
-            purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -266,7 +267,7 @@ def test_no_fullstop_teaser(default_input_model):
 def test_default_plugin_state(default_input_model):
     computed_info = PluginInfo(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -276,8 +277,8 @@ def test_default_plugin_state(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+        purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
     )
     assert computed_info.state == PluginState.ACTIVE
@@ -286,7 +287,7 @@ def test_default_plugin_state(default_input_model):
 def test_plugin_state(default_input_model):
     computed_info = PluginInfo(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -296,8 +297,8 @@ def test_plugin_state(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+        purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
         state=PluginState.ARCHIVE,
     )
@@ -307,7 +308,7 @@ def test_plugin_state(default_input_model):
 def test_shelf_life(default_input_model):
     computed_info = PluginInfo(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -317,8 +318,8 @@ def test_shelf_life(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+        purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
         computation_shelf_life=timedelta(hours=1),
     )
@@ -328,7 +329,7 @@ def test_shelf_life(default_input_model):
 def test_repository_url(default_input_model):
     computed_info = PluginInfo(
         name='Test Plugin',
-        icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         authors=[
             PluginAuthor(
                 name='John Doe',
@@ -338,8 +339,8 @@ def test_repository_url(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-        methodology={'en': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+        purpose={'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
     )
     assert str(computed_info.repository) == 'https://gitlab.heigit.org/climate-action/climatoology'
@@ -349,7 +350,7 @@ def test_english_enforced(default_input_model):
     with pytest.raises(expected_exception=ValidationError, match=r"English localisation required, only {'de'} given"):
         _ = PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -359,8 +360,8 @@ def test_english_enforced(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='Test teaser that is meant to do nothing.',
-            purpose={'de': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'de': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'de': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'de': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -372,7 +373,7 @@ def test_language_set_equal(default_input_model):
     ):
         _ = PluginInfo(
             name='Test Plugin',
-            icon=Path(__file__).parent.parent / 'resources/test_icon.png',
+            icon=TEST_RESOURCES_DIR / 'test_icon.png',
             authors=[
                 PluginAuthor(
                     name='John Doe',
@@ -382,14 +383,14 @@ def test_language_set_equal(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='Test teaser that is meant to do nothing.',
-            purpose={'de': Path(__file__).parent.parent / 'resources/locales/en/purpose.md'},
-            methodology={'fr': Path(__file__).parent.parent / 'resources/locales/en/methodology.md'},
+            purpose={'de': TEST_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={'fr': TEST_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
 
 def test_extract_info_localisations():
-    localisations = extract_info_localisations(Path(__file__).parent.parent / 'resources/locales')
+    localisations = extract_info_localisations(TEST_RESOURCES_DIR / 'locales')
 
     for loc in localisations:
         assert set(loc.keys()) == {'en', 'de'}

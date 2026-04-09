@@ -140,19 +140,19 @@ def default_plugin_info(default_input_model) -> PluginInfo:
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        icon=Path(__file__).parent / 'resources/test_icon.png',
+        icon=TEST_RESOURCES_DIR / 'test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser=N_('Test teaser that is meant to do nothing.'),
         purpose={
-            'en': Path(__file__).parent / 'resources/locales/en/purpose.md',
-            'de': Path(__file__).parent / 'resources/locales/de/purpose.md',
+            'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md',
+            'de': TEST_RESOURCES_DIR / 'locales/de/purpose.md',
         },
         methodology={
-            'en': Path(__file__).parent / 'resources/locales/en/methodology.md',
-            'de': Path(__file__).parent / 'resources/locales/de/methodology.md',
+            'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md',
+            'de': TEST_RESOURCES_DIR / 'locales/de/methodology.md',
         },
-        sources_library=Path(__file__).parent / 'resources/test.bib',
-        localisation_directory=Path(__file__).parent / 'resources/locales',
+        sources_library=TEST_RESOURCES_DIR / 'test.bib',
+        localisation_directory=TEST_RESOURCES_DIR / 'locales',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
     )
@@ -799,4 +799,4 @@ def default_sources() -> list[MiscSource]:
 
 @pytest.fixture
 def set_to_german():
-    set_language(lang='de', localisation_dir=Path(__file__).parent / 'resources/locales')
+    set_language(lang='de', localisation_dir=TEST_RESOURCES_DIR / 'locales')

@@ -1,5 +1,4 @@
 import logging
-import os
 
 import numpy as np
 import pytest
@@ -17,6 +16,7 @@ from climatoology.base.artifact import (
     RasterInfo,
 )
 from climatoology.base.artifact_creators import create_raster_artifact, legend_data_from_colormap
+from test.conftest import TEST_RESOURCES_DIR
 
 
 def test_create_concise_raster_artifact_2d(default_computation_resources, default_artifact, default_artifact_metadata):
@@ -383,7 +383,7 @@ def test_disallow_colormap_for_incompatible_dtype(default_computation_resources,
 
 
 def test_rasterinfo_from_rasterio(default_computation_resources):
-    with rasterio.open(f'{os.path.dirname(__file__)}/../../resources/rasters/test_raster_lulc_a.tiff') as raster:
+    with rasterio.open(TEST_RESOURCES_DIR / 'rasters/test_raster_lulc_a.tiff') as raster:
         colormap = raster.colormap(1)
         generated_info = RasterInfo(
             data=raster.read(), crs=raster.crs, transformation=raster.transform, colormap=colormap

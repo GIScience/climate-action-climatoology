@@ -1,4 +1,3 @@
-import os
 from datetime import date
 
 import pytest
@@ -10,6 +9,7 @@ from shapely import geometry
 
 from climatoology.utility.exception import PlatformUtilityError
 from climatoology.utility.lulc import LabelDescriptor, LabelResponse, LulcUtility, LulcWorkUnit
+from test.conftest import TEST_RESOURCES_DIR
 
 lulc_unit_a = LulcWorkUnit(
     aoi=geometry.box(8.0859375, 47.5172007, 8.2617188, 47.6357836),
@@ -31,7 +31,7 @@ def test_lulc_when_passing_zero_units(mocked_utility_response):
 
 
 def test_lulc_when_passing_single_unit(mocked_utility_response):
-    with open(f'{os.path.dirname(__file__)}/../resources/rasters/test_raster_lulc_a.tiff', 'rb') as raster:
+    with open(TEST_RESOURCES_DIR / 'rasters/test_raster_lulc_a.tiff', 'rb') as raster:
         mocked_utility_response.post('http://localhost/segment/', body=raster.read())
 
     operator = LulcUtility(base_url='http://localhost')
@@ -45,8 +45,8 @@ def test_lulc_when_passing_single_unit(mocked_utility_response):
 
 def test_lulc_when_passing_multiple_units(mocked_utility_response):
     with (
-        open(f'{os.path.dirname(__file__)}/../resources/rasters/test_raster_lulc_a.tiff', 'rb') as raster_a,
-        open(f'{os.path.dirname(__file__)}/../resources/rasters/test_raster_lulc_b.tiff', 'rb') as raster_b,
+        open(TEST_RESOURCES_DIR / 'rasters/test_raster_lulc_a.tiff', 'rb') as raster_a,
+        open(TEST_RESOURCES_DIR / 'rasters/test_raster_lulc_b.tiff', 'rb') as raster_b,
     ):
         request_body_a = lulc_unit_a.model_dump(mode='json', exclude={'aoi'})
         request_body_a['area_coords'] = list(lulc_unit_a.aoi.bounds)

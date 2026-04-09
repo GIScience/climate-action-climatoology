@@ -30,12 +30,13 @@ from pydantic.json_schema import JsonSchemaValue
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
+from climatoology import RESOURCES_DIR
 from climatoology.base import PydanticSemver
 from climatoology.base.logging import get_climatoology_logger
 
 log = get_climatoology_logger(__name__)
 
-DEMO_AOI_PATH = Path(__file__).parent.parent / 'resources/Heidelberg_AOI.geojson'
+DEMO_AOI_PATH = RESOURCES_DIR / 'Heidelberg_AOI.geojson'
 DEFAULT_LANGUAGE = LanguageAlpha2('en')
 
 
