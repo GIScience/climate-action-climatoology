@@ -25,7 +25,7 @@ from climatoology.base.computation import (
 from climatoology.base.plugin_info import (
     PluginInfo,
 )
-from test.conftest import TestModel
+from test.fixtures.plugin_info import TestModel
 
 
 def test_computation_task_init(default_computation_task):

@@ -34,7 +34,7 @@ from climatoology.base.exception import InputValidationError
 from climatoology.base.i18n import N_
 from climatoology.base.plugin_info import PluginInfo
 from climatoology.store.database.models.plugin_info import PluginInfoTable
-from test.conftest import TestModel
+from test.fixtures.plugin_info import TestModel
 
 
 def test_run_standalone_computation(
