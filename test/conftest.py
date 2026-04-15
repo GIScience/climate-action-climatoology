@@ -1,12 +1,15 @@
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 
 import pytest
 import responses
 from freezegun import freeze_time
+from psycopg import Connection
+from pydantic import BaseModel, Field
 
 from climatoology.app.settings import CABaseSettings
-from climatoology.base.i18n import set_language
+from climatoology.base.i18n import N_, set_language
 from climatoology.store.object_store import MinioStorage
 from climatoology.utility.api import HealthCheck
 
@@ -19,6 +22,7 @@ pytest_plugins = (
     'test.fixtures.database',
     'test.fixtures.plugin',
     'test.fixtures.plugin_info',
+    'test.fixtures.naturalness',
 )
 
 TEST_RESOURCES_DIR = Path(__file__).parent / 'resources'
@@ -80,3 +84,40 @@ def set_to_german():
 def frozen_time():
     with freeze_time(datetime(2018, 1, 1, 12, tzinfo=UTC), ignore=['celery']) as frozen_time:
         yield frozen_time
+
+
+class Option(StrEnum):
+    OPT1 = 'OPT1'
+    OPT2 = 'OPT2'
+
+
+class Mapping(BaseModel):
+    key: str = 'value'
+
+
+class TestModel(BaseModel):
+    __test__ = False
+    id: int = Field(title=N_('ID'), description=N_('A required integer parameter.'), examples=[1])
+    execution_time: float = Field(
+        title=N_('Execution time'),
+        description=N_('The time for the compute to run (in seconds)'),
+        examples=[10.0],
+        default=0.0,
+    )
+    name: str = Field(
+        title=N_('Name'), description=N_('An optional name parameter.'), examples=['John Doe'], default='John Doe'
+    )
+    option: Option = Option.OPT1
+    mapping: Mapping = Mapping()
+
+
+def connection_to_string(connection: Connection) -> str:
+    user = connection.info.user
+    password = connection.info.password
+    host = connection.info.host
+    port = connection.info.port
+    dbname = connection.info.dbname
+
+    connection_str = f'postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}'
+
+    return connection_str

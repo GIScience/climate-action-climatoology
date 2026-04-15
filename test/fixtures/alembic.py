@@ -5,7 +5,7 @@ import sqlalchemy
 from pytest_alembic import Config
 
 from climatoology.base.computation import ComputationState
-from test.fixtures.database import connection_to_string
+from test.conftest import connection_to_string
 
 
 @pytest.fixture

@@ -15,7 +15,7 @@ from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import AoiProperties, ComputationResources
 from climatoology.base.i18n import tr
 from climatoology.base.plugin_info import PluginInfo
-from test.fixtures.plugin_info import TestModel
+from test.conftest import TestModel
 
 
 @pytest.fixture

@@ -1,8 +1,7 @@
 from datetime import timedelta
-from enum import StrEnum
 
 import pytest
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import HttpUrl
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
@@ -17,32 +16,7 @@ from climatoology.base.plugin_info import (
     PluginInfoEnriched,
     PluginInfoFinal,
 )
-from test.conftest import TEST_RESOURCES_DIR
-
-
-class Option(StrEnum):
-    OPT1 = 'OPT1'
-    OPT2 = 'OPT2'
-
-
-class Mapping(BaseModel):
-    key: str = 'value'
-
-
-class TestModel(BaseModel):
-    __test__ = False
-    id: int = Field(title=N_('ID'), description=N_('A required integer parameter.'), examples=[1])
-    execution_time: float = Field(
-        title=N_('Execution time'),
-        description=N_('The time for the compute to run (in seconds)'),
-        examples=[10.0],
-        default=0.0,
-    )
-    name: str = Field(
-        title=N_('Name'), description=N_('An optional name parameter.'), examples=['John Doe'], default='John Doe'
-    )
-    option: Option = Option.OPT1
-    mapping: Mapping = Mapping()
+from test.conftest import TEST_RESOURCES_DIR, TestModel
 
 
 @pytest.fixture
