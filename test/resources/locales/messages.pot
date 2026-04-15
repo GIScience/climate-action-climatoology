@@ -1,14 +1,15 @@
-# Translations template for PROJECT.
-# Copyright (C) 2026 ORGANIZATION
-# This file is distributed under the same license as the PROJECT project.
+# Translations template for test_plugin.
+# Copyright (C) 2026 HeiGIT gGmbH
+# This file is distributed under the same license as the test_plugin
+# project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
+"Project-Id-Version: test_plugin VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-27 11:37+0100\n"
+"POT-Creation-Date: 2026-04-15 20:06+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,40 +18,36 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: test/conftest.py:138
-msgid "Test teaser that is meant to do nothing."
+#: test/conftest.py:90
+msgid "OPT1"
 msgstr ""
 
-#: test/conftest.py:275
+#: test/conftest.py:91
+msgid "OPT2"
+msgstr ""
+
+#: test/conftest.py:100
 msgid "ID"
 msgstr ""
 
-#: test/conftest.py:275
+#: test/conftest.py:100
 msgid "A required integer parameter."
 msgstr ""
 
-#: test/conftest.py:277
+#: test/conftest.py:102
 msgid "Execution time"
 msgstr ""
 
-#: test/conftest.py:278
+#: test/conftest.py:103
 msgid "The time for the compute to run (in seconds)"
 msgstr ""
 
-#: test/conftest.py:283
+#: test/conftest.py:108
 msgid "Name"
 msgstr ""
 
-#: test/conftest.py:283
+#: test/conftest.py:108
 msgid "An optional name parameter."
-msgstr ""
-
-#: test/conftest.py:308
-msgid "placeholder_text"
-msgstr ""
-
-#: test/app/test_plugin.py:173
-msgid "OPT1"
 msgstr ""
 
 #: test/base/artifact/test_artifact_creators.py:9
@@ -86,5 +83,13 @@ msgstr ""
 #: test/base/artifact/test_artifact_creators.py:13
 #: test/base/artifact/test_artifact_creators.py:37
 msgid "value_2"
+msgstr ""
+
+#: test/fixtures/plugin.py:35
+msgid "placeholder_text"
+msgstr ""
+
+#: test/fixtures/plugin_info.py:60
+msgid "Test teaser that is meant to do nothing."
 msgstr ""
 

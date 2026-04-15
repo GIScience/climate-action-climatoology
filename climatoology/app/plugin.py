@@ -150,7 +150,7 @@ def synch_info(
 
         unchanged_info = info.model_dump(exclude={'teaser', 'purpose', 'methodology', 'assets', 'operator_schema'})
         translated_teaser = tr(info.teaser)
-        translated_schema = deep_translate_dict(data=info.operator_schema, target_keys={'title', 'description'})
+        translated_schema = translate_operator_schema(schema=info.operator_schema)
 
         final_info = PluginInfoFinal(
             **unchanged_info,
@@ -165,6 +165,21 @@ def synch_info(
         synced_info[lang] = final_info
 
     return synced_info
+
+
+def translate_operator_schema(schema: dict) -> dict:
+    translated_schema = deep_translate_dict(data=schema, target_keys={'title', 'description'})
+
+    definitions = translated_schema.get('$defs', {})
+    for name, definition in definitions.items():
+        enum_values = definition.get('enum')
+        if enum_values:
+            enum_translation = {}
+            for v in enum_values:
+                enum_translation[v] = tr(v)
+            definition['x-translation'] = enum_translation
+
+    return translated_schema
 
 
 def run_standalone_computation(

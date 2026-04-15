@@ -87,8 +87,8 @@ def frozen_time():
 
 
 class Option(StrEnum):
-    OPT1 = 'OPT1'
-    OPT2 = 'OPT2'
+    OPT1 = N_('OPT1')
+    OPT2 = N_('OPT2')
 
 
 class Mapping(BaseModel):

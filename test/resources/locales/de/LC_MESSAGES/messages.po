@@ -8,53 +8,48 @@ msgid ""
 msgstr ""
 "Project-Id-Version: test_plugin VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-27 11:37+0100\n"
+"POT-Creation-Date: 2026-04-15 20:06+0200\n"
 "PO-Revision-Date: 2026-03-27 11:38+0100\n"
 "Last-Translator: \n"
-"Language-Team: de <LL@li.org>\n"
 "Language: de\n"
+"Language-Team: de <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
-"X-Generator: Poedit 3.9\n"
 
-#: test/conftest.py:138
-msgid "Test teaser that is meant to do nothing."
-msgstr "Deutscher Klappentext mit etwas Länge."
+#: test/conftest.py:90
+msgid "OPT1"
+msgstr "Option Eins"
 
-#: test/conftest.py:275
+#: test/conftest.py:91
+msgid "OPT2"
+msgstr "Option Zwei"
+
+#: test/conftest.py:100
 msgid "ID"
 msgstr "Identifikationsnummer"
 
-#: test/conftest.py:275
+#: test/conftest.py:100
 msgid "A required integer parameter."
 msgstr "Eine verpflichtende Ganzzahlangabe."
 
-#: test/conftest.py:277
+#: test/conftest.py:102
 msgid "Execution time"
 msgstr "Ausführungsdauer"
 
-#: test/conftest.py:278
+#: test/conftest.py:103
 msgid "The time for the compute to run (in seconds)"
 msgstr "Wie lange die Berechnung dauern soll (in Sekunden)"
 
-#: test/conftest.py:283
+#: test/conftest.py:108
 msgid "Name"
 msgstr "Der Name"
 
-#: test/conftest.py:283
+#: test/conftest.py:108
 msgid "An optional name parameter."
 msgstr "Ein optionaler Parameter."
-
-#: test/conftest.py:308
-msgid "placeholder_text"
-msgstr "German Text"
-
-#: test/app/test_plugin.py:173
-msgid "OPT1"
-msgstr "Option Eins"
 
 #: test/base/artifact/test_artifact_creators.py:9
 #: test/base/artifact/test_artifact_creators.py:33
@@ -91,8 +86,17 @@ msgstr "de_value_1"
 msgid "value_2"
 msgstr "de_value_2"
 
+#: test/fixtures/plugin.py:35
+msgid "placeholder_text"
+msgstr "German Text"
+
+#: test/fixtures/plugin_info.py:60
+msgid "Test teaser that is meant to do nothing."
+msgstr "Deutscher Klappentext mit etwas Länge."
+
 #~ msgid "A good string."
 #~ msgstr "Ein guter Text."
 
 #~ msgid "String for Good"
 #~ msgstr "Text der gutes Tut"
+
