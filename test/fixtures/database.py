@@ -28,18 +28,7 @@ from climatoology.store.database.models.views import (
     ValidComputationsView,
     create_view_tracking_object,
 )
-
-
-def connection_to_string(connection: Connection) -> str:
-    user = connection.info.user
-    password = connection.info.password
-    host = connection.info.host
-    port = connection.info.port
-    dbname = connection.info.dbname
-
-    connection_str = f'postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}'
-
-    return connection_str
+from test.conftest import connection_to_string
 
 
 def load_basics(**kwargs) -> None:

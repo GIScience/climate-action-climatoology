@@ -12,7 +12,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from climatoology.store.database.database import BackendDatabase
-from test.fixtures.database import connection_to_string
+from test.conftest import connection_to_string
 
 
 def test_assert_db_status(alembic_runner):
