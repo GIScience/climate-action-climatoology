@@ -31,7 +31,6 @@ from climatoology.base.computation import (
     StandAloneComputationInfo,
 )
 from climatoology.base.exception import InputValidationError
-from climatoology.base.i18n import N_
 from climatoology.base.plugin_info import PluginInfo
 from climatoology.store.database.models.plugin_info import PluginInfoTable
 from test.conftest import TestModel
@@ -273,12 +272,6 @@ def test_extract_plugin_id():
 def test_synch_info_multiple_languages(default_backend_db, default_plugin_info_enriched, mocked_object_store):
     plugin_info_enriched = default_plugin_info_enriched.model_copy(deep=True)
 
-    # Mark an Enum value for translation to ensure it is NOT translated.
-    # Enums cannot be translated because the plugin requires the exact value to be provided, so it can instantiate the
-    # Enum from the value.
-    # In the future, we could manually add a translation mapping to the `$defs` of the dumped operator schema.
-    opt1 = N_('OPT1')
-
     synched_info = synch_info(info=plugin_info_enriched, db=default_backend_db, storage=mocked_object_store)
 
     assert synched_info.keys() == {'de', 'en'}
@@ -286,7 +279,12 @@ def test_synch_info_multiple_languages(default_backend_db, default_plugin_info_e
 
     assert synched_info[LanguageAlpha2('de')].operator_schema == {
         '$defs': {
-            'Option': {'enum': [opt1, 'OPT2'], 'title': 'Option', 'type': 'string'},
+            'Option': {
+                'enum': ['OPT1', 'OPT2'],
+                'title': 'Option',
+                'type': 'string',
+                'x-translation': {'OPT1': 'Option Eins', 'OPT2': 'Option Zwei'},
+            },
             'Mapping': {
                 'properties': {
                     'key': {
