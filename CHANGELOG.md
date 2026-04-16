@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.1...main)
 
+### Fix
+
+- The plugin input parameters are now forwarded to the platform in a front-end friendly manner to allow nullable
+  parameters (yet, they must be optional)
+
 ## [7.1.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.1) - 2026-03-31
 
 ### Fix

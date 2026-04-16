@@ -72,7 +72,7 @@ class BaseOperator(ABC, Generic[T_co]):
         read_methodology = {lang: f.read_text() for lang, f in info.methodology.items()}
 
         demo_config = DemoConfig(params=info.demo_params_as_dict, name=info.demo_aoi.name, aoi=info.demo_aoi.geojson)
-        operator_schema = self._model.model_json_schema()
+        operator_schema = self._model.model_json_schema(union_format='primitive_type_array')
         library_version = climatoology.__version__
 
         info_enriched = PluginInfoEnriched(

@@ -3,7 +3,7 @@ import re
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -98,6 +98,36 @@ Climate Action event components.""",
     }
     assert isinstance(computed_info.demo_config, DemoConfig)
     assert computed_info.library_version == Version(1, 0, 0)
+
+
+def test_operator_info_enrichment_correctly_generates_schema(default_plugin_info):
+    class MinimalTestModel(BaseModel):
+        test: Optional[int] = Field(default=None)
+
+    class TestOperator(BaseOperator[MinimalTestModel]):
+        def info(self) -> PluginInfo:
+            info = default_plugin_info.model_copy()
+            info.demo_input_parameters = MinimalTestModel()
+            return info
+
+        def compute(
+            self,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+        ) -> List[Artifact]:
+            return []
+
+    operator = TestOperator()
+
+    computed_info = operator.info_enriched
+
+    assert computed_info.operator_schema == {
+        'properties': {'test': {'title': 'Test', 'type': ['integer', 'null'], 'default': None}},
+        'title': 'MinimalTestModel',
+        'type': 'object',
+    }
 
 
 def test_operator_startup_checks_for_aoi_fields(default_plugin_info):
