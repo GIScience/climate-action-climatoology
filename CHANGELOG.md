@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.1...main)
 
+### Changed
+
+- the Operators' `compute` method stub now enforces keyword arguments and a catch-all parameter to add flexibility of
+  adding new parameters in the future
+
 ### Fix
 
 - The plugin input parameters are now forwarded to the platform in a front-end friendly manner to allow nullable
@@ -15,6 +20,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Added
 
 - possibility to translate Enum values ([#292](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/292))
+- language parameter to the Operator `compute` method to inform plugins of the language a computation was requested in
 
 ## [7.1.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.1) - 2026-03-31
 

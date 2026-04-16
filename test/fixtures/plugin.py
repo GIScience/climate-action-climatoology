@@ -6,6 +6,7 @@ import pytest
 import shapely
 from celery import Celery, signals
 from celery.utils.threads import LocalStack
+from pydantic_extra_types.language_code import LanguageAlpha2
 
 from climatoology.app.plugin import _create_plugin
 from climatoology.app.tasks import CAPlatformComputeTask
@@ -26,11 +27,22 @@ def default_operator(default_plugin_info, default_artifact_metadata) -> BaseOper
 
         def compute(
             self,
+            *,
             resources: ComputationResources,
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
             params: TestModel,
+            language: LanguageAlpha2,
+            **kwargs,
         ) -> List[Artifact]:
+            # asset that the usage of this fixture is realistic, i.e. uses correct types
+            assert isinstance(resources, ComputationResources)
+            assert isinstance(aoi, shapely.MultiPolygon)
+            assert isinstance(aoi_properties, AoiProperties)
+            assert isinstance(params, TestModel)
+            assert isinstance(language, LanguageAlpha2)
+            assert kwargs == dict()
+
             time.sleep(params.execution_time)
             artifact_text = tr('placeholder_text')
             artifact = create_markdown_artifact(

@@ -11,6 +11,7 @@ import shapely
 from celery import Task
 from celery.signals import task_revoked
 from pydantic import BaseModel
+from pydantic_extra_types.language_code import LanguageAlpha2
 from shapely import MultiPolygon
 
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
@@ -104,6 +105,7 @@ class CAPlatformComputeTask(Task):
                     aoi=aoi_shapely_geom,
                     aoi_properties=aoi_feature.properties,
                     params=validated_params,
+                    lang=LanguageAlpha2(lang),
                 )
                 artifact_errors = resources.artifact_errors
                 self.storage.save_all(artifacts, file_dir=resources.computation_dir)
@@ -145,24 +147,25 @@ def run_standalone(
 
     validated_params = operator.validate_params(params=params.model_dump())
 
-    set_language(lang=lang, localisation_dir=operator.info_enriched.assets.localisation_directory)
+    language = LanguageAlpha2(lang)
+    set_language(lang=language, localisation_dir=operator.info_enriched.assets.localisation_directory)
 
     artifacts = operator.compute_unsafe(
-        resources=resources, aoi=aoi_geom, aoi_properties=aoi_properties, params=validated_params
+        resources=resources, aoi=aoi_geom, aoi_properties=aoi_properties, params=validated_params, lang=language
     )
     render_charts(artifacts=artifacts, file_dir=resources.computation_dir, output_dir=output_dir)
     write_individual_artifact_metadata(artifacts=artifacts, output_dir=output_dir)
 
     aoi_feature = AoiFeatureModel(type='Feature', geometry=aoi_geom, properties=aoi_properties)
     plugin_info = ComputationPluginInfo(
-        id=operator.info_enriched.id, version=operator.info_enriched.version, language=lang
+        id=operator.info_enriched.id, version=operator.info_enriched.version, language=language
     )
     computation_info = StandAloneComputationInfo(
         correlation_uuid=computation_id,
         request_ts=datetime.now(),
         deduplication_key=uuid.uuid4(),
         cache_epoch=None,
-        language=lang,
+        language=language,
         valid_until=datetime.now(),
         params=validated_params.model_dump(mode='json'),
         requested_params=params.model_dump(mode='json'),

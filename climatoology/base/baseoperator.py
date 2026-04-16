@@ -6,6 +6,7 @@ from typing import Any, Dict, Generator, Generic, List, Optional, Type, TypeVar,
 
 import shapely
 from pydantic import BaseModel, ValidationError
+from pydantic_extra_types.language_code import LanguageAlpha2
 
 import climatoology
 from climatoology.base import T_co
@@ -125,6 +126,7 @@ class BaseOperator(ABC, Generic[T_co]):
         aoi: shapely.MultiPolygon,
         aoi_properties: AoiProperties,
         params: BaseModel,
+        lang: LanguageAlpha2,
     ) -> List[ArtifactEnriched]:
         """
         Runs the compute procedure, checks and filters the returned artifacts.
@@ -133,11 +135,14 @@ class BaseOperator(ABC, Generic[T_co]):
         :param aoi: Area of interest for the computation
         :param aoi_properties: Properties of the area of interest for the computation
         :param params: computation configuration parameters
+        :param lang: language requested for the computation
         :return: a list of artifacts
         """
         log.info(f'Handling compute request for area: {aoi_properties.model_dump()} with params: {params.model_dump()}')
 
-        artifacts = self.compute(resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params)
+        artifacts = self.compute(
+            resources=resources, aoi=aoi, aoi_properties=aoi_properties, params=params, language=lang
+        )
 
         artifacts_filtered = self.filter_artifacts(artifacts=artifacts, artifact_errors=resources.artifact_errors)
 
@@ -169,10 +174,13 @@ class BaseOperator(ABC, Generic[T_co]):
     @abstractmethod
     def compute(
         self,
+        *,
         resources: ComputationResources,
         aoi: shapely.MultiPolygon,
         aoi_properties: AoiProperties,
         params: BaseModel,
+        language: LanguageAlpha2,
+        **kwargs,
     ) -> List[Artifact]:
         """Generate an operator-specific report.
 
@@ -182,6 +190,7 @@ class BaseOperator(ABC, Generic[T_co]):
         :param aoi: the requested ara of interest as a shapely MultiPolygon with SRID 4326
         :param aoi_properties: properties related to and common for all AOIs
         :param params: computation parameters in the form of the declared pydantic model
+        :param language: the language the computation is requested in
         :return: list of artifacts (files) produced by the operator
         """
         pass
