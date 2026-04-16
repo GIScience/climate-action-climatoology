@@ -88,13 +88,7 @@ def test_run_standalone_computation_renders_charts(default_plugin_info, default_
         def info(self) -> PluginInfo:
             return default_plugin_info.model_copy(deep=True)
 
-        def compute(
-            self,
-            resources: ComputationResources,
-            aoi: shapely.MultiPolygon,
-            aoi_properties: AoiProperties,
-            params: TestModel,
-        ) -> List[Artifact]:
+        def compute(self, resources: ComputationResources, aoi: shapely.MultiPolygon, **kwargs) -> List[Artifact]:
             assert isinstance(aoi, shapely.MultiPolygon)
             chart = Chart2dData(x=[1, 2], y=[3, 4], chart_type=ChartType.LINE)
             artifact = create_chart_artifact(data=chart, metadata=default_artifact_metadata, resources=resources)

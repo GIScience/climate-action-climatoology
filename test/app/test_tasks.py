@@ -5,9 +5,9 @@ from typing import List
 from unittest.mock import ANY, Mock, patch
 
 import pytest
-import shapely
 from celery.utils.threads import LocalStack
 from pydantic import BaseModel
+from pydantic_extra_types.language_code import LanguageAlpha2
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask
@@ -19,10 +19,10 @@ from climatoology.base.artifact import (
 from climatoology.base.artifact_creators import create_markdown_artifact
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import (
-    AoiProperties,
     ComputationResources,
 )
 from climatoology.base.plugin_info import (
+    DEFAULT_LANGUAGE,
     PluginInfo,
 )
 from test.conftest import TestModel
@@ -61,13 +61,7 @@ def test_computation_task_run_must_return_results(
         def info(self) -> PluginInfo:
             return default_plugin_info.model_copy()
 
-        def compute(
-            self,
-            resources: ComputationResources,
-            aoi: shapely.MultiPolygon,
-            aoi_properties: AoiProperties,
-            params: LocalTestModel,
-        ) -> List[Artifact]:
+        def compute(self, resources: ComputationResources, **kwargs) -> List[Artifact]:
             return []
 
     with pytest.raises(AssertionError, match='The computation returned no results'):
@@ -77,6 +71,7 @@ def test_computation_task_run_must_return_results(
             aoi_properties=default_aoi_properties,
             params=LocalTestModel(),
             resources=default_computation_resources,
+            lang=DEFAULT_LANGUAGE,
         )
 
 
@@ -108,6 +103,7 @@ def test_computation_task_run_forward_input(
         aoi=default_aoi_geom_shapely,
         aoi_properties=default_aoi_properties,
         params=method_input_params_obj,
+        lang=DEFAULT_LANGUAGE,
     )
     assert get_srid(compute_unsafe_mock.mock_calls[0].kwargs.get('aoi')) == 4326
     assert computed_result == expected_computation_info
@@ -154,6 +150,7 @@ def test_computation_task_run_input_validated(
         aoi=default_aoi_geom_shapely,
         aoi_properties=default_aoi_properties,
         params=default_computation_task.operator._model(id=99, name='John Doe'),
+        lang=DEFAULT_LANGUAGE,
     )
 
 
@@ -225,6 +222,45 @@ def test_computation_task_run_unknown_language(
     assert stored_artifact_content == 'English Text'
 
 
+def test_computation_language_forwarded_correctly(
+    default_backend_db,
+    default_aoi_feature_pure_dict,
+    default_plugin_info,
+    backend_with_computation_registered,
+    default_computation_info_de,
+    mocked_object_store,
+    general_uuid_de,
+    default_artifact_metadata,
+):
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> PluginInfo:
+            return default_plugin_info.model_copy()
+
+        def compute(self, language: LanguageAlpha2, resources: ComputationResources, **kwargs) -> List[Artifact]:
+            assert language == 'de'
+            artifact = create_markdown_artifact(
+                text='etwas Text',
+                metadata=default_artifact_metadata,
+                resources=resources,
+            )
+            return [artifact]
+
+    operator = TestOperator()
+
+    compute_task = CAPlatformComputeTask(operator=operator, storage=mocked_object_store, backend_db=default_backend_db)
+    compute_task.update_state = Mock()
+    request = Mock()
+    request.correlation_id = str(general_uuid_de)
+    compute_task.request_stack = LocalStack()
+    compute_task.request_stack.push(request)
+
+    _ = compute_task.run(
+        aoi=default_aoi_feature_pure_dict,
+        lang='de',
+        params={'id': 1},
+    )
+
+
 def test_computation_task_run_i18n_not_initialised(
     default_artifact_metadata,
     default_aoi_feature_pure_dict,
@@ -241,13 +277,7 @@ def test_computation_task_run_i18n_not_initialised(
         def info(self) -> PluginInfo:
             return custom_plugin_info
 
-        def compute(
-            self,
-            resources: ComputationResources,
-            aoi: shapely.MultiPolygon,
-            aoi_properties: AoiProperties,
-            params: TestModel,
-        ) -> List[Artifact]:
+        def compute(self, resources: ComputationResources, **kwargs) -> List[Artifact]:
             artifact = create_markdown_artifact(
                 text='some text',
                 metadata=default_artifact_metadata,
