@@ -284,7 +284,6 @@ def test_synch_info_multiple_languages(default_backend_db, default_plugin_info_e
     assert synched_info.keys() == {'de', 'en'}
     assert synched_info[LanguageAlpha2('de')].teaser == 'Deutscher Klappentext mit etwas Länge.'
 
-    # This is the only place that we assert the json schema
     assert synched_info[LanguageAlpha2('de')].operator_schema == {
         '$defs': {
             'Option': {'enum': [opt1, 'OPT2'], 'title': 'Option', 'type': 'string'},
