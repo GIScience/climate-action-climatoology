@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.2...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.3...main)
+
+## [7.1.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.3) - 2026-04-17
+
+### Fix
+
+- Nullable input parameters are now also front-end compatible, if they have constraints
 
 ## [7.1.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.2) - 2026-04-16
 

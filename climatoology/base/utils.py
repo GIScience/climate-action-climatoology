@@ -49,10 +49,10 @@ def deep_apply_dataframe(
 def deep_apply_dict(data: dict, func: Callable, target_keys: set) -> dict:
     result_dict = dict()
     for k, v in data.items():
-        if isinstance(v, dict):
-            new_value = deep_apply_dict(data=v, func=func, target_keys=target_keys)
-        elif k in target_keys:
+        if k in target_keys:
             new_value = func(v)
+        elif isinstance(v, dict):
+            new_value = deep_apply_dict(data=v, func=func, target_keys=target_keys)
         else:
             new_value = v
         result_dict[k] = new_value
