@@ -90,9 +90,14 @@ Climate Action event components.""",
     assert computed_info.library_version == Version(1, 0, 0)
 
 
-def test_operator_info_enrichment_correctly_generates_schema(default_plugin_info):
+def test_operator_info_enrichment_correctly_generates_schema_with_nullables(default_plugin_info):
+    class NestedModel(BaseModel):
+        nested_nullable_int_with_constraints: Optional[int] = Field(title='third title', default=None, ge=2)
+
     class MinimalTestModel(BaseModel):
-        test: Optional[int] = Field(default=None)
+        nullable_int: Optional[int] = Field(title='first title', default=None)
+        nullable_int_with_constraints: Optional[int] = Field(title='second title', default=None, ge=2)
+        nested_model: NestedModel = Field(title='third title', default=NestedModel())
 
     class TestOperator(BaseOperator[MinimalTestModel]):
         def info(self) -> PluginInfo:
@@ -108,7 +113,34 @@ def test_operator_info_enrichment_correctly_generates_schema(default_plugin_info
     computed_info = operator.info_enriched
 
     assert computed_info.operator_schema == {
-        'properties': {'test': {'title': 'Test', 'type': ['integer', 'null'], 'default': None}},
+        '$defs': {
+            'NestedModel': {
+                'properties': {
+                    'nested_nullable_int_with_constraints': {
+                        'type': ['integer', 'null'],
+                        'default': None,
+                        'minimum': 2,
+                        'title': 'third title',
+                    }
+                },
+                'title': 'NestedModel',
+                'type': 'object',
+            }
+        },
+        'properties': {
+            'nested_model': {
+                '$ref': '#/$defs/NestedModel',
+                'default': {'nested_nullable_int_with_constraints': None},
+                'title': 'third title',
+            },
+            'nullable_int': {'title': 'first title', 'type': ['integer', 'null'], 'default': None},
+            'nullable_int_with_constraints': {
+                'title': 'second title',
+                'type': ['integer', 'null'],
+                'default': None,
+                'minimum': 2,
+            },
+        },
         'title': 'MinimalTestModel',
         'type': 'object',
     }

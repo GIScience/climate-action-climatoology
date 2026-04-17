@@ -15,6 +15,7 @@ from climatoology.base.computation import AoiProperties, ComputationResources
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import DemoConfig, PluginInfo, PluginInfoEnriched
+from climatoology.base.utils import deep_apply_dict
 
 log = get_climatoology_logger(__name__)
 
@@ -73,7 +74,7 @@ class BaseOperator(ABC, Generic[T_co]):
         read_methodology = {lang: f.read_text() for lang, f in info.methodology.items()}
 
         demo_config = DemoConfig(params=info.demo_params_as_dict, name=info.demo_aoi.name, aoi=info.demo_aoi.geojson)
-        operator_schema = self._model.model_json_schema(union_format='primitive_type_array')
+        operator_schema = self.get_operator_schema()
         library_version = climatoology.__version__
 
         info_enriched = PluginInfoEnriched(
@@ -96,6 +97,32 @@ class BaseOperator(ABC, Generic[T_co]):
         )
         log.debug(f'{info.name} info constructed')
         return info_enriched
+
+    def get_operator_schema(self) -> dict:
+        operator_schema = self._model.model_json_schema(union_format='primitive_type_array')
+
+        def convert_any_of_to_type_list(properties: dict | Any) -> dict | Any:
+            if not isinstance(properties, dict):
+                return properties
+            for prop_name, prop_value in properties.items():
+                if any_of := prop_value.pop('anyOf', []):
+                    if len(any_of) > 2:
+                        log.warning('The specified input schema may not be understood by the front-end.')
+                    type_list = []
+                    for type_obj in any_of:
+                        if type_declaration := type_obj.pop('type', None):
+                            type_list.append(type_declaration)
+                            prop_value = prop_value | type_obj
+                    type_list.sort(key=lambda x: x == 'null')
+                    prop_value['type'] = type_list
+                    properties[prop_name] = prop_value
+            return properties
+
+        operator_schema = deep_apply_dict(
+            data=operator_schema, func=convert_any_of_to_type_list, target_keys={'properties'}
+        )
+
+        return operator_schema
 
     @abstractmethod
     def info(self) -> PluginInfo:
