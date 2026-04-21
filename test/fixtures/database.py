@@ -1,5 +1,4 @@
 import os
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterator
 
@@ -7,19 +6,15 @@ import alembic
 import psycopg
 import pytest
 from alembic.command import stamp
-from celery.backends.database import TaskExtended
 from celery.backends.database.session import ResultModelBase
 from psycopg import Connection
 from pydantic_extra_types.language_code import LanguageAlpha2
 from pytest_postgresql import factories
-from sqlalchemy import NullPool, String, cast, create_engine, insert, update
-from sqlalchemy.orm import Session
+from sqlalchemy import NullPool, create_engine
 
-from climatoology.base.computation import ComputationState
 from climatoology.store.database import migration
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.base import ClimatoologyTableBase
-from climatoology.store.database.models.computation import ComputationTable
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
     ComputationsSummaryView,
@@ -97,6 +92,7 @@ def backend_with_computation_registered(
     default_plugin_key,
     frozen_time,
 ) -> BackendDatabase:
+    """Register two computations: one in EN and one in DE"""
     # Default is EN
     default_backend_db.write_info(info=default_plugin_info_final)
     default_backend_db.register_computation(
@@ -105,9 +101,6 @@ def backend_with_computation_registered(
         aoi=default_computation_info.aoi,
         plugin_key=default_plugin_key,
         computation_shelf_life=default_plugin_info_final.computation_shelf_life,
-    )
-    default_backend_db.add_validated_params(
-        correlation_uuid=default_computation_info.correlation_uuid, params=default_computation_info.params
     )
 
     # Add another computation in DE
@@ -120,35 +113,40 @@ def backend_with_computation_registered(
         plugin_key='test_plugin-3.1.0-de',
         computation_shelf_life=default_plugin_info_final_de.computation_shelf_life,
     )
-    default_backend_db.add_validated_params(
-        correlation_uuid=default_computation_info_de.correlation_uuid, params=default_computation_info_de.params
-    )
-
-    with Session(default_backend_db.engine) as session:
-        session.execute(
-            insert(TaskExtended).values(
-                id='1', task_id=default_computation_info.correlation_uuid, status=ComputationState.PENDING
-            )
-        )
-        session.execute(
-            insert(TaskExtended).values(
-                id='2', task_id=default_computation_info_de.correlation_uuid, status=ComputationState.PENDING
-            )
-        )
-        session.commit()
 
     return default_backend_db
 
 
 @pytest.fixture
-def backend_with_computation_successful(backend_with_computation_registered, default_computation_info):
-    with Session(backend_with_computation_registered.engine) as session:
-        session.execute(
-            update(TaskExtended)
-            .values(status=ComputationState.SUCCESS, date_done=datetime.now())
-            .where(TaskExtended.task_id == cast(default_computation_info.correlation_uuid, String))
-        )
-        session.execute(update(ComputationTable).values(valid_until=datetime.now() + timedelta(hours=12)))
-        session.commit()
-    backend_with_computation_registered.update_successful_computation(computation_info=default_computation_info)
+def backend_with_computation_successful(
+    backend_with_computation_registered,
+    default_computation_info,
+    default_plugin,
+    default_aoi_feature_pure_dict,
+    default_computation_info_de,
+):
+    """Run two (successful) computations: one in EN and one in DE"""
+    backend_with_computation_registered.add_validated_params(
+        correlation_uuid=default_computation_info.correlation_uuid,
+        params=default_computation_info.params,
+    )
+    _ = default_plugin.send_task(
+        'compute',
+        kwargs={
+            'aoi': default_aoi_feature_pure_dict,
+            'params': {'id': 1},
+        },
+        task_id=str(default_computation_info.correlation_uuid),
+    ).get(timeout=5)
+
+    backend_with_computation_registered.add_validated_params(
+        correlation_uuid=default_computation_info_de.correlation_uuid,
+        params=default_computation_info_de.params,
+    )
+    _ = default_plugin.send_task(
+        'compute',
+        kwargs={'aoi': default_aoi_feature_pure_dict, 'params': {'id': 1}, 'lang': 'de'},
+        task_id=str(default_computation_info_de.correlation_uuid),
+    ).get(timeout=5)
+
     return backend_with_computation_registered
