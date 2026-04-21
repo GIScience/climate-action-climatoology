@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, date, datetime, timedelta
+from unittest.mock import ANY
 
 from celery.backends.database import TaskExtended
 from geoalchemy2.shape import to_shape
@@ -37,36 +38,13 @@ def test_valid_computations_view(backend_with_computation_successful, general_uu
         result_scalars = session.scalars(valid_computation_select)
         results = result_scalars.fetchall()
 
-        assert len(results) == 1
+        assert len(results) == 2
 
         result = results[0]
 
     result_dict = row_to_dict(result)
     result_dict['aoi'] = to_shape(result.aoi)
     assert result_dict == expected_view
-
-
-def test_valid_computations_view_multiple(
-    backend_with_computation_successful, default_computation_info, default_plugin_info_final, default_plugin_key
-):
-    correlation_uuid = uuid.uuid4()
-    backend_with_computation_successful.register_computation(
-        correlation_uuid=correlation_uuid,
-        requested_params={},
-        aoi=default_computation_info.aoi,
-        plugin_key=default_plugin_key,
-        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
-    )
-
-    with Session(backend_with_computation_successful.engine) as session:
-        session.execute(insert(TaskExtended).values(id='99', task_id=correlation_uuid, status=ComputationState.SUCCESS))
-        session.execute(update(ComputationTable).values(valid_until=db_now() + timedelta(hours=1)))
-
-        valid_computation_select = select(ValidComputationsView)
-        result_scalars = session.scalars(valid_computation_select)
-        results = result_scalars.fetchall()
-
-        assert len(results) == 2
 
 
 def test_valid_computations_view_plugin_version(
@@ -137,14 +115,23 @@ def test_computation_summary_view(
     expected_view = {
         'plugin_id': 'test_plugin',
         'plugin_version': Version(3, 1, 0),
-        'no_of_computations': 4,
-        'no_of_successes': 1,
+        'no_of_computations': 5,
+        'no_of_successes': 2,
         'no_of_failures': 1,
-        'percent_failed': 50.0,
-        'since': datetime(2018, 1, 1, 12, 0),
+        'percent_failed': 33.33,
+        'since': ANY,
         'no_of_input_validation_fails': 1,
         'no_of_other_states': 1,
     }
+
+    correlation_uuid_pending = uuid.uuid4()
+    backend_with_computation_successful.register_computation(
+        correlation_uuid=correlation_uuid_pending,
+        requested_params={'dont': 'deduplicate pending!'},
+        aoi=default_computation_info.aoi,
+        plugin_key=default_plugin_key,
+        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
+    )
 
     correlation_uuid_failure = uuid.uuid4()
     backend_with_computation_successful.register_computation(
@@ -165,6 +152,9 @@ def test_computation_summary_view(
     )
 
     with Session(backend_with_computation_successful.engine) as session:
+        session.execute(
+            insert(TaskExtended).values(id='97', task_id=correlation_uuid_pending, status=ComputationState.PENDING)
+        )
         session.execute(
             insert(TaskExtended).values(id='98', task_id=correlation_uuid_failure, status=ComputationState.FAILURE)
         )
@@ -287,9 +277,7 @@ def test_usage_view_first_plugin_day_division_by_zero(
     assert result_dict == expected_view
 
 
-def test_failed_computations_view(
-    backend_with_computation_registered, default_computation_info, default_plugin_info_final
-):
+def test_failed_computations_view(backend_with_computation_successful, default_computation_info):
     expected_view = {
         'plugin_id': 'test_plugin',
         'no_of_failures_in_last_30_days': 1,
@@ -300,17 +288,13 @@ def test_failed_computations_view(
         'with_tracebacks': ('Very long traceback',),
     }
 
-    backend_with_computation_registered.update_failed_computation(
+    backend_with_computation_successful.update_failed_computation(
         correlation_uuid=default_computation_info.correlation_uuid, failure_message='Failure message', cache=False
     )
-    with Session(backend_with_computation_registered.engine) as session:
+    with Session(backend_with_computation_successful.engine) as session:
         update_stmt = (
             update(TaskExtended)
-            .values(
-                date_done=db_now(),
-                status=ComputationState.FAILURE,
-                traceback='Very long traceback',
-            )
+            .values(status=ComputationState.FAILURE, traceback='Very long traceback')
             .where(TaskExtended.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update_stmt)
@@ -328,7 +312,7 @@ def test_failed_computations_view(
 
 
 def test_failed_computations_view_multiple_and_traceback(
-    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
+    backend_with_computation_successful, default_computation_info, default_computation_info_de
 ):
     expected_view = [
         {
@@ -343,50 +327,35 @@ def test_failed_computations_view_multiple_and_traceback(
         {
             'plugin_id': 'test_plugin',
             'no_of_failures_in_last_30_days': 1,
-            'cause': 'Other trac',
+            'cause': 'German tra',
             'on_days': (REAL_DATE,),
             'in_versions': (Version(3, 1, 0),),
             'with_messages': (None,),
-            'with_tracebacks': ('Other traceback',),
+            'with_tracebacks': ('German traceback',),
         },
     ]
 
-    backend_with_computation_registered.update_failed_computation(
+    backend_with_computation_successful.update_failed_computation(
         correlation_uuid=default_computation_info.correlation_uuid, failure_message='Failure message', cache=False
     )
 
-    other_correlation_uuid = uuid.uuid4()
-    backend_with_computation_registered.register_computation(
-        correlation_uuid=other_correlation_uuid,
-        requested_params={},
-        aoi=default_computation_info.aoi,
-        plugin_key=default_plugin_key,
-        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
+    backend_with_computation_successful.update_failed_computation(
+        correlation_uuid=default_computation_info_de.correlation_uuid, failure_message=None, cache=False
     )
-    backend_with_computation_registered.update_failed_computation(
-        correlation_uuid=other_correlation_uuid, failure_message=None, cache=False
-    )
-    with Session(backend_with_computation_registered.engine) as session:
+    with Session(backend_with_computation_successful.engine) as session:
         update_stmt = (
             update(TaskExtended)
-            .values(
-                date_done=db_now(),
-                status=ComputationState.FAILURE,
-                traceback='Very long traceback',
-            )
-            .where(TaskExtended.id == 1)
+            .values(status=ComputationState.FAILURE, traceback='Very long traceback')
+            .where(TaskExtended.task_id == cast(default_computation_info.correlation_uuid, String))
         )
         session.execute(update_stmt)
 
-        session.execute(
-            insert(TaskExtended).values(
-                id='99',
-                task_id=other_correlation_uuid,
-                date_done=db_now(),
-                status=ComputationState.FAILURE,
-                traceback='Other traceback',
-            )
+        update_stmt = (
+            update(TaskExtended)
+            .values(status=ComputationState.FAILURE, traceback='German traceback')
+            .where(TaskExtended.task_id == cast(default_computation_info_de.correlation_uuid, String))
         )
+        session.execute(update_stmt)
 
         usage_select = select(FailedComputationsView)
         result_scalars = session.scalars(usage_select)
@@ -396,7 +365,7 @@ def test_failed_computations_view_multiple_and_traceback(
     assert result_dict == expected_view
 
 
-def test_artifact_errors_view(backend_with_computation_registered, default_computation_info, default_plugin_info_final):
+def test_artifact_errors_view(backend_with_computation_successful, default_computation_info):
     expected_view = {
         'plugin_id': 'test_plugin',
         'no_of_computations_with_errors_in_last_30_days': 1,
@@ -406,8 +375,7 @@ def test_artifact_errors_view(backend_with_computation_registered, default_compu
         'with_messages': ('Artifact could not be computed',),
     }
 
-    with Session(backend_with_computation_registered.engine) as session:
-        session.execute(update(TaskExtended).values(date_done=db_now()))
+    with Session(backend_with_computation_successful.engine) as session:
         session.execute(
             update(ComputationTable)
             .values(artifact_errors={'artifact one': 'Artifact could not be computed'})
@@ -439,8 +407,8 @@ def test_artifact_errors_view_empty_on_none(
         assert len(results) == 0
 
 
-def test_artifact_errors_view_multiple_errors(
-    backend_with_computation_registered, default_computation_info, default_plugin_info_final
+def test_artifact_errors_view_multiple_errors_in_same_computation(
+    backend_with_computation_successful, default_computation_info
 ):
     expected_view = [
         {
@@ -461,8 +429,7 @@ def test_artifact_errors_view_multiple_errors(
         },
     ]
 
-    with Session(backend_with_computation_registered.engine) as session:
-        session.execute(update(TaskExtended).values(date_done=db_now()))
+    with Session(backend_with_computation_successful.engine) as session:
         session.execute(
             update(ComputationTable)
             .values(
@@ -483,7 +450,7 @@ def test_artifact_errors_view_multiple_errors(
 
 
 def test_failed_computations_view_multiple_computations(
-    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
+    backend_with_computation_successful, default_computation_info, default_computation_info_de
 ):
     expected_view = {
         'artifact': 'artifact one',
@@ -494,17 +461,7 @@ def test_failed_computations_view_multiple_computations(
         'with_messages': ('Artifact could not be computed',),
     }
 
-    other_correlation_uuid = uuid.uuid4()
-    backend_with_computation_registered.register_computation(
-        correlation_uuid=other_correlation_uuid,
-        requested_params={},
-        aoi=default_computation_info.aoi,
-        plugin_key=default_plugin_key,
-        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
-    )
-    with Session(backend_with_computation_registered.engine) as session:
-        session.execute(insert(TaskExtended).values(id='99', task_id=other_correlation_uuid))
-        session.execute(update(TaskExtended).values(date_done=db_now()))
+    with Session(backend_with_computation_successful.engine) as session:
         session.execute(
             update(ComputationTable)
             .values(
@@ -514,7 +471,7 @@ def test_failed_computations_view_multiple_computations(
             )
             .where(
                 ComputationTable.correlation_uuid.in_(
-                    (default_computation_info.correlation_uuid, other_correlation_uuid)
+                    (default_computation_info.correlation_uuid, default_computation_info_de.correlation_uuid)
                 )
             )
         )
@@ -530,8 +487,8 @@ def test_failed_computations_view_multiple_computations(
     assert result_dict == expected_view
 
 
-def test_failed_computations_view_multiple_computations_different(
-    backend_with_computation_registered, default_computation_info, default_plugin_info_final, default_plugin_key
+def test_artifact_errors_view_different_errors_in_different_computations(
+    backend_with_computation_successful, default_computation_info, default_computation_info_de
 ):
     expected_view = [
         {
@@ -552,16 +509,7 @@ def test_failed_computations_view_multiple_computations_different(
         },
     ]
 
-    other_correlation_uuid = uuid.uuid4()
-    backend_with_computation_registered.register_computation(
-        correlation_uuid=other_correlation_uuid,
-        requested_params={},
-        aoi=default_computation_info.aoi,
-        plugin_key=default_plugin_key,
-        computation_shelf_life=default_plugin_info_final.computation_shelf_life,
-    )
-    with Session(backend_with_computation_registered.engine) as session:
-        session.execute(insert(TaskExtended).values(id='99', task_id=other_correlation_uuid))
+    with Session(backend_with_computation_successful.engine) as session:
         session.execute(
             update(ComputationTable)
             .values(artifact_errors={'artifact one': 'Artifact could not be computed'})
@@ -570,7 +518,7 @@ def test_failed_computations_view_multiple_computations_different(
         session.execute(
             update(ComputationTable)
             .values(artifact_errors={'artifact two': 'Artifact could not be computed'})
-            .where(ComputationTable.correlation_uuid == other_correlation_uuid)
+            .where(ComputationTable.correlation_uuid == default_computation_info_de.correlation_uuid)
         )
 
         usage_select = select(ArtifactErrorsView)

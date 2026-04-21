@@ -16,7 +16,7 @@ from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import AoiProperties, ComputationResources
 from climatoology.base.i18n import tr
 from climatoology.base.plugin_info import PluginInfo
-from test.conftest import TestModel
+from test.conftest import TestModel, connection_to_string
 
 
 @pytest.fixture
@@ -83,6 +83,13 @@ def default_computation_task_de(
     compute_task.request_stack = LocalStack()
     compute_task.request_stack.push(request)
     return compute_task
+
+
+@pytest.fixture()
+def celery_config(celery_config, db_fixture_with_tables):
+    connection_str = connection_to_string(db_fixture_with_tables)
+    celery_config.update({'result_backend': f'db+{connection_str}'})
+    return celery_config
 
 
 @pytest.fixture
