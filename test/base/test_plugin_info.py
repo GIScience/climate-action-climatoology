@@ -33,7 +33,6 @@ def test_generate_plugin_info_function(default_plugin_info: PluginInfo):
         computation_shelf_life=default_plugin_info.computation_shelf_life,
         sources_library=default_plugin_info.sources_library,
         info_source_keys=default_plugin_info.info_source_keys,
-        demo_aoi=default_plugin_info.demo_aoi,
     )
 
     assert generated_info == default_plugin_info

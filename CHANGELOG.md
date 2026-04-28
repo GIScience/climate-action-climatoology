@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.3...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.4...main)
+
+## [7.1.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.4) - 2026-04-28
+
+### Fix
+
+- Remove "Demo" suffix from default demo AOI name when calling generate_plugin_info
 
 ## [7.1.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.3) - 2026-04-17
 
@@ -66,7 +72,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - For vector artifacts with discrete legends, the labels in the legend must at least include all the labels in the
   data ([#278](https://gitlab.heigit.org/climate-action/climatoology/-/issues/278))
-- Remove "Demo" from the name of the default demo AOI
+- Remove "Demo" from the name of the default demo AOI (see [7.1.4](#714---2026-04-28) for fix in generate_plugin_info)
 
 ## [7.0.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.0.3) - 2026-02-12
 
