@@ -504,7 +504,7 @@ def generate_plugin_info(
     localisation_directory: Optional[Path] = None,
     icon: Path,
     demo_input_parameters: BaseModel,
-    demo_aoi: CustomAOI = CustomAOI(name='Heidelberg Demo', path=DEMO_AOI_PATH),
+    demo_aoi: CustomAOI = CustomAOI(name='Heidelberg', path=DEMO_AOI_PATH),
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
     sources_library: Optional[Path] = None,
