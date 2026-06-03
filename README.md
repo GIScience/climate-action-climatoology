@@ -15,6 +15,8 @@ that provide climate action information to the user.
 To create a new operator (or plugin) please refer to the documentation in
 the [plugin blueprint repository](https://gitlab.heigit.org/climate-action/plugin-blueprint).
 
+A detailed description of required environment variables can be found in the [documentation](docs/ca_base_settings.md).
+
 ## Utilities
 
 The following set of utilities is currently available.
