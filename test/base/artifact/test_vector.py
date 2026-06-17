@@ -1,4 +1,5 @@
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pytest
 from geopandas import GeoDataFrame
@@ -155,6 +156,31 @@ def test_create_vector_artifact_can_overwrite_pmtile_config(default_computation_
         layer='another-layer-name',
     )
     assert not written_data.empty
+
+
+def test_create_vector_artifact_extra_column_removed_for_display(
+    default_computation_resources, default_artifact_metadata
+):
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 254))],
+            'label': ['inf'],
+            'extra_column_1': [np.inf],
+            'geometry': [Point(1, 1)],
+        },
+        crs='EPSG:4326',
+    )
+
+    generated_artifact = create_vector_artifact(
+        data=method_input,
+        metadata=default_artifact_metadata,
+        resources=default_computation_resources,
+    )
+
+    written_data = gpd.read_file(
+        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
+    )
+    assert written_data.columns.to_list() == ['mvt_id', 'index', 'color', 'label', 'geometry']
 
 
 def test_create_vector_artifact_continuous_legend(
@@ -384,7 +410,9 @@ def test_create_vector_artifact_tuple_index(default_computation_resources, defau
     assert_series_equal(written_display_data['index'], expected_pmtiles_index, check_names=False, check_index=False)
 
 
-def test_create_vector_artifact_extra_column_retained(default_computation_resources, default_artifact_metadata):
+def test_create_vector_artifact_extra_column_retained_for_download(
+    default_computation_resources, default_artifact_metadata
+):
     expected_geojson = """{
 "type": "FeatureCollection",
 "features": [
@@ -416,10 +444,6 @@ def test_create_vector_artifact_extra_column_retained(default_computation_resour
         generated_content = test_file.read()
 
         assert generated_content == expected_geojson
-    written_display_data = gpd.read_file(
-        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
-    )
-    assert 'extra_column_1' in written_display_data.columns
 
 
 def test_create_vector_artifact_fail_on_wrong_color_type(default_computation_resources, default_artifact_metadata):
