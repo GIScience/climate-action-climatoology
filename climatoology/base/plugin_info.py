@@ -54,6 +54,7 @@ class Concern(StrEnum):
 
 
 class PluginState(StrEnum):
+    PLANNED = 'planned'
     EXPERIMENTAL = 'experimental'
     ACTIVE = 'active'
     HIBERNATE = 'hibernate'

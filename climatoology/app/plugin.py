@@ -1,4 +1,5 @@
 import json
+import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -25,7 +26,7 @@ from climatoology.base.computation import (
 )
 from climatoology.base.i18n import DEFAULT_LANGUAGE, deep_translate_dict, set_language, tr
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal
+from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal, PluginState
 from climatoology.base.utils import shapely_from_geojson_pydantic
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.plugin_info import PluginInfoTable
@@ -53,7 +54,7 @@ def start_plugin(operator: BaseOperator) -> NoReturn:
     plugin.start(['worker', '-n', f'{plugin.main}@{worker_hostname}', '--loglevel', settings.log_level])
 
 
-def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
+def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery | NoReturn:
     plugin = Celery(
         operator.info_enriched.id,
         broker=settings.broker_connection_string,
@@ -80,6 +81,13 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery:
     )
 
     _ = synch_info(info=operator.info_enriched, db=backend_database, storage=storage)
+
+    if operator.info_enriched.state == PluginState.PLANNED:
+        log.info(
+            f'The plugin is in {PluginState.PLANNED.value} state and was registered as such in the '
+            'infrastructure. Shutting down now'
+        )
+        sys.exit(0)
 
     compute_task = CAPlatformComputeTask(operator=operator, storage=storage, backend_db=backend_database)
     plugin.register_task(compute_task)

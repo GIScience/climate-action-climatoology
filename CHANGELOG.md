@@ -16,6 +16,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - Documentation on the options in `CABaseSettings`
   in [docs/ca_base_settings.md](docs/ca_base_settings.md). ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303))
+- a planned state for plugins that will only register the plugin in the infrastructure and then shut
+  down ([#305](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/305)).
 
 ## [7.1.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.4) - 2026-04-28
 
