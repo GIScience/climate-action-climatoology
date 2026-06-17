@@ -7,8 +7,15 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.1.4...main)
 
+### Fixed
+
+- a problem (for some libraries) in the created PMTiles that contained invalid JSON metadata by only writing known
+  columns to the output ([#304](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/304))
+
 ### Added
-- Documentation on the options in `CABaseSettings` in [docs/ca_base_settings.md](docs/ca_base_settings.md). ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303))
+
+- Documentation on the options in `CABaseSettings`
+  in [docs/ca_base_settings.md](docs/ca_base_settings.md). ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303))
 
 ## [7.1.4](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.1.4) - 2026-04-28
 

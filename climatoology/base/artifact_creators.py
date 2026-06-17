@@ -237,10 +237,10 @@ def create_vector_artifact(
 ) -> Artifact:
     """Create a vector data artifact containing all information in `data`.
 
-    :param data: The Geodata. Must have an active geometry column and a CRS.
+    :param data: The Geodata. Must have an active geometry column and a CRS as well as a column for color and labels.
     :param color: Column name for the color values, defaults to `'color'`. Column must contain
       instances of `pydantic_extra_types.color.Color` only.
-    :param label: Column name for the labels of the features, defaults to `'label'`.
+    :param label: Column name for the labels of the features, defaults to `'label'`. Column must contain strings.
     :param legend: Can be used to display a custom legend. The keys of the legend data must include all observations in
       the `label` column in `data`. If not provided, a distinct legend will be created from the unique combinations of
       labels and colors.
@@ -254,38 +254,16 @@ def create_vector_artifact(
 
     file_path = resources.computation_dir / f'{metadata.filename}.geojson'
     display_file_path = resources.computation_dir / f'{metadata.filename}{DISPLAY_FILENAME_SUFFIX}.pmtiles'
-    assert not file_path.exists(), (
-        'The target artifact data file already exists. Make sure to choose a unique filename.'
+
+    check_vector_data(
+        input_data=data, color_column_name=color, label_column_name=label, legend=legend, output_file_path=file_path
     )
-    log.debug(f'Writing vector dataset {file_path}.')
 
-    assert data.active_geometry_name is not None, 'No active geometry column in data'
-    assert data.crs is not None, 'No CRS set for data.'
-
-    assert data[color].apply(isinstance, args=[Color]).all(), (
-        f'Not all values in column {color} are of type pydantic_extra_types.color.Color'
+    data, legend = transform_vector_data(
+        input_data=data, color_column_name=color, label_column_name=label, legend=legend
     )
-    data[color] = data[color].apply(lambda color_value: color_value.as_hex())
 
-    assert not data[label].isna().any(), f'There are missing label values in column {label}'
-
-    if legend and isinstance(legend.legend_data, dict):
-        missing_legend_labels = set(data[label]).difference(set(legend.legend_data.keys()))
-        assert len(missing_legend_labels) < 1, (
-            f'The following labels are included in the data, but not in the legend: {missing_legend_labels}'
-        )
-
-    data = data.rename(columns={color: 'color', label: 'label'})
-
-    if isinstance(data.index, MultiIndex):
-        data.index = data.index.to_flat_index()
-    if (data.index.name and data.index.name != 'index') or not data.index.is_unique:
-        data = data.reset_index(names=data.index.name or 'index_0')
-    data.index = data.index.astype(str)
-
-    data = data.to_crs(4326)
-    data.geometry = shapely.set_precision(data.geometry, grid_size=0.0000001)
-
+    log.debug(f'Writing download vector dataset {file_path}.')
     data.to_file(
         file_path,
         index=True,
@@ -294,29 +272,10 @@ def create_vector_artifact(
         layer_options={'SIGNIFICANT_FIGURES': 7, 'RFC7946': 'YES', 'WRITE_NAME': 'NO'},
         use_arrow=True,
     )
-    lco = {
-        'NAME': metadata.name,
-        'DESCRIPTION': metadata.summary,
-        'MINZOOM': 0,
-        'MAXZOOM': 15,
-    }
-    lco.update(pmtiles_lco or {})
-    dsco = deepcopy(lco)
-    dsco['TYPE'] = 'overlay'
-    data.to_file(
-        display_file_path,
-        driver='PMTiles',
-        engine='pyogrio',
-        dataset_options=dsco,
-        layer_options=lco,
-        use_arrow=True,
-    )
 
-    if not legend:
-        legend_df = data.groupby(['color', 'label']).size().index.to_frame(index=False)
-        legend_df = legend_df.set_index('label')
-        legend_data = legend_df.to_dict()['color']
-        legend = Legend(legend_data=legend_data)
+    create_vector_display_file(
+        data=data, display_file_path=display_file_path, metadata=metadata, pmtiles_lco=pmtiles_lco
+    )
 
     result = Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
@@ -328,6 +287,91 @@ def create_vector_artifact(
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 
     return result
+
+
+def create_vector_display_file(
+    data: GeoDataFrame, display_file_path: Path, metadata: ArtifactMetadata, pmtiles_lco: dict | None
+):
+    lco = {
+        'NAME': metadata.name,
+        'DESCRIPTION': metadata.summary,
+        'MINZOOM': 0,
+        'MAXZOOM': 15,
+    }
+    lco.update(pmtiles_lco or {})
+    dsco = deepcopy(lco)
+    dsco['TYPE'] = 'overlay'
+    display_cols = ['color', 'label', data.active_geometry_name]
+    display_data = data[display_cols]
+
+    log.debug(f'Writing display vector dataset {display_file_path}.')
+    display_data.to_file(
+        display_file_path,
+        driver='PMTiles',
+        engine='pyogrio',
+        dataset_options=dsco,
+        layer_options=lco,
+        use_arrow=True,
+    )
+
+
+def transform_vector_data(
+    input_data: GeoDataFrame, color_column_name: str, label_column_name: str, legend: Legend | None
+) -> tuple[GeoDataFrame, Legend | None]:
+    input_data[color_column_name] = input_data[color_column_name].apply(lambda color_value: color_value.as_hex())
+    input_data = input_data.rename(columns={color_column_name: 'color', label_column_name: 'label'})
+
+    if not legend:
+        legend_df = input_data.groupby(['color', 'label']).size().index.to_frame(index=False)
+        legend_df = legend_df.set_index('label')
+        legend_data = legend_df.to_dict()['color']
+        legend = Legend(legend_data=legend_data)
+
+    if isinstance(input_data.index, MultiIndex):
+        input_data.index = input_data.index.to_flat_index()
+    if (input_data.index.name and input_data.index.name != 'index') or not input_data.index.is_unique:
+        input_data = input_data.reset_index(names=input_data.index.name or 'index_0')
+    input_data.index = input_data.index.astype(str)
+
+    input_data = input_data.to_crs(4326)
+    input_data.geometry = shapely.set_precision(input_data.geometry, grid_size=0.0000001)
+
+    return input_data, legend
+
+
+def check_vector_data(
+    input_data: GeoDataFrame,
+    color_column_name: str,
+    label_column_name: str,
+    legend: Legend | None,
+    output_file_path: Path,
+):
+    assert not output_file_path.exists(), (
+        'The target artifact data file already exists. Make sure to choose a unique filename.'
+    )
+
+    assert input_data.active_geometry_name is not None, 'No active geometry column in data'
+    assert input_data.crs is not None, 'No CRS set for data.'
+
+    assert color_column_name in input_data.columns, (
+        f'Dataset does not contain the color column "{color_column_name}", but it is required.'
+    )
+    assert input_data[color_column_name].apply(isinstance, args=[Color]).all(), (
+        f'Not all values in column {color_column_name} are of type pydantic_extra_types.color.Color'
+    )
+
+    assert label_column_name in input_data.columns, (
+        f'Dataset does not contain the label column "{label_column_name}", but it is required.'
+    )
+    assert not input_data[label_column_name].isna().any(), (
+        f'There are missing label values in column {label_column_name}'
+    )
+
+    if legend and isinstance(legend.legend_data, dict):
+        missing_legend_labels = set(input_data[label_column_name]).difference(set(legend.legend_data.keys()))
+        assert len(missing_legend_labels) < 1, (
+            f'The following labels are included in the data, but not in the legend: {missing_legend_labels}'
+        )
 
 
 def create_raster_artifact(
