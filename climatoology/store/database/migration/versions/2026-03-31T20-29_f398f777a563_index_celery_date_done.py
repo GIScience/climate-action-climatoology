@@ -1,4 +1,4 @@
-"""empty message
+"""index celery date done
 
 Revision ID: f398f777a563
 Revises: bf7b34435593

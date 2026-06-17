@@ -31,7 +31,7 @@ from climatoology.base.computation import (
     StandAloneComputationInfo,
 )
 from climatoology.base.exception import InputValidationError
-from climatoology.base.plugin_info import PluginInfo
+from climatoology.base.plugin_info import PluginInfo, PluginState
 from climatoology.store.database.models.plugin_info import PluginInfoTable
 from test.conftest import TestModel
 
@@ -333,3 +333,40 @@ def test_synch_info_multiple_languages(default_backend_db, default_plugin_info_e
         infos = session.execute(select_stmt).all()
 
     assert infos == [('en', True), ('de', True)]
+
+
+def test_planned_plugin_registers_and_shuts_down(
+    mocked_object_store, default_backend_db, default_plugin_info, default_settings
+):
+    plugin_info = default_plugin_info.model_copy(deep=True)
+    plugin_info.state = PluginState.PLANNED
+
+    class TestOperator(BaseOperator[TestModel]):
+        def info(self) -> PluginInfo:
+            return plugin_info
+
+        def compute(
+            self,
+            *,
+            resources: ComputationResources,
+            aoi: shapely.MultiPolygon,
+            aoi_properties: AoiProperties,
+            params: TestModel,
+            language: LanguageAlpha2,
+            **kwargs,
+        ) -> List[Artifact]:
+            return []
+
+    with (
+        patch('climatoology.app.plugin.BackendDatabase', return_value=default_backend_db),
+        pytest.raises(SystemExit) as e,
+    ):
+        _create_plugin(operator=TestOperator(), settings=default_settings)
+
+    assert e.value.code == 0
+
+    with Session(default_backend_db.engine) as session:
+        select_stmt = select(PluginInfoTable.state)
+        state = session.scalar(select_stmt)
+
+    assert state == PluginState.PLANNED
