@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.2.0...main)
 
+### Changed
+
+- improved the migration tracking of views
+
 ## [7.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.2.0) - 2026-06-17
 
 ### Fixed

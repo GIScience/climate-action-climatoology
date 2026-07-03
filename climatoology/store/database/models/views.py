@@ -6,12 +6,10 @@ from alembic_utils.pg_view import PGView
 from celery.backends.database import TaskExtended
 from geoalchemy2 import Geometry
 from sqlalchemy import Date, and_, cast, distinct, not_, or_, select, type_coerce
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql import ARRAY, array_agg
+from sqlalchemy.dialects.postgresql import ARRAY, array_agg, psycopg
 from sqlalchemy.sql.functions import coalesce, count, func
 from sqlalchemy.sql.functions import now as db_now
 from sqlalchemy_utils import create_view
-from sqlalchemy_utils.view import CreateView
 
 from climatoology.base.computation import ComputationState
 from climatoology.store.database.models import DbSemver
@@ -212,18 +210,27 @@ def create_view_tracking_object(view_cls: Type[ClimatoologyViewBase]) -> PGView:
     """
     Create an alembic tracking object for a view, so changes to the view are recorded.
 
-    The workaround is required because PGView does not support creating view from `select()` statements and the two
+    The workaround is required because PGView does not support creating views from `select()` statements and the two
     libraries (sqlalchemy-utils, used for view creation, and alembic-utils, used for view tracking) are not compatible.
+
+    See https://github.com/olirice/alembic_utils/issues/165 for details.
 
     :param view_cls: the view class to create a tracking object for
     :return: the tracking object
     """
-    select_stmt = CreateView(view_cls.__table__.fullname, view_cls.select_statement)
-    select_stmt = select_stmt.compile(dialect=postgresql.dialect())
-    select_stmt = str(select_stmt).replace(f'CREATE VIEW {view_cls.__table__.fullname} AS ', '')
-    tracking_object = PGView(
-        schema=view_cls.__table__.schema,
-        signature=view_cls.__table__.name,
-        definition=select_stmt,
+    # Compile the views' select statement with our target dialect.
+    # This is similar to what `CreateView` from sqlalchemy-utils does on compilation.
+    select_stmt = view_cls.select_statement.compile(
+        dialect=psycopg.dialect(paramstyle='named'), compile_kwargs={'literal_binds': True}
     )
+    # Turn the compiled statement into a str to be compatible with PGView from alembic-utils
+    select_stmt_str = str(select_stmt)
+
+    # Create the tracking object
+    tracking_object = PGView(
+        schema=view_cls.__table__.schema or 'public',
+        signature=view_cls.__table__.name,
+        definition=select_stmt_str,
+    )
+
     return tracking_object
