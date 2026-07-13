@@ -1,11 +1,13 @@
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import sqlalchemy
 from pytest_alembic import Config
 
 from climatoology.base.computation import ComputationState
-from test.conftest import connection_to_string
+from climatoology.store.database import migration
+from climatoology.test.fixtures.database import connection_to_string
 
 
 @pytest.fixture
@@ -25,7 +27,7 @@ def alembic_config(
     default_artifact_enriched_de,
 ) -> Config:
     return Config(
-        config_options={'script_location': 'climatoology/store/database/migration'},
+        config_options={'script_location': str(Path(migration.__file__).parent)},
         at_revision_data={
             '0c77b1f5b970': [
                 {

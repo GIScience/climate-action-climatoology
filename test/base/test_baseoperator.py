@@ -16,7 +16,7 @@ from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import AoiProperties, ComputationResources, ComputationScope
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError
 from climatoology.base.plugin_info import DEFAULT_LANGUAGE, DemoConfig, PluginInfo
-from test.conftest import TestModel
+from climatoology.test.models import TestModel
 
 
 def test_default_aoi_init(default_aoi_geom_shapely):

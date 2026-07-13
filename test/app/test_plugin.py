@@ -33,7 +33,7 @@ from climatoology.base.computation import (
 from climatoology.base.exception import InputValidationError
 from climatoology.base.plugin_info import PluginInfo, PluginState
 from climatoology.store.database.models.plugin_info import PluginInfoTable
-from test.conftest import TestModel
+from climatoology.test.models import TestModel
 
 
 def test_run_standalone_computation(

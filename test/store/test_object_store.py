@@ -6,6 +6,7 @@ import pytest
 from climatoology.base.artifact import Attachments
 from climatoology.base.plugin_info import Assets, AssetsFinal, _convert_icon_to_thumbnail
 from climatoology.store.object_store import AssetType, DataGroup, Storage
+from climatoology.test import FIXTURE_RESOURCES_DIR
 from test.conftest import TEST_RESOURCES_DIR
 
 
@@ -88,7 +89,7 @@ def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, e
 
 
 def test_minio_synchronise_asset(mocked_object_store):
-    assets = Assets(icon=TEST_RESOURCES_DIR / 'test_icon.png')
+    assets = Assets(icon=FIXTURE_RESOURCES_DIR / 'test_icon.png')
     mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
     assert mocked_object_store.client.stat_object(
         bucket_name='minio_test_bucket', object_name='assets/test_plugin/latest/ICON.png'

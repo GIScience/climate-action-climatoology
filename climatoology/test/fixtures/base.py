@@ -1,0 +1,60 @@
+from datetime import UTC, datetime
+
+import pytest
+from freezegun import freeze_time
+
+from climatoology.app.settings import CABaseSettings
+from climatoology.base.i18n import set_language
+from climatoology.store.object_store import MinioStorage
+from climatoology.test import FIXTURE_RESOURCES_DIR
+
+
+@pytest.fixture
+def set_basic_envs(monkeypatch):
+    monkeypatch.setenv('minio_host', 'test.host')
+    monkeypatch.setenv('minio_port', '1234')
+    monkeypatch.setenv('minio_access_key', 'minio_test_key')
+    monkeypatch.setenv('minio_secret_key', 'minio_test_secret')
+    monkeypatch.setenv('minio_bucket', 'minio_test_bucket')
+
+    monkeypatch.setenv('rabbitmq_host', 'test.host')
+    monkeypatch.setenv('rabbitmq_port', '1234')
+    monkeypatch.setenv('rabbitmq_user', 'test_user')
+    monkeypatch.setenv('rabbitmq_password', 'test_pw')
+
+    monkeypatch.setenv('postgres_host', 'test.host')
+    monkeypatch.setenv('postgres_port', '1234')
+    monkeypatch.setenv('postgres_database', 'test_database')
+    monkeypatch.setenv('postgres_user', 'test_user')
+    monkeypatch.setenv('postgres_password', 'test_password')
+
+
+@pytest.fixture
+def default_settings(set_basic_envs) -> CABaseSettings:
+    # the base settings are read from the env vars that are provided to this fixture
+    # noinspection PyArgumentList
+    return CABaseSettings()
+
+
+@pytest.fixture
+def set_to_german():
+    set_language(lang='de', localisation_dir=FIXTURE_RESOURCES_DIR / 'locales')
+
+
+@pytest.fixture
+def frozen_time():
+    with freeze_time(datetime(2018, 1, 1, 12, tzinfo=UTC), ignore=['celery']) as frozen_time:
+        yield frozen_time
+
+
+@pytest.fixture
+def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
+    minio_storage = MinioStorage(
+        host=default_settings.minio_host,
+        port=default_settings.minio_port,
+        access_key=default_settings.minio_access_key,
+        secret_key=default_settings.minio_secret_key,
+        secure=True,
+        bucket=default_settings.minio_bucket,
+    )
+    return minio_storage

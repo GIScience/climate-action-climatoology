@@ -16,7 +16,8 @@ from climatoology.base.plugin_info import (
     PluginInfoEnriched,
     PluginInfoFinal,
 )
-from test.conftest import TEST_RESOURCES_DIR, TestModel
+from climatoology.test import FIXTURE_RESOURCES_DIR
+from climatoology.test.models import TestModel
 
 
 @pytest.fixture
@@ -55,19 +56,19 @@ def default_plugin_info(default_input_model) -> PluginInfo:
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        icon=TEST_RESOURCES_DIR / 'test_icon.png',
+        icon=FIXTURE_RESOURCES_DIR / 'test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser=N_('Test teaser that is meant to do nothing.'),
         purpose={
-            'en': TEST_RESOURCES_DIR / 'locales/en/purpose.md',
-            'de': TEST_RESOURCES_DIR / 'locales/de/purpose.md',
+            'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md',
+            'de': FIXTURE_RESOURCES_DIR / 'locales/de/purpose.md',
         },
         methodology={
-            'en': TEST_RESOURCES_DIR / 'locales/en/methodology.md',
-            'de': TEST_RESOURCES_DIR / 'locales/de/methodology.md',
+            'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md',
+            'de': FIXTURE_RESOURCES_DIR / 'locales/de/methodology.md',
         },
-        sources_library=TEST_RESOURCES_DIR / 'test.bib',
-        localisation_directory=TEST_RESOURCES_DIR / 'locales',
+        sources_library=FIXTURE_RESOURCES_DIR / 'test.bib',
+        localisation_directory=FIXTURE_RESOURCES_DIR / 'locales',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
     )

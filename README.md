@@ -73,14 +73,17 @@ Other useful commands, such as `alembic downgrade <rev>`, `alembic check` and `a
 
 ## Install
 
-This package is currently only available via the repository.
-You need to have read-access to this repository, then run
-`pip install git+ssh://git@gitlab.heigit.org:2022/climate-action/climatoology.git@{version/release/tag or branch}`.
+To install with poetry, run
+`poetry add git+https://gitlab.heigit.org/climate-action/climatoology.git@{version/release/tag or branch}`.
+
+This library provides some common fixtures available for testing.
+To install the dependencies for these fixtures, include their optional dependencies, by adding `[fixtures]` to the command above.
+
 
 ## Contributing
 
 This Package uses [poetry](https://python-poetry.org/) for environment management.
-Run `poetry sync --with test,dev` to create the environment.
+Run `poetry sync --all-extras` to create the environment.
 Don't forget to run `poetry run pre-commit install` to activate the specified [pre-commit](https://pre-commit.com/)
 hooks.
 
