@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from geoalchemy2 import Geometry, WKTElement
+from geoalchemy2 import Geometry, WKBElement
 from pydantic_extra_types.language_code import LanguageAlpha2
-from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
+from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.store.database.models import DbUuidAsString
@@ -20,7 +20,7 @@ class ComputationTable(ClimatoologyTableBase):
     __table_args__ = (
         UniqueConstraint(
             'plugin_key',
-            'deduplication_key',  # using an md5 hash creates the possibility for cash collisions but raw columns will exceed the cache entry size
+            'deduplication_key',
             'cache_epoch',
             name=COMPUTATION_DEDUPLICATION_CONSTRAINT,
         ),
@@ -29,14 +29,18 @@ class ComputationTable(ClimatoologyTableBase):
 
     correlation_uuid: Mapped[UUID] = mapped_column(DbUuidAsString, primary_key=True)
     deduplication_key: Mapped[UUID] = mapped_column(
-        Computed('md5(requested_params::text||st_astext(aoi_geom)||language::text)::uuid')
+        # using an md5 hash creates the possibility for cash collisions but raw columns will exceed the cache entry size
+        Computed('md5(requested_params::text||st_astext(aoi_geom)||language::text)::uuid', persisted=True),
     )
     language: Mapped[LanguageAlpha2] = mapped_column(String(2))
     cache_epoch: Mapped[Optional[int]]
     valid_until: Mapped[datetime] = mapped_column(index=True)
     params: Mapped[Optional[dict]] = mapped_column(JSON)
     requested_params: Mapped[dict] = mapped_column(JSON)
-    aoi_geom: Mapped[WKTElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
+    aoi_geom: Mapped[WKBElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
+    aoi_centroid: Mapped[WKBElement] = mapped_column(
+        Geometry('Point', srid=4326), Computed(func.st_pointonsurface(aoi_geom), persisted=True)
+    )
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'), index=True)
     plugin: Mapped[PluginInfoTable] = relationship()

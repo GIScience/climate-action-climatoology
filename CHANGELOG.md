@@ -11,6 +11,7 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - exposing test fixtures to users of the
   library ([#294](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/294))
+- the centroid of the AOIs to the compuation table
 
 ### Changed
 

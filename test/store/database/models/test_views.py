@@ -5,6 +5,7 @@ from unittest.mock import ANY
 from celery.backends.database import TaskExtended
 from geoalchemy2.shape import to_shape
 from semver import Version
+from shapely import Point
 from sqlalchemy import String, cast, insert, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import now as db_now
@@ -28,7 +29,8 @@ def test_valid_computations_view(backend_with_computation_successful, general_uu
         'correlation_uuid': general_uuid,
         'plugin_name': 'Test Plugin',
         'params': {'id': 1, 'name': 'John Doe', 'execution_time': 0.0, 'option': 'OPT1', 'mapping': {'key': 'value'}},
-        'aoi': default_aoi_geom_shapely,
+        'aoi_geom': default_aoi_geom_shapely,
+        'aoi_centroid': Point(0.25, 0.5),
     }
 
     with Session(backend_with_computation_successful.engine) as session:
@@ -43,7 +45,8 @@ def test_valid_computations_view(backend_with_computation_successful, general_uu
         result = results[0]
 
     result_dict = row_to_dict(result)
-    result_dict['aoi'] = to_shape(result.aoi)
+    result_dict['aoi_geom'] = to_shape(result.aoi_geom)
+    result_dict['aoi_centroid'] = to_shape(result.aoi_centroid)
     assert result_dict == expected_view
 
 

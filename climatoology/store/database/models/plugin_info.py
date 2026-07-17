@@ -37,7 +37,8 @@ class PluginInfoTable(ClimatoologyTableBase):
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
     key: Mapped[str] = mapped_column(
-        Computed("id::text || '-'::text || version::text || '-'::text || language::text"), primary_key=True
+        Computed("id::text || '-'::text || version::text || '-'::text || language::text", persisted=True),
+        primary_key=True,
     )
     id: Mapped[str]
     version: Mapped[Version] = mapped_column(DbSemver)

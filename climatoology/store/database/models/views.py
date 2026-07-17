@@ -38,7 +38,8 @@ class ValidComputationsView(ClimatoologyViewBase):
         select(
             ComputationTable.correlation_uuid,
             PluginInfoTable.name.label('plugin_name'),
-            type_coerce(ComputationTable.aoi_geom, type_=RawGeometry).label('aoi'),
+            type_coerce(ComputationTable.aoi_geom, type_=RawGeometry).label('aoi_geom'),
+            type_coerce(ComputationTable.aoi_centroid, type_=RawGeometry).label('aoi_centroid'),
             ComputationTable.params,
         )
         .join(PluginInfoTable, ComputationTable.plugin_key == PluginInfoTable.key)
