@@ -222,16 +222,22 @@ class BackendDatabase:
                 .where(ComputationLookupTable.user_correlation_uuid == correlation_uuid)
                 .options(joinedload(ComputationLookupTable.computation, innerjoin=True))
             )
-            result_scalars = session.scalars(computation_query)
-            result = result_scalars.first()
+            db_computation = session.scalar(computation_query)
 
-            if result:
-                computation_info = result.computation
-                computation_info.request_ts = result.request_ts
+            if db_computation is not None:
+                computation_info = db_computation.computation
+                computation_info.request_ts = db_computation.request_ts
+
+                aoi_properties = {
+                    'name': db_computation.aoi_name,
+                    'id': db_computation.aoi_id,
+                }
+                aoi_properties = aoi_properties | db_computation.aoi_properties
+
                 computation_info.aoi = AoiFeatureModel(
                     **{
                         'type': 'Feature',
-                        'properties': {'name': result.aoi_name, 'id': result.aoi_id} | result.aoi_properties,
+                        'properties': aoi_properties,
                         'geometry': computation_info.aoi_geom,
                     }
                 )

@@ -184,13 +184,15 @@ def test_computation_task_run_other_language(
     mocked_object_store,
     general_uuid_de,
 ):
+    expected_computation_info = default_computation_info_de.model_dump(mode='json')
+
     computed_result = default_computation_task_de.run(
         aoi=default_aoi_feature_pure_dict,
         lang='de',
         params={'id': 1},
     )
 
-    assert computed_result == default_computation_info_de.model_dump(mode='json')
+    assert computed_result == expected_computation_info
 
     stored_object = mocked_object_store.fetch(
         correlation_uuid=general_uuid_de, store_id=computed_result['artifacts'][0]['filename']
@@ -207,13 +209,15 @@ def test_computation_task_run_unknown_language(
     mocked_object_store,
     general_uuid_de,
 ):
+    expected_computation_info = default_computation_info_de.model_dump(mode='json')
+
     computed_result = default_computation_task_de.run(
         aoi=default_aoi_feature_pure_dict,
         lang='aa',
         params={'id': 1},
     )
 
-    assert computed_result == default_computation_info_de.model_dump(mode='json')
+    assert computed_result == expected_computation_info
 
     stored_object = mocked_object_store.fetch(
         correlation_uuid=general_uuid_de, store_id=computed_result['artifacts'][0]['filename']

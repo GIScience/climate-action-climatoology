@@ -169,9 +169,6 @@ class ComputationInfo(BaseModel):
             ComputationPluginInfo(id='example_plugin', version=Version(0, 0, 1), language=DEFAULT_LANGUAGE),
         ],
     )
-    status: Optional[ComputationState] = Field(
-        description='The current status of the computation.', examples=[ComputationState.SUCCESS], default=None
-    )
     message: Optional[str] = Field(description='A message accompanying the computation.', examples=[None], default=None)
     artifact_errors: dict[str, str] = Field(
         description='A dictionary of artifact names that were not computed successfully during the computation, with error messages if applicable.',
