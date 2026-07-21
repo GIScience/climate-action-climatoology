@@ -17,6 +17,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Changed
 
 - improved the migration tracking of views
+- replaced Minio client with boto3 ([#274](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/274)).
+  Note: secure connections are now the default for S3
+  Note2: make sure to switch from the `MINIO_` to the `S3_` domain for your plugins environment variables.
+  While currently both are supported, we may remove `MINIO_` support in a future release.
 
 ## [7.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.2.0) - 2026-06-17
 

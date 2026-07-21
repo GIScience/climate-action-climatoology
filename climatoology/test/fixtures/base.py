@@ -1,21 +1,23 @@
 from datetime import UTC, datetime
+from typing import Generator
 
 import pytest
 from freezegun import freeze_time
+from moto import mock_aws
 
 from climatoology.app.settings import CABaseSettings
 from climatoology.base.i18n import set_language
-from climatoology.store.object_store import MinioStorage
+from climatoology.store.object_store import S3Storage
 from climatoology.test import FIXTURE_RESOURCES_DIR
 
 
 @pytest.fixture
 def set_basic_envs(monkeypatch):
-    monkeypatch.setenv('minio_host', 'test.host')
-    monkeypatch.setenv('minio_port', '1234')
-    monkeypatch.setenv('minio_access_key', 'minio_test_key')
-    monkeypatch.setenv('minio_secret_key', 'minio_test_secret')
-    monkeypatch.setenv('minio_bucket', 'minio_test_bucket')
+    monkeypatch.setenv('s3_host', 'test.host')
+    monkeypatch.setenv('s3_port', '1234')
+    monkeypatch.setenv('s3_access_key', 's3_test_key')
+    monkeypatch.setenv('s3_secret_key', 's3_test_secret')
+    monkeypatch.setenv('s3_bucket', 's3_test_bucket')
 
     monkeypatch.setenv('rabbitmq_host', 'test.host')
     monkeypatch.setenv('rabbitmq_port', '1234')
@@ -48,13 +50,18 @@ def frozen_time():
 
 
 @pytest.fixture
-def mocked_object_store(minio_mock, default_settings) -> MinioStorage:
-    minio_storage = MinioStorage(
-        host=default_settings.minio_host,
-        port=default_settings.minio_port,
-        access_key=default_settings.minio_access_key,
-        secret_key=default_settings.minio_secret_key,
-        secure=True,
-        bucket=default_settings.minio_bucket,
-    )
-    return minio_storage
+def mocked_object_store(default_settings, monkeypatch) -> Generator[S3Storage]:
+    # Set mock-related env vars
+    monkeypatch.setenv('MOTO_S3_CUSTOM_ENDPOINTS', 'https://test.host:1234')
+    monkeypatch.setenv('AWS_DEFAULT_REGION ', 'eu-central-1')
+
+    with mock_aws():
+        s3_storage = S3Storage(
+            host=default_settings.s3_host,
+            port=default_settings.s3_port,
+            access_key=default_settings.s3_access_key,
+            secret_key=default_settings.s3_secret_key,
+            secure=True,
+            bucket=default_settings.s3_bucket,
+        )
+        yield s3_storage

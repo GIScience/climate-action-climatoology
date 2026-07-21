@@ -30,7 +30,7 @@ from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal, P
 from climatoology.base.utils import shapely_from_geojson_pydantic
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.database.models.plugin_info import PluginInfoTable
-from climatoology.store.object_store import MinioStorage, Storage
+from climatoology.store.object_store import S3Storage, Storage
 
 log = get_climatoology_logger(__name__)
 
@@ -71,13 +71,13 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery |
         'The plugin version comparison failed.'
     )
 
-    storage = MinioStorage(
-        host=settings.minio_host,
-        port=settings.minio_port,
-        access_key=settings.minio_access_key,
-        secret_key=settings.minio_secret_key,
-        bucket=settings.minio_bucket,
-        secure=settings.minio_secure,
+    storage = S3Storage(
+        host=settings.s3_host,
+        port=settings.s3_port,
+        access_key=settings.s3_access_key,
+        secret_key=settings.s3_secret_key,
+        bucket=settings.s3_bucket,
+        secure=settings.s3_secure,
     )
 
     _ = synch_info(info=operator.info_enriched, db=backend_database, storage=storage)

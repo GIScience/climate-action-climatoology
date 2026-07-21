@@ -16,14 +16,14 @@ local infrastructure setup.
 
 Configuration of the S3 object store for computed results.
 
-| Variable           | Description                                                                                                                 | Required | Default |
-|--------------------|-----------------------------------------------------------------------------------------------------------------------------|----------|---------|
-| `MINIO_HOST`       | Host URL of your S3 object store.                                                                                           | True     | -       |
-| `MINIO_PORT`       | Port of your S3 object store..                                                                                              | True     | -       |
-| `MINIO_ACCESS_KEY` | Access key from S3 object store. On first startup, you will have to create this in your S3 object store management console. | True     | -       |
-| `MINIO_SECRET_KEY` | Secret key from S3 object store. On first startup, you will have to create this in your S3 object store management console. | True     | -       |
-| `MINIO_BUCKET`     | Name of the target S3 object store bucket.                                                                                  | True     |
-| `MINIO_SECURE`     | Determine whether to use SSL to connect to S3 object store.                                                                 | False    | `False` |
+| Variable        | Description                                                                                                                 | Required | Default |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| `S3_HOST`       | Host URL of your S3 object store.                                                                                           | True     | -       |
+| `S3_PORT`       | Port of your S3 object store..                                                                                              | True     | -       |
+| `S3_ACCESS_KEY` | Access key from S3 object store. On first startup, you will have to create this in your S3 object store management console. | True     | -       |
+| `S3_SECRET_KEY` | Secret key from S3 object store. On first startup, you will have to create this in your S3 object store management console. | True     | -       |
+| `S3_BUCKET`     | Name of the target S3 object store bucket.                                                                                  | True     |
+| `S3_SECURE`     | Determine whether to use SSL to connect to S3 object store.                                                                 | False    | `False` |
 
 ## RabbitMQ
 

@@ -1,4 +1,5 @@
 import mimetypes
+import warnings
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
@@ -6,7 +7,9 @@ from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
 
-from minio import Minio, S3Error
+import boto3
+from botocore.config import Config
+from botocore.exceptions import ClientError
 
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
 from climatoology.base.logging import get_climatoology_logger
@@ -88,7 +91,7 @@ class Storage(ABC):
         pass
 
 
-class MinioStorage(Storage):
+class S3Storage(Storage):
     def __init__(
         self,
         host: str,
@@ -97,22 +100,47 @@ class MinioStorage(Storage):
         secret_key: str,
         secure: bool,
         bucket: str,
+        region: str = 'eu-central-1',
+        user_agent: Optional[str] = None,
         file_cache: Path = Path('/tmp'),
     ):
-        """Create a MinIO connection instance.
+        """Create an S3 connection instance.
 
-        :param host: MinIO instance host
-        :param port: MinIO instance port
-        :param access_key: MinIO instance access key (generate in management console)
-        :param secret_key: MinIO instance secret (generate in management console)
-        :param secure: Determine whether utilize SSL during MinIO connection
+        :param host: S3 instance host
+        :param port: S3 instance port
+        :param access_key: S3 instance access key (generate in management console)
+        :param secret_key: S3 instance secret (generate in management console)
+        :param secure: Determine whether utilize SSL during S3 connection
         :param bucket: Target bucket name
+        :param region: The S3 bucket location region, defaults to `eu-central-1`
+        :param user_agent: The user-agent to use when connection to the S3 store. Will be prefixed with `climatoology-`.
+          Defaults to `plugin`.
+        :param file_cache: The path to the temporary location of dowloaded files
         """
-        self.client = Minio(endpoint=f'{host}:{port}', access_key=access_key, secret_key=secret_key, secure=secure)
+        url = f'https://{host}:{port}' if secure else f'http://{host}:{port}'
 
-        if not self.client.bucket_exists(bucket):
+        if user_agent is None:
+            user_agent = 'plugin'
+            warnings.warn(
+                f'The user agent for S3 is not set. '
+                f'Please use a reasonable user-agent that identifies your software. '
+                f'Defaulting to "{user_agent}".'
+            )
+        user_agent = f'climatoology-{user_agent}'
+        my_config = Config(region_name=region, user_agent=user_agent)
+        self.client = boto3.client(
+            service_name='s3',
+            endpoint_url=url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            config=my_config,
+        )
+
+        try:
+            self.client.head_bucket(Bucket=bucket)
+        except ClientError:
             log.info(f'Bucket {bucket} does not exist. Creating it.')
-            self.client.make_bucket(bucket)
+            self.client.create_bucket(Bucket=bucket, CreateBucketConfiguration={'LocationConstraint': region})
 
         self.__bucket = bucket
         self.__file_cache = file_cache
@@ -127,12 +155,11 @@ class MinioStorage(Storage):
         )
         metadata = {'Type': object_type}
 
-        self.client.fput_object(
-            bucket_name=self.__bucket,
-            object_name=object_name,
-            file_path=str(file_dir / artifact.filename),
-            metadata=metadata,
-            content_type=content_type,
+        self.client.upload_file(
+            Bucket=self.__bucket,
+            Key=object_name,
+            Filename=str(file_dir / artifact.filename),
+            ExtraArgs={'Metadata': metadata, 'ContentType': content_type},
         )
         store_ids = [artifact.filename]
 
@@ -143,12 +170,11 @@ class MinioStorage(Storage):
             display_content_type = (
                 mimetypes.guess_type(artifact.attachments.display_filename)[0] or 'application/octet-stream'
             )
-            self.client.fput_object(
-                bucket_name=self.__bucket,
-                object_name=display_object_name,
-                file_path=str(file_dir / artifact.attachments.display_filename),
-                metadata=metadata,
-                content_type=display_content_type,
+            self.client.upload_file(
+                Bucket=self.__bucket,
+                Key=display_object_name,
+                Filename=str(file_dir / artifact.attachments.display_filename),
+                ExtraArgs={'Metadata': metadata, 'ContentType': display_content_type},
             )
             store_ids.append(artifact.attachments.display_filename)
 
@@ -160,23 +186,22 @@ class MinioStorage(Storage):
             store_ids.extend(self.save(artifact=artifact, file_dir=file_dir))
         return store_ids
 
-    def fetch(self, correlation_uuid: UUID, store_id: str, file_name: str = None) -> Optional[Path]:
+    def fetch(self, correlation_uuid: UUID, store_id: str, file_name: Optional[str] = None) -> Optional[Path]:
         if not file_name:
             file_name = store_id
         file_path = self.__file_cache / file_name
 
+        object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
+        log.debug(f'Downloading {object_name} from bucket {self.__bucket} to {file_path}')
         try:
-            object_name = Storage.generate_object_name(correlation_uuid=correlation_uuid, store_id=store_id)
-            log.debug(f'Downloading {object_name} from bucket {self.__bucket} to {file_path}')
-            self.client.fget_object(
-                bucket_name=self.__bucket,
-                object_name=object_name,
-                file_path=str(file_path),
+            self.client.download_file(
+                Bucket=self.__bucket,
+                Key=object_name,
+                Filename=str(file_path),
             )
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                return None
-            raise e
+        except ClientError as e:
+            log.debug(f'Object {object_name} not found', exc_info=e)
+            return None
         return file_path
 
     def get_artifact_url(
@@ -202,15 +227,14 @@ class MinioStorage(Storage):
 
     def _get_object_url(self, object_name: str, expires: timedelta) -> Optional[str]:
         try:
-            url = self.client.presigned_get_object(
-                bucket_name=self.__bucket,
-                object_name=object_name,
-                expires=expires,
+            url = self.client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.__bucket, 'Key': object_name},
+                ExpiresIn=expires,
             )
-        except S3Error as e:
-            if e.code == 'NoSuchKey':
-                return None
-            raise e
+        except ClientError as e:
+            log.debug(f'Object {object_name} not found', exc_info=e)
+            return None
         return url
 
     def write_assets(self, plugin_id: str, assets: Assets) -> AssetsFinal:
@@ -228,11 +252,11 @@ class MinioStorage(Storage):
 
         content_type = mimetypes.guess_type(object_name)[0] or 'application/octet-stream'
         self.client.put_object(
-            bucket_name=self.__bucket,
-            object_name=object_name,
-            data=binary_icon,
-            metadata={'Type': DataGroup.ASSET.value},
-            length=binary_icon.getbuffer().nbytes,
-            content_type=content_type,
+            Bucket=self.__bucket,
+            Key=object_name,
+            Body=binary_icon,
+            Metadata={'Type': DataGroup.ASSET.value},
+            ContentLength=binary_icon.getbuffer().nbytes,
+            ContentType=content_type,
         )
         return object_name

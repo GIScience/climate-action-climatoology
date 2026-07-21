@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Optional
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 EXCHANGE_NAME = 'climatoology'
@@ -9,12 +10,12 @@ EXCHANGE_NAME = 'climatoology'
 class CABaseSettings(BaseSettings):
     log_level: str = 'INFO'
 
-    minio_host: str
-    minio_port: int
-    minio_access_key: str
-    minio_secret_key: str
-    minio_bucket: str
-    minio_secure: bool = False
+    s3_host: str = Field(validation_alias=AliasChoices('s3_host', 'minio_host'))
+    s3_port: int = Field(validation_alias=AliasChoices('s3_port', 'minio_port'))
+    s3_access_key: str = Field(validation_alias=AliasChoices('s3_access_key', 'minio_access_key'))
+    s3_secret_key: str = Field(validation_alias=AliasChoices('s3_secret_key', 'minio_secret_key'))
+    s3_bucket: str = Field(validation_alias=AliasChoices('s3_bucket', 'minio_bucket'))
+    s3_secure: bool = Field(validation_alias=AliasChoices('s3_scure', 'minio_secure'), default=True)
 
     rabbitmq_host: str
     rabbitmq_port: int

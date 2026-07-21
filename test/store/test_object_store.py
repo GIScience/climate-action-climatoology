@@ -10,10 +10,12 @@ from climatoology.test import FIXTURE_RESOURCES_DIR
 from test.conftest import TEST_RESOURCES_DIR
 
 
-def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifact_enriched):
-    assert len(list(mocked_object_store.client.list_objects('minio_test_bucket'))) == 0
+def test_s3_save_and_fetch(mocked_object_store, general_uuid, default_artifact_enriched):
+    objects_in_bucket = mocked_object_store.client.list_objects(Bucket='s3_test_bucket').get('Contents')
+    assert objects_in_bucket is None
     store_id = mocked_object_store.save(default_artifact_enriched, file_dir=TEST_RESOURCES_DIR)
-    assert len(list(mocked_object_store.client.list_objects('minio_test_bucket', recursive=True))) == 1
+    objects_in_bucket = mocked_object_store.client.list_objects(Bucket='s3_test_bucket').get('Contents')
+    assert len(objects_in_bucket) == 1
     with tempfile.TemporaryDirectory() as tmpdirname:
         fetched_file = mocked_object_store.fetch(
             correlation_uuid=general_uuid, store_id=store_id[0], file_name=f'{tmpdirname}/test_file.md'
@@ -21,11 +23,12 @@ def test_minio_save_and_fetch(mocked_object_store, general_uuid, default_artifac
         assert fetched_file.read_text() == '# Test'
 
 
-def test_minio_save_display_file(mocked_object_store, general_uuid, default_artifact_enriched):
+def test_s3_save_display_file(mocked_object_store, general_uuid, default_artifact_enriched):
     artifact = default_artifact_enriched.model_copy(deep=True)
     artifact.attachments = Attachments(display_filename='test_display_file.md')
     store_id = mocked_object_store.save(artifact, file_dir=TEST_RESOURCES_DIR)
-    assert len(list(mocked_object_store.client.list_objects('minio_test_bucket', recursive=True))) == 2
+    objects_in_bucket = mocked_object_store.client.list_objects(Bucket='s3_test_bucket').get('Contents')
+    assert len(objects_in_bucket) == 2
     with tempfile.TemporaryDirectory() as tmpdirname:
         fetched_file = mocked_object_store.fetch(
             correlation_uuid=general_uuid, store_id=store_id[1], file_name=f'{tmpdirname}/test_file.md'
@@ -33,33 +36,37 @@ def test_minio_save_display_file(mocked_object_store, general_uuid, default_arti
         assert fetched_file.read_text() == 'A default artifact alternative meant for display only.'
 
 
-def test_minio_save_content_type(mocked_object_store, default_artifact_enriched, mocker):
-    save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
+def test_s3_save_content_type(mocked_object_store, default_artifact_enriched, mocker):
+    save_info_spy = mocker.spy(mocked_object_store.client, 'upload_file')
     mocked_object_store.save(default_artifact_enriched, file_dir=TEST_RESOURCES_DIR)
 
     save_info_spy.assert_called_once_with(
-        bucket_name=ANY, content_type='text/markdown', file_path=ANY, metadata=ANY, object_name=ANY
+        Bucket=ANY, ExtraArgs={'ContentType': 'text/markdown', 'Metadata': ANY}, Filename=ANY, Key=ANY
     )
 
 
-def test_minio_save_all(mocked_object_store, general_uuid, default_artifact_enriched, mocker):
+def test_s3_save_all(mocked_object_store, general_uuid, default_artifact_enriched, mocker):
     second_artifact = default_artifact_enriched.model_copy()
     saved_artifacts = [default_artifact_enriched, second_artifact]
-    save_info_spy = mocker.spy(mocked_object_store.client, 'fput_object')
+    save_info_spy = mocker.spy(mocked_object_store.client, 'upload_file')
     mocked_object_store.save_all(saved_artifacts, file_dir=TEST_RESOURCES_DIR)
 
     assert save_info_spy.call_count == 2
 
 
-def test_minio_get_artifact_url(mocked_object_store, general_uuid):
+def test_s3_get_artifact_url(mocked_object_store, general_uuid):
     store_id = 'test_file.tiff'
     result = mocked_object_store.get_artifact_url(general_uuid, store_id)
-    assert result == f'https://test.host:1234/minio_test_bucket/{general_uuid}/test_file.tiff'
+    url, params = result.split('?')
+    assert url == f'https://test.host:1234/s3_test_bucket/{general_uuid}/test_file.tiff'
+    assert 'X-Amz-Signature=' in params
 
 
 def test_get_icon_url(mocked_object_store):
     result = mocked_object_store.get_icon_url(plugin_id='test_plugin')
-    assert result == 'https://test.host:1234/minio_test_bucket/assets/test_plugin/latest/ICON.png'
+    url, params = result.split('?')
+    assert url == 'https://test.host:1234/s3_test_bucket/assets/test_plugin/latest/ICON.png'
+    assert 'X-Amz-Signature=' in params
 
 
 @pytest.mark.parametrize(
@@ -79,24 +86,22 @@ def test_big_icon_gets_thumbnailed(mocked_object_store, mocker, icon_filename, e
         mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
         mocked_thumbnail_call.assert_called_once_with(icon_path)
         icon_put_spy.assert_called_once_with(
-            bucket_name='minio_test_bucket',
-            object_name='assets/test_plugin/latest/ICON.png',
-            data=ANY,
-            metadata={'Type': DataGroup.ASSET.value},
-            length=expected_length,
-            content_type='image/png',
+            Bucket='s3_test_bucket',
+            Key='assets/test_plugin/latest/ICON.png',
+            Body=ANY,
+            Metadata={'Type': DataGroup.ASSET.value},
+            ContentLength=expected_length,
+            ContentType='image/png',
         )
 
 
-def test_minio_synchronise_asset(mocked_object_store):
+def test_s3_synchronise_asset(mocked_object_store):
     assets = Assets(icon=FIXTURE_RESOURCES_DIR / 'test_icon.png')
     mocked_object_store.write_assets(plugin_id='test_plugin', assets=assets)
-    assert mocked_object_store.client.stat_object(
-        bucket_name='minio_test_bucket', object_name='assets/test_plugin/latest/ICON.png'
-    )
+    assert mocked_object_store.client.head_object(Bucket='s3_test_bucket', Key='assets/test_plugin/latest/ICON.png')
 
 
-def test_minio_synchronise_asset_creates_final_assets_object(mocked_object_store, default_plugin_info_enriched):
+def test_s3_synchronise_asset_creates_final_assets_object(mocked_object_store, default_plugin_info_enriched):
     expected_assets = AssetsFinal(icon='assets/test_plugin/latest/ICON.png')
 
     method_input = default_plugin_info_enriched.assets.model_copy(deep=True)
