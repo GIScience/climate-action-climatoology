@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from geoalchemy2 import Geometry, WKBElement
+import shapely
 from pydantic_extra_types.language_code import LanguageAlpha2
 from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.store.database.models import DbUuidAsString
+from climatoology.store.database.models import DbGeometry, DbUuidAsString
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 from climatoology.store.database.models.plugin_info import PluginInfoTable
@@ -37,9 +37,9 @@ class ComputationTable(ClimatoologyTableBase):
     valid_until: Mapped[datetime] = mapped_column(index=True)
     params: Mapped[Optional[dict]] = mapped_column(JSON)
     requested_params: Mapped[dict] = mapped_column(JSON)
-    aoi_geom: Mapped[WKBElement] = mapped_column(Geometry('MultiPolygon', srid=4326))
-    aoi_centroid: Mapped[WKBElement] = mapped_column(
-        Geometry('Point', srid=4326), Computed(func.st_pointonsurface(aoi_geom), persisted=True)
+    aoi_geom: Mapped[shapely.MultiPolygon] = mapped_column(DbGeometry('MultiPolygon', srid=4326))
+    aoi_centroid: Mapped[shapely.Point] = mapped_column(
+        DbGeometry('Point', srid=4326), Computed(func.st_pointonsurface(aoi_geom), persisted=True)
     )
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'), index=True)

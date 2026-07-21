@@ -60,7 +60,9 @@ def deep_apply_dict(data: dict, func: Callable, target_keys: set) -> dict:
     return result_dict
 
 
-def shapely_from_geojson_pydantic(geojson_geom: geojson_pydantic.geometries.Geometry) -> shapely.Geometry:
+def shapely_from_geojson_pydantic(
+    geojson_geom: geojson_pydantic.geometries.Geometry,
+) -> shapely.geometry.base.BaseGeometry:
     shapely_geom = shapely.geometry.shape(context=geojson_geom)
     shapely_geom = set_srid(geometry=shapely_geom, srid=4326)
     return shapely_geom

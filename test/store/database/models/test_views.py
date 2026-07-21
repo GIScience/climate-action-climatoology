@@ -3,7 +3,6 @@ from datetime import UTC, date, datetime, timedelta
 from unittest.mock import ANY
 
 from celery.backends.database import TaskExtended
-from geoalchemy2.shape import to_shape
 from semver import Version
 from shapely import Point
 from sqlalchemy import String, cast, insert, select, update
@@ -45,8 +44,8 @@ def test_valid_computations_view(backend_with_computation_successful, general_uu
         result = results[0]
 
     result_dict = row_to_dict(result)
-    result_dict['aoi_geom'] = to_shape(result.aoi_geom)
-    result_dict['aoi_centroid'] = to_shape(result.aoi_centroid)
+    result_dict['aoi_geom'] = result.aoi_geom
+    result_dict['aoi_centroid'] = result.aoi_centroid
     assert result_dict == expected_view
 
 

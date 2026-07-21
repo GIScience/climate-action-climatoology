@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import List, Optional
 from uuid import UUID
 
-import geoalchemy2
 from alembic.command import check
 from alembic.config import Config
 from alembic.util.exc import CommandError
@@ -184,7 +183,7 @@ class BackendDatabase:
                 'cache_epoch': cache_epoch,
                 'valid_until': valid_until,
                 'requested_params': requested_params,
-                'aoi_geom': aoi.geometry.wkt,
+                'aoi_geom': aoi.geometry,
                 'plugin_key': plugin_key,
                 'language': language,
                 'artifact_errors': {},
@@ -233,7 +232,7 @@ class BackendDatabase:
                     **{
                         'type': 'Feature',
                         'properties': {'name': result.aoi_name, 'id': result.aoi_id} | result.aoi_properties,
-                        'geometry': geoalchemy2.shape.to_shape(computation_info.aoi_geom),
+                        'geometry': computation_info.aoi_geom,
                     }
                 )
                 computation_info.plugin_info = ComputationPluginInfo(

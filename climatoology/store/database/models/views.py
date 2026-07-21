@@ -4,7 +4,6 @@ from typing import Type
 import sqlalchemy
 from alembic_utils.pg_view import PGView
 from celery.backends.database import TaskExtended
-from geoalchemy2 import Geometry
 from sqlalchemy import Date, and_, cast, distinct, not_, or_, select, type_coerce
 from sqlalchemy.dialects.postgresql import ARRAY, array_agg, psycopg
 from sqlalchemy.sql.functions import coalesce, count, func
@@ -12,13 +11,13 @@ from sqlalchemy.sql.functions import now as db_now
 from sqlalchemy_utils import create_view
 
 from climatoology.base.computation import ComputationState
-from climatoology.store.database.models import DbSemver
+from climatoology.store.database.models import DbGeometry, DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyViewBase
 from climatoology.store.database.models.computation import ComputationLookupTable, ComputationTable
 from climatoology.store.database.models.plugin_info import PluginInfoTable
 
 
-class RawGeometry(Geometry):
+class RawGeometry(DbGeometry):
     """
     This class is used to remove the 'ST_AsEWKB()' function from select queries as seen in
     https://geoalchemy-2.readthedocs.io/en/latest/gallery/test_disable_wrapping.html#sphx-glr-gallery-test-disable-wrapping-py
