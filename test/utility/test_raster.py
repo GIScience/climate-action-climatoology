@@ -1,9 +1,15 @@
+import numpy as np
 import pytest
+import rasterio
 from geopandas import GeoSeries
+from numpy import ma
+from numpy.ma.testutils import assert_array_equal
+from rasterio.profiles import DefaultGTiffProfile
+from rasterio.transform import from_bounds
 from sentinelhub import CRS, BBox, bbox_to_dimensions
 from shapely import MultiPolygon, Polygon, difference, geometry, unary_union
 
-from climatoology.utility.api import _make_bound_dimensions_valid, generate_bounds
+from climatoology.utility.raster import RasterWorkUnit, _make_bound_dimensions_valid, compute_raster, generate_bounds
 
 
 def test_make_bound_dimensions_valid():
@@ -108,3 +114,31 @@ def test_generate_bounds_from_multipolygon_drops_unused_splits():
     computed_bounds = generate_bounds(target_geometries=multipolygon, resolution=10, max_unit_size=2000)
 
     assert computed_bounds == expected_bounds
+
+
+def test_compute_raster_masks_output():
+    h, w = (3, 4)
+    test_unit = RasterWorkUnit(
+        aoi=geometry.Polygon(
+            [[7.61, 48.64], [7.61, 48.85], [7.90, 48.85], [7.90, 48.81], [7.65, 48.81], [7.65, 48.64], [7.61, 48.64]]
+        ),
+    )
+    with rasterio.MemoryFile() as memfile:
+        with memfile.open(
+            **DefaultGTiffProfile(
+                count=1, height=h, width=w, transform=from_bounds(*test_unit.aoi.bounds, height=h, width=w), nodata=2
+            ),
+        ) as m:
+            data = np.ones([h, w])
+            m.write(data, 1)
+
+        def fetch_data(unit: RasterWorkUnit) -> rasterio.DatasetReader:
+            return memfile.open()
+
+        with compute_raster(units=[test_unit], fetch_data=fetch_data, has_color_map=False, max_workers=1) as raster:
+            data = raster.read(1, masked=True)
+            assert_array_equal(data, np.ones([h, w]))
+            assert_array_equal(
+                ma.getmask(data), [[False, False, False, False], [False, True, True, True], [False, True, True, True]]
+            )
+            assert data.fill_value == 2

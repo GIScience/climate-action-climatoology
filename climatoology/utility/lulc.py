@@ -1,22 +1,19 @@
-import typing
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from io import BytesIO
-from typing import Dict, Generator, List, Optional, Tuple, Union
+from typing import Dict, Generator, List, Optional, Tuple
 
 import rasterio
 import rasterio as rio
 import requests
-import shapely
 from geopandas import GeoSeries
 from pydantic import BaseModel, Field, model_validator
-from pydantic_shapely import GeometryField
-from shapely import MultiPolygon, Polygon, geometry
 
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.utility.api import PlatformHttpUtility, compute_raster, generate_bounds
+from climatoology.utility.api import PlatformHttpUtility
 from climatoology.utility.exception import PlatformUtilityError
+from climatoology.utility.raster import RasterWorkUnit, compute_raster, generate_bounds
 
 log = get_climatoology_logger(__name__)
 
@@ -104,28 +101,9 @@ class LabelResponse(BaseModel):
     )
 
 
-class LulcWorkUnit(BaseModel):
+class LulcWorkUnit(RasterWorkUnit):
     """LULC area of interest."""
 
-    aoi: typing.Annotated[
-        Union[Polygon, MultiPolygon],
-        GeometryField(),
-        Field(
-            title='Area of interest',
-            description='The area of interest in WGS84 to request LULC data from. Note that the request will be roughly '
-            'limited to the geometry but filled with no-data to fit the bounds.',
-            examples=[
-                shapely.to_geojson(
-                    geometry.box(
-                        12.304687500000002,
-                        48.2246726495652,
-                        12.480468750000002,
-                        48.3416461723746,
-                    )
-                )
-            ],
-        ),
-    ]
     start_date: Optional[date] = Field(
         title='Start Date',
         description='Lower bound (inclusive) of remote sensing imagery acquisition date (UTC). '
@@ -222,7 +200,9 @@ class LulcUtility(PlatformHttpUtility):
         SentinelHub limit of 2500.
         :param max_unit_area: Area in pixels-squared used to determine whether the unit has to be split to meet external
         service processing requirements. The default of 4,000,000 is within the capabilities of a device with 16GB RAM.
-        :return: An opened geo-tiff file within a context manager. Use it as `with compute_raster(units) as lulc:`
+        :return: An opened geo-tiff file within a context manager.
+          Use it as `with compute_raster(units) as lulc:`
+          The file provides a mask outside the area of interest.
         """
         units = LulcUtility.adjust_work_units(units, max_unit_size=max_unit_size, max_unit_area=max_unit_area)
         with compute_raster(
@@ -238,9 +218,9 @@ class LulcUtility(PlatformHttpUtility):
 
     @staticmethod
     def adjust_work_units(
-        units: List[LulcWorkUnit], max_unit_size: int = 2300, max_unit_area: int = None
+        units: List[LulcWorkUnit], max_unit_size: int = 2300, max_unit_area: Optional[int] = None
     ) -> List[LulcWorkUnit]:
-        max_area = max_unit_area if max_unit_area else max_unit_size * max_unit_size
+        max_area = max_unit_area if max_unit_area is not None else max_unit_size * max_unit_size
         log.debug(
             f'Binning areas based on {max_unit_size=:g} and {max_area=:g}. '
             '8GB of RAM should be able to support at least max_unit_area=3e+6. '

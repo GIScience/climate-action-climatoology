@@ -408,7 +408,7 @@ def create_raster_artifact(
             fill_value = np.iinfo(data_array.dtype).max
         else:
             fill_value = np.finfo(data_array.dtype).max
-        data_array = np.ma.masked_array(data_array, fill_value=fill_value)
+        data_array = MaskedArray(data_array, fill_value=fill_value)
 
     # Numpy may set a fill_value that is incompatible with the dtype of the data_array, so we check this
     assert data_array.dtype.type(data_array.fill_value) == data_array.fill_value, (

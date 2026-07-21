@@ -1,9 +1,8 @@
-import typing
 from contextlib import contextmanager
 from enum import StrEnum
 from functools import partial
 from io import BytesIO
-from typing import Generator, List, Optional, Union
+from typing import Generator, List, Optional
 
 import geopandas as gpd
 import pandas as pd
@@ -11,14 +10,13 @@ import rasterio
 import requests
 import shapely
 from geopandas import GeoSeries
-from pydantic import BaseModel, Field
-from pydantic_shapely import GeometryField
+from pydantic import Field
 from rasterstats import zonal_stats
-from shapely import MultiPolygon, Polygon, geometry
 
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.utility.api import PlatformHttpUtility, TimeRange, compute_raster, generate_bounds
+from climatoology.utility.api import PlatformHttpUtility, TimeRange
 from climatoology.utility.exception import PlatformUtilityError
+from climatoology.utility.raster import RasterWorkUnit, compute_raster, generate_bounds
 
 log = get_climatoology_logger(__name__)
 
@@ -29,7 +27,7 @@ class NaturalnessIndex(StrEnum):
     NATURALNESS = 'NATURALNESS'
 
 
-class NaturalnessWorkUnit(BaseModel):
+class NaturalnessWorkUnit(RasterWorkUnit):
     """Area of interest for naturalness index"""
 
     time_range: TimeRange = Field(
@@ -44,25 +42,6 @@ class NaturalnessWorkUnit(BaseModel):
         examples=[90.0],
         ge=10.0,
     )
-    aoi: typing.Annotated[
-        Union[Polygon, MultiPolygon],
-        GeometryField(),
-        Field(
-            title='Area of interest',
-            description='The area of interest in WGS84 to request LULC data from. Note that the request will be roughly '
-            'limited to the geometry but filled with no-data to fit the bounds.',
-            examples=[
-                shapely.to_geojson(
-                    geometry.box(
-                        12.304687500000002,
-                        48.2246726495652,
-                        12.480468750000002,
-                        48.3416461723746,
-                    )
-                )
-            ],
-        ),
-    ]
 
 
 class NaturalnessUtility(PlatformHttpUtility):
@@ -93,7 +72,9 @@ class NaturalnessUtility(PlatformHttpUtility):
         :param units: Areas of interest
         :param max_unit_size: Size in pixels used to determine whether the unit has to be split to meet external service
         processing requirements. The value applies to both height and width.
-        :return: An opened geo-tiff file within a context manager. Use it as `with compute_raster(units) as naturalness:`
+        :return: An opened geo-tiff file within a context manager.
+          Use it as `with compute_raster(units) as naturalness:`.
+          The file provides a mask outside the area of interest.
         """
 
         units = self.adjust_work_units(units, max_unit_size)

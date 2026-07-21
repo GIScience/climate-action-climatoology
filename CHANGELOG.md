@@ -13,6 +13,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   library ([#294](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/294))
 - the centroid of the AOIs to the compuation table
 - the `playground` schema that is ignored by migration to have a place fro POCs and experiments
+- values outside the provided bounds in the utilities' `compute_raster` methods are now
+  masked ([#280](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/280)).
+  The masked array can be retireved via `read(...,masked=True)`.
+  Note that [#105](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/work_items/105) in the LULC Utility
+  still exists so you may need to set a good fill value.
 
 ### Changed
 

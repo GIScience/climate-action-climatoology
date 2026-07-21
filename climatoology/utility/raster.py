@@ -1,0 +1,172 @@
+import math
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from typing import Annotated, Callable, Generator, List, Optional, Union
+
+import pyproj
+import rasterio
+import shapely
+from geopandas import GeoSeries
+from pydantic import BaseModel, Field
+from pydantic_shapely import GeometryField
+from rasterio.features import geometry_mask
+from rasterio.merge import merge
+from sentinelhub import CRS, BBox, BBoxSplitter, bbox_to_dimensions, get_utm_crs
+from shapely import MultiPolygon, Polygon, geometry
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
+
+from climatoology.base.logging import get_climatoology_logger
+
+log = get_climatoology_logger(__name__)
+
+
+class RasterWorkUnit(BaseModel):
+    aoi: Annotated[
+        Union[Polygon, MultiPolygon],
+        GeometryField(Union[Polygon, MultiPolygon]),
+        Field(
+            title='Area of interest',
+            description='The area of interest in WGS84 to request raster data from. Note that the request will be roughly '
+            'limited to the geometry but filled with no-data to fit the bounds.',
+            examples=[
+                shapely.to_geojson(
+                    geometry.box(
+                        12.304687500000002,
+                        48.2246726495652,
+                        12.480468750000002,
+                        48.3416461723746,
+                    )
+                )
+            ],
+        ),
+    ]
+
+
+@contextmanager
+def compute_raster(
+    units: List[RasterWorkUnit],
+    fetch_data: Callable[[RasterWorkUnit], rasterio.DatasetReader],
+    has_color_map: bool,
+    max_workers: int,
+) -> Generator[rasterio.DatasetReader]:
+    """Generate an in-memory, masked raster dataset as a mosaic of applying the fetch_data function to the units.
+
+    :param units: Areas of interest
+    :param fetch_data: A user defined function to fetch data using each of the supplied AOI units
+    :param has_color_map: Does the output have a colormap that should be retained
+    :param max_workers: How many workers should be used to fetch data simultaneously
+    :return: An opened geo-tiff file within a generator. Use it as `with compute_raster(units) as my_raster_data:`
+    """
+    assert len(units) > 0
+
+    with logging_redirect_tqdm():
+        with tqdm(total=len(units)) as pbar:
+            slices = []
+
+            with ThreadPoolExecutor(max_workers) as pool:
+                for dataset in pool.map(fetch_data, units):
+                    pbar.update()
+                    pbar.set_description(f'Collecting rasters: {dataset.shape}')
+                    slices.append(dataset)
+
+                pbar.set_description(f'Merging {len(slices)} slices')
+
+                mosaic, transform = merge(slices, masked=True)
+                mosaic_width, mosaic_height = mosaic.shape[1:3]
+                mask = geometry_mask(
+                    [unit.aoi for unit in units], (mosaic_width, mosaic_height), transform=transform, all_touched=True
+                )
+                mosaic.mask = mask
+
+                if has_color_map:
+                    first_colormap = slices[0].colormap(1)
+
+            with rasterio.MemoryFile() as memfile:
+                log.debug('Creating raster file')
+
+                write_profile = slices[0].profile
+                write_profile['transform'] = transform
+                write_profile['height'] = mosaic.shape[1]
+                write_profile['width'] = mosaic.shape[2]
+
+                with memfile.open(**write_profile) as m:
+                    pbar.set_description(f'Writing mosaic {mosaic.shape}')
+
+                    if has_color_map:
+                        m.write_colormap(1, first_colormap)
+                    m.write(mosaic)
+
+                    del mosaic
+                    del slices
+
+                with memfile.open() as dataset:
+                    log.debug('Serving raster file')
+                    yield dataset
+
+
+def _make_bound_dimensions_valid(bounds: BBox, resolution: float) -> BBox:
+    """Buffer `bounds` as required to ensure that both height and width of the returned bounds are greater than or equal
+    to `resolution`.
+
+    :param bounds: the input bounds to be adjusted (in WGS84)
+    :param resolution: the resolution of the raster data (metres)
+    :return: a `BBox` containing bounds with both dimensions >= 1
+    """
+    utm_crs = get_utm_crs(lng=bounds.min_x, lat=bounds.min_y)
+    transformer = pyproj.Transformer.from_crs(pyproj.CRS('EPSG:4326'), pyproj.CRS(utm_crs.epsg), always_xy=True)
+
+    # Transform all corners of the bounding box to avoid reprojection issues
+    xmin, ymin = bounds.lower_left
+    xmax, ymax = bounds.upper_right
+    x_t, y_t = transformer.transform((xmin, xmax, xmax, xmin), (ymin, ymin, ymax, ymax))
+    xmin, ymin, xmax, ymax = min(x_t), min(y_t), max(x_t), max(y_t)
+    xmax = max(xmin + resolution, xmax)
+    ymax = max(ymin + resolution, ymax)
+
+    x, y = transformer.transform(
+        (xmin, xmax, xmax, xmin), (ymin, ymin, ymax, ymax), direction=pyproj.enums.TransformDirection.INVERSE
+    )
+    return BBox((min(x), min(y), max(x), max(y)), crs=CRS.WGS84)
+
+
+def generate_bounds(
+    target_geometries: GeoSeries,
+    resolution: float,
+    max_unit_size: int = 2300,
+    max_unit_area: Optional[int] = None,
+) -> list[BBox]:
+    """Generate a list of bounding boxes for the area covered by the provided geometry, where each bounding box is
+    smaller than the maximum size. The union of the returned boxes may be up to one 'pixel' larger than the input
+    geometry space to avoid empty (invalid) boxes.
+
+    :param target_geometries: The input geometries to be adjusted
+    :param resolution: the resolution of the raster data (metres)
+    :param max_unit_size: The maximum edge length per bounding box (pixels)
+    :param max_unit_area: The maximum area per bounding box (pixels squared), defaults to max_unit_size^2
+    """
+    if max_unit_area:
+        max_unit_size = min(max_unit_size, int(math.sqrt(max_unit_area)))
+        log.debug(f'Using max_unit_size of {max_unit_size} to adjust bounds')
+
+    # the total bounds are a np.array of length 4 and the tuple command correctly turns it into a tuple
+    # noinspection PyTypeChecker
+    bbox: tuple[float, float, float, float] = tuple(target_geometries.total_bounds)
+    bounds = BBox(bbox, crs=CRS.WGS84)
+    w, h = bbox_to_dimensions(bounds, resolution=resolution)
+
+    if min(h, w) < 1:
+        w, h = max(w, 1), max(h, 1)
+        bounds = _make_bound_dimensions_valid(bounds=bounds, resolution=resolution)
+        log.debug(f'The bounds were adjusted from {bbox} to {bounds}')
+
+    h_splits = math.ceil(h / max_unit_size)
+    w_splits = math.ceil(w / max_unit_size)
+
+    split_bounds = BBoxSplitter(shape_list=[bounds], crs=CRS.WGS84, split_shape=(w_splits, h_splits)).bbox_list
+
+    intersecting_bounds = [b for b in split_bounds if any(target_geometries.intersects(b.geometry))]
+    log.debug(f'Removed {len(split_bounds) - len(intersecting_bounds)} non-overlapping bounding boxes')
+    log.info(f'The geometry space was split into {len(intersecting_bounds)} bounding boxes')
+
+    return [b.apply(lambda x, y: (round(x, 7), round(y, 7))) for b in intersecting_bounds]
