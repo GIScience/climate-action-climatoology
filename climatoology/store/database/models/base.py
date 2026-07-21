@@ -4,6 +4,7 @@ from sqlalchemy import Selectable, Table
 from sqlalchemy.orm import DeclarativeBase
 
 CLIMATOOLOGY_SCHEMA_NAME = 'ca_base'
+PLAYGROUND_SCHEMA = 'playground'
 PUBLIC_SCHEMA_NAME = 'public'
 
 

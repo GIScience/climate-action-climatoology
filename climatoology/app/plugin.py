@@ -3,7 +3,7 @@ import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, Optional
 from uuid import UUID
 
 import shapely
@@ -193,12 +193,12 @@ def translate_operator_schema(schema: dict) -> dict:
 def run_standalone_computation(
     operator: BaseOperator,
     params: BaseModel,
-    aoi_geom: shapely.MultiPolygon = None,
-    aoi_properties: AoiProperties = None,
-    aoi_file: Path = None,
+    aoi_geom: Optional[shapely.MultiPolygon] = None,
+    aoi_properties: Optional[AoiProperties] = None,
+    aoi_file: Optional[Path] = None,
     lang: str = DEFAULT_LANGUAGE,
-    output_dir: Path = None,
-    computation_id: UUID = None,
+    output_dir: Optional[Path] = None,
+    computation_id: Optional[UUID] = None,
 ) -> StandAloneComputationInfo:
     """
     Run a stand-alone computation without connecting to the CA platform.

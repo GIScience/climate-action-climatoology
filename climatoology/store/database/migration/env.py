@@ -10,7 +10,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlalchemy.sql.schema import SchemaItem
 
 from climatoology.store.database.migration import alembic_config_discovery
-from climatoology.store.database.models.base import ClimatoologyTableBase
+from climatoology.store.database.models.base import PLAYGROUND_SCHEMA, ClimatoologyTableBase
 from climatoology.store.database.models.views import (
     ArtifactErrorsView,
     ComputationsSummaryView,
@@ -122,7 +122,9 @@ def include_object(
         return False
     if type_ == 'grant_table':
         return False  # we decided to ignore table grants due to https://github.com/olirice/alembic_utils/issues/137
-    if type_ == 'extension' and name == 'public.postgis':
+    if type_ == 'extension':
+        return False
+    if schema == PLAYGROUND_SCHEMA:
         return False
     else:
         return True
