@@ -3590,6 +3590,7 @@ files = [
 
 [package.dependencies]
 greenlet = {version = ">=1", markers = "platform_machine == \"aarch64\" or platform_machine == \"ppc64le\" or platform_machine == \"x86_64\" or platform_machine == \"amd64\" or platform_machine == \"AMD64\" or platform_machine == \"win32\" or platform_machine == \"WIN32\""}
+psycopg = {version = ">=3.0.7", extras = ["binary"], optional = true, markers = "extra == \"postgresql-psycopgbinary\""}
 typing-extensions = ">=4.6.0"
 
 [package.extras]
@@ -3969,4 +3970,4 @@ fixtures = ["freezegun", "moto", "pytest", "pytest-alembic", "pytest-mock", "pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13.5,<3.14"
-content-hash = "35cc27164d34770b7d602d83434886a959a16fe180ad36b554387bc756de2d58"
+content-hash = "6d68276c2235f2ba0d8aa990a8d89627f1fab2c039758b48d15011801c171160"
