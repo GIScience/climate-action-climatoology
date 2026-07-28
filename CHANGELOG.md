@@ -5,10 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.2.0...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.3.0...main)
+
+## [7.3.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.3.0) - 2026-07-29
 
 ### Added
 
+- `PluginBaseInfo` and its subclasses, and `PluginInfoTable` now have a field `aoi_constraints` which is used to define
+  constraints for valid AOIs ([#166](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/166))
 - exposing test fixtures to users of the
   library ([#294](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/294))
 - the centroid of the AOIs to the compuation table
@@ -34,11 +38,6 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   status ([#257](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/257))
 - Charts (`modality=CHART_PLOTLY`) now always contain the plotly chart JSON in the attachments under `diplay_filename`.
   The `filename` (or download_file) of the artifact can either be the plotly chart JSON or a CSV.
-
-### Added
-
-- `PluginBaseInfo` and its subclasses, and `PluginInfoTable` now have a field `aoi_constraints` which is used to define
-  constraints for valid AOIs ([#166](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/166))
 
 ## [7.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.2.0) - 2026-06-17
 
