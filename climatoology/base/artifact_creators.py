@@ -192,7 +192,7 @@ def create_chart_artifact(
         case _:
             raise ValueError(f'{data.chart_type} is not a supported chart type.')
 
-    result = create_plotly_chart_artifact(figure=fig, metadata=metadata, resources=resources)
+    result = create_plotly_chart_artifact(figure=fig, metadata=metadata, resources=resources, raw_data=chart_df)
 
     return result
 
@@ -201,6 +201,7 @@ def create_plotly_chart_artifact(
     figure: Figure,
     metadata: ArtifactMetadata,
     resources: ComputationResources,
+    raw_data: Optional[DataFrame] = None,
 ) -> Artifact:
     """Create a chart artifact from a custom plotly chart.
 
@@ -208,7 +209,11 @@ def create_plotly_chart_artifact(
 
     :param figure: Plotly figure object.
     :param metadata: Standard Artifact attributes
-    :param resources: The computation resources for this plugin.    :return: The artifact that contains a path-pointer to the created file.
+    :param resources: The computation resources for this plugin.
+    :param raw_data: The raw data that was used to create the chart.
+      If provided, it will be added as (CSV) download data for the chart.
+
+    :return: The artifact that contains a path-pointer to the created file.
     """
     file_path = resources.computation_dir / f'{metadata.filename}.json'
     log.debug(f'Writing chart {file_path}')
@@ -216,10 +221,16 @@ def create_plotly_chart_artifact(
     with open(file_path, 'x') as out_file:
         plotly.io.write_json(figure, out_file)
 
+    download_filename = file_path.name
+    if raw_data is not None:
+        download_artifact = create_table_artifact(data=raw_data, metadata=metadata, resources=resources)
+        download_filename = download_artifact.filename
+
     result = Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
         modality=ArtifactModality.CHART_PLOTLY,
-        filename=file_path.name,
+        filename=download_filename,
+        attachments=Attachments(display_filename=file_path.name),
     )
     log.debug(f'Returning Artifact: {result.model_dump()}.')
 

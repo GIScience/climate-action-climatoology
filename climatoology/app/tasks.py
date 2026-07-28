@@ -183,13 +183,15 @@ def run_standalone(
 
 
 def render_charts(artifacts: list[ArtifactEnriched], file_dir: Path, output_dir: Path) -> None:
-    rendered_artifacts = []
     for artifact in artifacts:
         if artifact.modality == ArtifactModality.CHART_PLOTLY:
-            fig = plotly.io.read_json(file_dir / artifact.filename)
-            fig.write_html(output_dir / f'{artifact.filename}_rendered.html')
-            rendered_artifacts.append(artifact.name)
-    log.debug(f'Rendered {rendered_artifacts}')
+            # We know the display file exists for the modality CHART_PLOTLY
+            # noinspection bad-assignment
+            plot_file_name: str = artifact.attachments.display_filename
+            rendered_filename = f'{plot_file_name}_rendered.html'
+            fig = plotly.io.read_json(file_dir / plot_file_name)
+            fig.write_html(output_dir / rendered_filename)
+            log.debug(f'Rendered chart artifact {artifact.name} to {rendered_filename}')
 
 
 def write_individual_artifact_metadata(artifacts: list[ArtifactEnriched], output_dir: Path) -> None:

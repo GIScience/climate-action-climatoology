@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+import pandas as pd
 import plotly
 import pytest
 from plotly import express as px
@@ -8,6 +9,7 @@ from pydantic_extra_types.color import Color
 
 from climatoology.base.artifact import (
     ArtifactModality,
+    Attachments,
     Chart2dData,
     ChartType,
 )
@@ -103,9 +105,10 @@ def test_create_concise_chart_artifact(
         chart_type=chart_type,
     )
 
-    default_artifact_copy = default_artifact.model_copy(deep=True)
-    default_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
-    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.json'
+    expected_artifact = default_artifact.model_copy(deep=True)
+    expected_artifact.modality = ArtifactModality.CHART_PLOTLY
+    expected_artifact.filename = f'{default_artifact_metadata.filename}.csv'
+    expected_artifact.attachments = Attachments(display_filename=f'{default_artifact_metadata.filename}.json')
 
     generated_artifact = create_chart_artifact(
         data=method_input,
@@ -113,8 +116,17 @@ def test_create_concise_chart_artifact(
         resources=default_computation_resources,
     )
 
-    assert generated_artifact == default_artifact_copy
-    assert plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+    assert generated_artifact == expected_artifact
+    assert plotly.io.read_json(
+        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
+    )
+    with open(default_computation_resources.computation_dir / generated_artifact.filename) as csv:
+        assert csv.read().splitlines() == [
+            'index,x,y,color',
+            '0,1.0,3.0,#590d08',
+            '1,2.0,2.0,#590d08',
+            '2,3.0,1.0,#590d08',
+        ]
 
 
 def test_pie_chart_labels(default_computation_resources, default_artifact_metadata):
@@ -130,7 +142,9 @@ def test_pie_chart_labels(default_computation_resources, default_artifact_metada
         resources=default_computation_resources,
     )
 
-    plot = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+    plot = plotly.io.read_json(
+        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
+    )
     assert plot['data'][0]['labels'] == ('A', 'B', 'C')
 
 
@@ -138,6 +152,7 @@ def test_pie_chart_labels(default_computation_resources, default_artifact_metada
 def test_create_extensive_chart_artifact(
     chart_type, default_computation_resources, extensive_artifact, extensive_artifact_metadata
 ):
+    raw_data = pd.DataFrame(data={'x': [1, 2, 3], 'y': [3, 2, 1]})
     if chart_type == ChartType.LINE:
         colors_as_hex = '#af0000'
         colors = Color(colors_as_hex)
@@ -146,8 +161,8 @@ def test_create_extensive_chart_artifact(
         colors = [Color(c) for c in colors_as_hex]
 
     method_input = Chart2dData(
-        x=[1, 2, 3],
-        y=[3, 2, 1],
+        x=raw_data.x,
+        y=raw_data.y,
         x_label='x title',
         y_label='y title',
         color=colors,
@@ -155,20 +170,21 @@ def test_create_extensive_chart_artifact(
     )
     method_input_copy = method_input.model_copy(deep=True)
 
-    extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
-    extensive_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
-    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.json'
+    expected_artifact = extensive_artifact.model_copy(deep=True)
+    expected_artifact.modality = ArtifactModality.CHART_PLOTLY
+    expected_artifact.filename = f'{extensive_artifact_metadata.filename}.csv'
+    expected_artifact.attachments = Attachments(display_filename=f'{extensive_artifact_metadata.filename}.json')
 
     generated_artifact = create_chart_artifact(
-        data=method_input,
-        metadata=extensive_artifact_metadata,
-        resources=default_computation_resources,
+        data=method_input, metadata=extensive_artifact_metadata, resources=default_computation_resources
     )
 
-    assert generated_artifact == extensive_artifact_copy
+    assert generated_artifact == expected_artifact
     assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
 
-    generated_fig = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
+    generated_fig = plotly.io.read_json(
+        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
+    )
 
     if chart_type in (ChartType.SCATTER, ChartType.BAR):
         assert [generated_fig.data[i].marker.color for i in range(3)] == [c.as_hex() for c in colors]
@@ -178,15 +194,32 @@ def test_create_extensive_chart_artifact(
     elif chart_type == ChartType.PIE:
         assert generated_fig.layout.piecolorway == tuple(colors_as_hex)
 
+    with open(default_computation_resources.computation_dir / generated_artifact.filename) as csv:
+        if chart_type == ChartType.LINE:
+            assert csv.read().splitlines() == [
+                'index,x title,y title,color',
+                '0,1.0,3.0,#af0000',
+                '1,2.0,2.0,#af0000',
+                '2,3.0,1.0,#af0000',
+            ]
+        else:
+            assert csv.read().splitlines() == [
+                'index,x title,y title,color',
+                '0,1.0,3.0,#af0000',
+                '1,2.0,2.0,#00af00',
+                '2,3.0,1.0,#0000af',
+            ]
+
 
 def test_create_concise_plotly_chart_artifact(
     default_computation_resources, default_artifact, default_artifact_metadata
 ):
     method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
 
-    default_artifact_copy = default_artifact.model_copy(deep=True)
-    default_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
-    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.json'
+    expected_artifact = default_artifact.model_copy(deep=True)
+    expected_artifact.modality = ArtifactModality.CHART_PLOTLY
+    expected_artifact.filename = f'{default_artifact_metadata.filename}.json'
+    expected_artifact.attachments = Attachments(display_filename=f'{default_artifact_metadata.filename}.json')
 
     generated_artifact = create_plotly_chart_artifact(
         figure=method_input,
@@ -195,25 +228,38 @@ def test_create_concise_plotly_chart_artifact(
     )
     generated_content = plotly.io.read_json(default_computation_resources.computation_dir / generated_artifact.filename)
 
-    assert generated_artifact == default_artifact_copy
+    assert generated_artifact == expected_artifact
     assert generated_content == method_input
 
 
 def test_create_extensive_plotly_chart_artifact(
     default_computation_resources, extensive_artifact, extensive_artifact_metadata
 ):
-    method_input = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+    raw_data = pd.DataFrame(data={'x-title': [0, 1, 2, 3, 4], 'y-title': [0, 1, 4, 9, 16]})
+    method_input = px.scatter(x=raw_data['x-title'], y=raw_data['y-title'])
     method_input_copy = deepcopy(method_input)
 
-    extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
-    extensive_artifact_copy.modality = ArtifactModality.CHART_PLOTLY
-    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.json'
+    expected_artifact = extensive_artifact.model_copy(deep=True)
+    expected_artifact.modality = ArtifactModality.CHART_PLOTLY
+    expected_artifact.filename = f'{extensive_artifact_metadata.filename}.csv'
+    expected_artifact.attachments = Attachments(display_filename=f'{extensive_artifact_metadata.filename}.json')
 
     generated_artifact = create_plotly_chart_artifact(
         figure=method_input,
         metadata=extensive_artifact_metadata,
         resources=default_computation_resources,
+        raw_data=raw_data,
     )
 
     assert method_input == method_input_copy, 'Method input should not be mutated during artifact creation'
-    assert generated_artifact == extensive_artifact_copy
+    assert generated_artifact == expected_artifact
+
+    with open(default_computation_resources.computation_dir / generated_artifact.filename) as csv:
+        assert csv.read().splitlines() == [
+            'index,x-title,y-title',
+            '0,0,0',
+            '1,1,1',
+            '2,2,4',
+            '3,3,9',
+            '4,4,16',
+        ]

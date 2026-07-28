@@ -18,6 +18,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   The masked array can be retireved via `read(...,masked=True)`.
   Note that [#105](https://gitlab.heigit.org/climate-action/utilities/lulc-utility/-/work_items/105) in the LULC Utility
   still exists so you may need to set a good fill value.
+- the possibility to supply the `raw_data` to the chart artifact creator.
+  This should be strongly considered if the raw data is not available via a table or other artifact.
 
 ### Changed
 
@@ -28,6 +30,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   While currently both are supported, we may remove `MINIO_` support in a future release.
 - internal info: the ComputationInfo no longer contains the computation
   status ([#257](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/257))
+- Charts (`modality=CHART_PLOTLY`) now always contain the plotly chart JSON in the attachments under `diplay_filename`.
+  The `filename` (or download_file) of the artifact can either be the plotly chart JSON or a CSV.
 
 ## [7.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.2.0) - 2026-06-17
 
