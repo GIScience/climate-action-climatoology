@@ -8,6 +8,7 @@ from unittest.mock import ANY, patch
 import pytest
 import shapely
 from celery import Celery
+from pydantic import BaseModel
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 from sqlalchemy import select
@@ -21,11 +22,11 @@ from climatoology.app.plugin import (
     run_standalone_computation,
     synch_info,
 )
+from climatoology.base.aoi import AoiProperties
 from climatoology.base.artifact import Artifact, ArtifactEnriched, Chart2dData, ChartType
 from climatoology.base.artifact_creators import create_chart_artifact
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import (
-    AoiProperties,
     ComputationInfo,
     ComputationResources,
     StandAloneComputationInfo,
@@ -83,7 +84,9 @@ def test_run_standalone_computation(
         assert ComputationInfo.model_validate_json(metadata.read_text())
 
 
-def test_run_standalone_computation_renders_charts(default_plugin_info, default_input_model, default_artifact_metadata):
+def test_run_standalone_computation_renders_charts(
+    default_plugin_info, default_input_model, default_artifact_metadata, default_aoi_geom_shapely
+):
     class TestOperator(BaseOperator[TestModel]):
         def info(self) -> PluginInfo:
             return default_plugin_info.model_copy(deep=True)
@@ -97,13 +100,12 @@ def test_run_standalone_computation_renders_charts(default_plugin_info, default_
     with tempfile.TemporaryDirectory() as result_dir_str:
         result_dir = Path(result_dir_str) / 'test-results'
 
-        geom = shapely.MultiPolygon()
         properties = AoiProperties(name='Standalone Computation', id='aa')
 
         _ = run_standalone_computation(
             operator=TestOperator(),
             output_dir=result_dir,
-            aoi_geom=geom,
+            aoi_geom=default_aoi_geom_shapely,
             aoi_properties=properties,
             params=default_input_model,
         )
@@ -351,7 +353,7 @@ def test_planned_plugin_registers_and_shuts_down(
             resources: ComputationResources,
             aoi: shapely.MultiPolygon,
             aoi_properties: AoiProperties,
-            params: TestModel,
+            params: BaseModel,
             language: LanguageAlpha2,
             **kwargs,
         ) -> List[Artifact]:

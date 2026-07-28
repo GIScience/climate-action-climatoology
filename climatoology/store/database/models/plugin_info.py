@@ -9,7 +9,9 @@ from sqlalchemy import JSON, Column, Computed, ForeignKey, Integer, String, Tabl
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.base.plugin_info import DEFAULT_LANGUAGE, AssetsFinal, Concern, DemoConfig, PluginState
+from climatoology.base.aoi import AoiConstraintSets
+from climatoology.base.i18n import DEFAULT_LANGUAGE
+from climatoology.base.plugin_info import AssetsFinal, Concern, DemoConfig, PluginState
 from climatoology.store.database.models import DbSemver
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 
@@ -56,6 +58,7 @@ class PluginInfoTable(ClimatoologyTableBase):
     purpose: Mapped[str]
     methodology: Mapped[str]
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
+    aoi_constraints: Mapped[AoiConstraintSets] = mapped_column(JSON)
     demo_config: Mapped[DemoConfig] = mapped_column(JSON)
     computation_shelf_life: Mapped[Optional[timedelta]]
     assets: Mapped[AssetsFinal] = mapped_column(JSON)

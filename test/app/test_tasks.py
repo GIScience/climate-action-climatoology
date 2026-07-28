@@ -11,20 +11,14 @@ from pydantic_extra_types.language_code import LanguageAlpha2
 from shapely import get_srid
 
 from climatoology.app.tasks import CAPlatformComputeTask
-from climatoology.base.artifact import (
-    Artifact,
-    ArtifactEnriched,
-    ArtifactModality,
-)
+from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality
 from climatoology.base.artifact_creators import create_markdown_artifact
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import (
     ComputationResources,
 )
-from climatoology.base.plugin_info import (
-    DEFAULT_LANGUAGE,
-    PluginInfo,
-)
+from climatoology.base.i18n import DEFAULT_LANGUAGE
+from climatoology.base.plugin_info import PluginInfo
 from climatoology.test.models import TestModel
 
 

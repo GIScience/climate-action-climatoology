@@ -10,8 +10,9 @@ from pydantic_extra_types.language_code import LanguageAlpha2
 
 import climatoology
 from climatoology.base import T_co
+from climatoology.base.aoi import AoiProperties
 from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, enrich_artifacts
-from climatoology.base.computation import AoiProperties, ComputationResources
+from climatoology.base.computation import ComputationResources
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError, create_pretty_validation_message
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import DemoConfig, PluginInfo, PluginInfoEnriched
@@ -94,6 +95,7 @@ class BaseOperator(ABC, Generic[T_co]):
             operator_schema=operator_schema,
             demo_config=demo_config,
             library_version=library_version,
+            aoi_constraints=info.aoi_constraints,
         )
         log.debug(f'{info.name} info constructed')
         return info_enriched

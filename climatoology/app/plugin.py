@@ -18,12 +18,9 @@ import climatoology
 from climatoology.app.exception import VersionMismatchError
 from climatoology.app.settings import EXCHANGE_NAME, CABaseSettings, WorkerSettings
 from climatoology.app.tasks import CAPlatformComputeTask, run_standalone
+from climatoology.base.aoi import AoiFeatureModel, AoiProperties
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import (
-    AoiFeatureModel,
-    AoiProperties,
-    StandAloneComputationInfo,
-)
+from climatoology.base.computation import StandAloneComputationInfo
 from climatoology.base.i18n import DEFAULT_LANGUAGE, deep_translate_dict, set_language, tr
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal, PluginState

@@ -14,11 +14,10 @@ from pydantic import BaseModel
 from pydantic_extra_types.language_code import LanguageAlpha2
 from shapely import MultiPolygon
 
+from climatoology.base.aoi import AoiFeatureModel, AoiProperties
 from climatoology.base.artifact import COMPUTATION_INFO_FILENAME, ArtifactEnriched, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import (
-    AoiFeatureModel,
-    AoiProperties,
     ComputationInfo,
     ComputationPluginInfo,
     ComputationResources,
@@ -26,9 +25,8 @@ from climatoology.base.computation import (
     StandAloneComputationInfo,
 )
 from climatoology.base.exception import InputValidationError
-from climatoology.base.i18n import set_language
+from climatoology.base.i18n import DEFAULT_LANGUAGE, set_language
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import DEFAULT_LANGUAGE
 from climatoology.base.utils import shapely_from_geojson_pydantic
 from climatoology.store.database.database import BackendDatabase
 from climatoology.store.object_store import Storage

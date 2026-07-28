@@ -14,10 +14,12 @@ from sqlalchemy import NullPool, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import DeclarativeBase, Session, joinedload
 
+from climatoology.base.aoi import AoiFeatureModel
 from climatoology.base.artifact import ArtifactEnriched
-from climatoology.base.computation import AoiFeatureModel, ComputationInfo, ComputationPluginInfo
+from climatoology.base.computation import ComputationInfo, ComputationPluginInfo
+from climatoology.base.i18n import DEFAULT_LANGUAGE
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import DEFAULT_LANGUAGE, PluginAuthor, PluginInfoFinal
+from climatoology.base.plugin_info import PluginAuthor, PluginInfoFinal
 from climatoology.store.database import migration
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.computation import (

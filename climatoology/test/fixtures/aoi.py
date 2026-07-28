@@ -2,7 +2,7 @@ import pytest
 import shapely
 from shapely import Polygon, set_srid
 
-from climatoology.base.computation import AoiFeatureModel, AoiProperties
+from climatoology.base.aoi import AoiFeatureModel, AoiProperties
 
 
 @pytest.fixture

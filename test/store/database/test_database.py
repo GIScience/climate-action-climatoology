@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from climatoology.base.aoi import AoiProperties
 from climatoology.base.artifact import Artifact, ArtifactEnriched, ArtifactModality, Attachments, Legend
-from climatoology.base.computation import AoiProperties
 from climatoology.base.plugin_info import PluginAuthor
 from climatoology.store.database.models.computation import ComputationLookupTable
 from climatoology.store.database.models.plugin_info import PluginInfoTable

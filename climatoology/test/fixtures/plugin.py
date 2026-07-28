@@ -10,10 +10,11 @@ from pydantic_extra_types.language_code import LanguageAlpha2
 
 from climatoology.app.plugin import _create_plugin
 from climatoology.app.tasks import CAPlatformComputeTask
+from climatoology.base.aoi import AoiProperties
 from climatoology.base.artifact import Artifact
 from climatoology.base.artifact_creators import create_markdown_artifact
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import AoiProperties, ComputationResources
+from climatoology.base.computation import ComputationResources
 from climatoology.base.i18n import tr
 from climatoology.base.plugin_info import PluginInfo
 from climatoology.test.fixtures.database import connection_to_string

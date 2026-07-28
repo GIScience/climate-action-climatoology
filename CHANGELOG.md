@@ -23,6 +23,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ### Changed
 
+- `climatoology.base.computation.AoiProperties` was moved to `climatoology.base.aoi.AoiProperties`, but can still be
+  imported from its original location
 - improved the migration tracking of views
 - replaced Minio client with boto3 ([#274](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/274)).
   Note: secure connections are now the default for S3
@@ -32,6 +34,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   status ([#257](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/257))
 - Charts (`modality=CHART_PLOTLY`) now always contain the plotly chart JSON in the attachments under `diplay_filename`.
   The `filename` (or download_file) of the artifact can either be the plotly chart JSON or a CSV.
+
+### Added
+
+- `PluginBaseInfo` and its subclasses, and `PluginInfoTable` now have a field `aoi_constraints` which is used to define
+  constraints for valid AOIs ([#166](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/166))
 
 ## [7.2.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.2.0) - 2026-06-17
 

@@ -11,11 +11,13 @@ from pydantic import BaseModel, Field, model_validator
 from semver import Version
 from shapely import get_srid
 
+from climatoology.base.aoi import AoiProperties
 from climatoology.base.artifact import Artifact, ArtifactModality
 from climatoology.base.baseoperator import BaseOperator
-from climatoology.base.computation import AoiProperties, ComputationResources, ComputationScope
+from climatoology.base.computation import ComputationResources, ComputationScope
 from climatoology.base.exception import ClimatoologyUserError, InputValidationError
-from climatoology.base.plugin_info import DEFAULT_LANGUAGE, DemoConfig, PluginInfo
+from climatoology.base.i18n import DEFAULT_LANGUAGE
+from climatoology.base.plugin_info import DemoConfig, PluginInfo
 from climatoology.test.models import TestModel
 
 

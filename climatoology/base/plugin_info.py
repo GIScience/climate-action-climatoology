@@ -24,6 +24,7 @@ from pydantic import (
     ValidationError,
     computed_field,
     conlist,
+    field_validator,
     model_validator,
 )
 from pydantic.json_schema import JsonSchemaValue
@@ -32,12 +33,13 @@ from semver import Version
 
 from climatoology import RESOURCES_DIR
 from climatoology.base import PydanticSemver
+from climatoology.base.aoi import AoiConstraintSets, AreaConstraint, BoundarySelectionConstraint
+from climatoology.base.i18n import DEFAULT_LANGUAGE
 from climatoology.base.logging import get_climatoology_logger
 
 log = get_climatoology_logger(__name__)
 
 DEMO_AOI_PATH = RESOURCES_DIR / 'Heidelberg_AOI.geojson'
-DEFAULT_LANGUAGE = LanguageAlpha2('en')
 
 
 class Concern(StrEnum):
@@ -219,6 +221,24 @@ class _PluginBaseInfo(BaseModel):
         examples=[timedelta(weeks=4)],
         default=timedelta(0),
     )
+    aoi_constraints: AoiConstraintSets = Field(
+        description='The constraints to be applied to computation AOIs.'
+        'Each inner list is a set of AND requirements.'
+        'Each outer list is applied as OR constraints.',
+        examples=[[[AreaConstraint(min_area=0, max_area=500)]]],
+        default=[],
+    )
+
+    @field_validator('aoi_constraints', mode='after')
+    @classmethod
+    def no_contradiction(cls, constraint_sets: AoiConstraintSets) -> AoiConstraintSets:
+        for constraint_set in constraint_sets:
+            is_boundary_selection = [
+                isinstance(constraint, BoundarySelectionConstraint) for constraint in constraint_set
+            ]
+            if len(constraint_set) > 1 and any(is_boundary_selection):
+                raise ValueError('Checkers of type "BoundarySelection" cannot be combined with other checkers.')
+        return constraint_sets
 
 
 class PluginInfo(_PluginBaseInfo):
@@ -506,6 +526,7 @@ def generate_plugin_info(
     icon: Path,
     demo_input_parameters: BaseModel,
     demo_aoi: CustomAOI = CustomAOI(name='Heidelberg', path=DEMO_AOI_PATH),
+    aoi_constraints: Optional[AoiConstraintSets] = None,
     state: PluginState = PluginState.ACTIVE,
     computation_shelf_life: timedelta = timedelta(0),
     sources_library: Optional[Path] = None,
@@ -537,6 +558,7 @@ def generate_plugin_info(
       to the repository and HeiGIT has all legal rights to it (without attribution!).
     :param demo_input_parameters: the input parameters for the plugin.
     :param demo_aoi: A `CustomAOI` object defining the AOI name and file to use for the demo computation.
+    :param aoi_constraints: The constraints schema to limit AOI requests for the plugin.
     :param state: The current development state of the plugin using categories from https://github.com/GIScience/badges.
     :param computation_shelf_life: How long are computations valid (at most). Computations will be valid within a fixed
       time frame of `shelf_life`. The fix timeframe starts at UNIX TS 0 and renews every `shelf_life`. A time delta of
@@ -577,6 +599,7 @@ def generate_plugin_info(
         icon=icon,
         sources_library=sources_library,
         info_source_keys=info_source_keys,
+        aoi_constraints=aoi_constraints or [],
         demo_input_parameters=demo_input_parameters,
         demo_aoi=demo_aoi,
     )

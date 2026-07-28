@@ -5,9 +5,9 @@ from pydantic import HttpUrl
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
-from climatoology.base.i18n import N_, tr
+from climatoology.base.aoi import AreaConstraint
+from climatoology.base.i18n import DEFAULT_LANGUAGE, N_, tr
 from climatoology.base.plugin_info import (
-    DEFAULT_LANGUAGE,
     AssetsFinal,
     Concern,
     MiscSource,
@@ -60,17 +60,18 @@ def default_plugin_info(default_input_model) -> PluginInfo:
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser=N_('Test teaser that is meant to do nothing.'),
         purpose={
-            'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md',
-            'de': FIXTURE_RESOURCES_DIR / 'locales/de/purpose.md',
+            LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md',
+            LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/de/purpose.md',
         },
         methodology={
-            'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md',
-            'de': FIXTURE_RESOURCES_DIR / 'locales/de/methodology.md',
+            LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md',
+            LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/de/methodology.md',
         },
         sources_library=FIXTURE_RESOURCES_DIR / 'test.bib',
         localisation_directory=FIXTURE_RESOURCES_DIR / 'locales',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
+        aoi_constraints=[[AreaConstraint(min_area=10)]],
     )
     info.version = Version(3, 1, 0)
     return info

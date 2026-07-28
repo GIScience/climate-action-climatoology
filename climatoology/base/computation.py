@@ -7,15 +7,18 @@ from pathlib import Path
 from typing import Annotated, List, Optional
 from uuid import UUID
 
-import geojson_pydantic
 from celery.states import FAILURE, PENDING, RETRY, REVOKED, STARTED, SUCCESS
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
 from climatoology.base import PydanticSemver
+from climatoology.base.aoi import (
+    AoiFeatureModel,
+    AoiProperties,  # noqa: F401 (to continue supporting importing from this file, where it was originally defined)
+)
 from climatoology.base.artifact import ArtifactEnriched, ArtifactModality
-from climatoology.base.plugin_info import DEFAULT_LANGUAGE
+from climatoology.base.i18n import DEFAULT_LANGUAGE
 
 
 class ComputationResources(BaseModel):
@@ -39,24 +42,6 @@ class ComputationScope:
 
     def __exit__(self, *args):
         shutil.rmtree(self.resources.computation_dir)
-
-
-class AoiProperties(BaseModel):
-    model_config = ConfigDict(extra='allow')
-
-    name: str = Field(
-        title='Name',
-        description='The name of the area of interest i.e. a human readable description.',
-        examples=['Heidelberg'],
-    )
-    id: str = Field(
-        title='ID',
-        description='A unique identifier of the area of interest.',
-        examples=[str(uuid.uuid4())],
-    )
-
-
-AoiFeatureModel = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiProperties]
 
 
 class ComputationPluginInfo(BaseModel):

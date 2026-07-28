@@ -3,12 +3,14 @@ from typing import Optional
 
 from babel.support import Translations
 from pandas import DataFrame
+from pydantic_extra_types.language_code import LanguageAlpha2
 
 from climatoology.base.logging import get_climatoology_logger
-from climatoology.base.plugin_info import DEFAULT_LANGUAGE
 from climatoology.base.utils import deep_apply_dataframe, deep_apply_dict
 
 log = get_climatoology_logger(__name__)
+
+DEFAULT_LANGUAGE = LanguageAlpha2('en')
 
 # We backed up from designing a custom lazy translation class as it created issues in some edge cases, although it
 # worked for many parts.

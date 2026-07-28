@@ -4,6 +4,7 @@ from pathlib import Path
 import pydantic
 import pytest
 from pydantic import HttpUrl, ValidationError
+from pydantic_extra_types.language_code import LanguageAlpha2
 
 from climatoology.base.plugin_info import (
     Concern,
@@ -34,6 +35,7 @@ def test_generate_plugin_info_function(default_plugin_info: PluginInfo):
         computation_shelf_life=default_plugin_info.computation_shelf_life,
         sources_library=default_plugin_info.sources_library,
         info_source_keys=default_plugin_info.info_source_keys,
+        aoi_constraints=default_plugin_info.aoi_constraints,
     )
 
     assert generated_info == default_plugin_info
@@ -53,8 +55,8 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
         icon=FIXTURE_RESOURCES_DIR / 'test_icon.png',
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-        methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
         sources_library=FIXTURE_RESOURCES_DIR / 'test.bib',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
@@ -65,8 +67,8 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
         authors=default_plugin_info.authors,
         concerns=default_plugin_info.concerns,
         teaser=default_plugin_info.teaser,
-        purpose=default_plugin_info.purpose['en'],
-        methodology=default_plugin_info.methodology['en'],
+        purpose=default_plugin_info.purpose[LanguageAlpha2('en')],
+        methodology=default_plugin_info.methodology[LanguageAlpha2('en')],
         icon=default_plugin_info.icon,
         demo_input_parameters=default_plugin_info.demo_input_parameters,
         state=default_plugin_info.state,
@@ -104,6 +106,16 @@ def test_info_deserialisable(default_plugin_info_final):
     serialised_info = default_plugin_info_final.model_dump(mode='json')
     info = PluginInfoFinal(**serialised_info)
     assert info == default_plugin_info_final
+
+
+def test_info_correctly_contains_aoi_constraints(default_plugin_info_final):
+    """We had problems with dumping the AOI Constraints in the past.
+    This asserts theat they are nicely dumped for the FE
+    """
+    serialised_info = default_plugin_info_final.model_dump(mode='json')
+    assert serialised_info['aoi_constraints'] == [
+        [{'constraint_type': 'AreaConstraint', 'max_area': None, 'min_area': 10.0}]
+    ]
 
 
 def test_plugin_id_special_characters(default_plugin_info):
@@ -144,8 +156,8 @@ def test_sources_are_optional(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-        methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
     )
     assert info.assets.sources_library == dict()
@@ -177,8 +189,8 @@ def test_invalid_sources(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='Test teaser that is meant to do nothing.',
-            purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
             sources_library=TEST_RESOURCES_DIR / 'invalid_test.bib',
         )
@@ -198,8 +210,8 @@ def test_short_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='This.',
-            purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -218,8 +230,8 @@ def test_long_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
-            purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -238,8 +250,8 @@ def test_small_start_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='this plugin does nothing.',
-            purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -258,8 +270,8 @@ def test_no_fullstop_teaser(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='This plugin does nothing',
-            purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -277,8 +289,8 @@ def test_default_plugin_state(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-        methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
     )
     assert computed_info.state == PluginState.ACTIVE
@@ -297,8 +309,8 @@ def test_plugin_state(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-        methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
         state=PluginState.ARCHIVE,
     )
@@ -318,8 +330,8 @@ def test_shelf_life(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-        methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
         computation_shelf_life=timedelta(hours=1),
     )
@@ -339,8 +351,8 @@ def test_repository_url(default_input_model):
         ],
         concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
         teaser='Test teaser that is meant to do nothing.',
-        purpose={'en': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-        methodology={'en': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
         demo_input_parameters=default_input_model,
     )
     assert str(computed_info.repository) == 'https://gitlab.heigit.org/climate-action/climatoology'
@@ -360,8 +372,8 @@ def test_english_enforced(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='Test teaser that is meant to do nothing.',
-            purpose={'de': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'de': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -383,8 +395,8 @@ def test_language_set_equal(default_input_model):
             ],
             concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
             teaser='Test teaser that is meant to do nothing.',
-            purpose={'de': FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
-            methodology={'fr': FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+            purpose={LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+            methodology={LanguageAlpha2('fr'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
             demo_input_parameters=default_input_model,
         )
 
@@ -393,4 +405,4 @@ def test_extract_info_localisations():
     localisations = extract_info_localisations(FIXTURE_RESOURCES_DIR / 'locales')
 
     for loc in localisations:
-        assert set(loc.keys()) == {'en', 'de'}
+        assert set(loc.keys()) == {LanguageAlpha2('en'), 'de'}
