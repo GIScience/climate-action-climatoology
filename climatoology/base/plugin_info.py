@@ -221,17 +221,20 @@ class _PluginBaseInfo(BaseModel):
         examples=[timedelta(weeks=4)],
         default=timedelta(0),
     )
-    aoi_constraints: AoiConstraintSets = Field(
+    aoi_constraints: Optional[AoiConstraintSets] = Field(
         description='The constraints to be applied to computation AOIs.'
         'Each inner list is a set of AND requirements.'
         'Each outer list is applied as OR constraints.',
         examples=[[[AreaConstraint(min_area=0, max_area=500)]]],
-        default=[],
+        default=None,
     )
 
     @field_validator('aoi_constraints', mode='after')
     @classmethod
-    def no_contradiction(cls, constraint_sets: AoiConstraintSets) -> AoiConstraintSets:
+    def no_contradiction(cls, constraint_sets: Optional[AoiConstraintSets]) -> Optional[AoiConstraintSets]:
+        if constraint_sets is None:
+            return constraint_sets
+
         for constraint_set in constraint_sets:
             is_boundary_selection = [
                 isinstance(constraint, BoundarySelectionConstraint) for constraint in constraint_set
@@ -599,7 +602,7 @@ def generate_plugin_info(
         icon=icon,
         sources_library=sources_library,
         info_source_keys=info_source_keys,
-        aoi_constraints=aoi_constraints or [],
+        aoi_constraints=aoi_constraints,
         demo_input_parameters=demo_input_parameters,
         demo_aoi=demo_aoi,
     )

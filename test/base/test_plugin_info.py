@@ -6,6 +6,7 @@ import pytest
 from pydantic import HttpUrl, ValidationError
 from pydantic_extra_types.language_code import LanguageAlpha2
 
+from climatoology.base.aoi import AreaConstraint
 from climatoology.base.plugin_info import (
     Concern,
     IncollectionSource,
@@ -112,7 +113,11 @@ def test_info_correctly_contains_aoi_constraints(default_plugin_info_final):
     """We had problems with dumping the AOI Constraints in the past.
     This asserts theat they are nicely dumped for the FE
     """
-    serialised_info = default_plugin_info_final.model_dump(mode='json')
+    plugin_info_with_constraints = default_plugin_info_final.model_copy(deep=True)
+    plugin_info_with_constraints.aoi_constraints = [[AreaConstraint(min_area=10)]]
+
+    serialised_info = plugin_info_with_constraints.model_dump(mode='json')
+
     assert serialised_info['aoi_constraints'] == [
         [{'constraint_type': 'AreaConstraint', 'max_area': None, 'min_area': 10.0}]
     ]

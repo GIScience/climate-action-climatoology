@@ -58,7 +58,7 @@ class PluginInfoTable(ClimatoologyTableBase):
     purpose: Mapped[str]
     methodology: Mapped[str]
     sources: Mapped[Optional[List[dict]]] = mapped_column(JSON)
-    aoi_constraints: Mapped[AoiConstraintSets] = mapped_column(JSON)
+    aoi_constraints: Mapped[Optional[AoiConstraintSets]] = mapped_column(JSON)
     demo_config: Mapped[DemoConfig] = mapped_column(JSON)
     computation_shelf_life: Mapped[Optional[timedelta]]
     assets: Mapped[AssetsFinal] = mapped_column(JSON)

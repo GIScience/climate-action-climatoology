@@ -1,6 +1,8 @@
 import subprocess
+from datetime import datetime
 
 import pytest
+import shapely
 from pytest_alembic.tests import (  # noqa: F401 don't remove these unused imports, they assure that the basic default
     # alembic tests are run
     test_model_definitions_match_ddl,
@@ -71,3 +73,87 @@ def test_database_migration_values(default_plugin_info_final, alembic_runner, al
             .all()
         )
     assert 'test_plugin-3.1.0-en' in plugin_key
+
+
+def test_database_migrations_non_breaking(alembic_runner, alembic_engine):
+    """
+    Assert that database entries that were valid in v7.0.0 are still valid at 'head'. If these entries need to be
+    updated, that indicates breaking changes in the migrations.
+    """
+    alembic_runner.migrate_up_to('head')
+
+    # Plugin info, written on plugin startup
+    plugin_info_item = {
+        'id': 'plugin_v7',
+        'version': '1.2.3',
+        'name': 'plugin_v7',
+        'repository': 'https://gitlab.heigit.org/climate-action/climatoology',
+        'state': 'ACTIVE',
+        'concerns': [],
+        'teaser': 'A teaser',
+        'purpose': 'My purpose',
+        'methodology': 'A methodology',
+        'demo_config': {
+            'params': '{}',
+            'name': 'Demo',
+            'aoi': {
+                'type': 'MultiPolygon',
+                'coordinates': [[[[8.8, 49.4], [8.9, 49.4], [8.9, 49.5], [8.8, 49.5], [8.8, 49.4]]]],
+            },
+        },
+        'assets': {'icon': 'assets/plugin_v7/latest/ICON.png'},
+        'operator_schema': {'properties': {}, 'title': 'ComputeInput', 'type': 'object'},
+        'library_version': '7.0.0',
+        'latest': True,
+    }
+
+    plugin_author_item = {'name': 'Author_v7'}
+    plugin_info_author_link_item = {
+        'info_key': 'plugin_v7-1.2.3-en',  # the plugin_key changed since v7.0.0 to include language and use `-` instead of `;` as a separator, but this is a computed field, so it is non-breaking
+        'author_id': 'Author_v7',
+        'author_seat': 0,
+    }
+
+    alembic_runner.insert_into('ca_base.plugin_info', plugin_info_item)
+    alembic_runner.insert_into('ca_base.plugin_author', plugin_author_item)
+    alembic_runner.insert_into('ca_base.plugin_info_author_link', plugin_info_author_link_item)
+
+    # Computations, registered by the gateway
+    computation_uuid = '00000000-1111-2222-3333-444444444444'
+    aoi_geom = shapely.to_wkt(
+        shapely.MultiPolygon([[[[8.8, 49.4], [8.9, 49.4], [8.9, 49.5], [8.8, 49.5], [8.8, 49.4]]]])
+    )
+    computation_item = {
+        'correlation_uuid': computation_uuid,
+        'valid_until': datetime.now(),
+        'requested_params': {},
+        'aoi_geom': aoi_geom,
+        'plugin_key': 'plugin_v7-1.2.3-en',  # the plugin_key changed since v7.0.0 to include language and use `-` instead of `;` as a separator, but this is a computed field, so it is non-breaking
+        'artifact_errors': {},
+        'language': 'en',  # language didn't exist in v7.0.0, but it is provided by the gateway, so is non-breaking for plugins
+    }
+    computation_lookup_item = {
+        'user_correlation_uuid': computation_uuid,
+        'request_ts': datetime.now(),
+        'aoi_name': 'Test AOI',
+        'aoi_id': '123',
+        'is_demo': False,
+        'computation_id': computation_uuid,
+    }
+
+    alembic_runner.insert_into('ca_base.computation', computation_item)
+    alembic_runner.insert_into('ca_base.computation_lookup', computation_lookup_item)
+
+    # Artifacts, inserted by the plugin compute task
+    artifact_item = {
+        'rank': 0,
+        'correlation_uuid': computation_uuid,
+        'name': 'Test artifact',
+        'modality': 'MARKDOWN',
+        'primary': True,
+        'tags': set(),
+        'summary': 'A summary',
+        'attachments': {},
+        'filename': 'filename.md',
+    }
+    alembic_runner.insert_into('ca_base.artifact', artifact_item)

@@ -15,7 +15,7 @@ class CABaseSettings(BaseSettings):
     s3_access_key: str = Field(validation_alias=AliasChoices('s3_access_key', 'minio_access_key'))
     s3_secret_key: str = Field(validation_alias=AliasChoices('s3_secret_key', 'minio_secret_key'))
     s3_bucket: str = Field(validation_alias=AliasChoices('s3_bucket', 'minio_bucket'))
-    s3_secure: bool = Field(validation_alias=AliasChoices('s3_scure', 'minio_secure'), default=True)
+    s3_secure: bool = Field(validation_alias=AliasChoices('s3_secure', 'minio_secure'), default=True)
 
     rabbitmq_host: str
     rabbitmq_port: int

@@ -7,6 +7,13 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.3.0...main)
 
+
+### Fixed
+
+- Typo in the settings so you can provide `S3_SECURE` in the settings
+- Database migrations to make the new column `aoi_constraints` in the table `plugin_info` nullable and added better
+  test to avoid non-breaking migrations ([#281](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/281))
+
 ## [7.3.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.3.0) - 2026-07-29
 
 ### Added

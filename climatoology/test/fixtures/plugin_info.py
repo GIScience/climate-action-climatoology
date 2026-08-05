@@ -5,7 +5,6 @@ from pydantic import HttpUrl
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
-from climatoology.base.aoi import AreaConstraint
 from climatoology.base.i18n import DEFAULT_LANGUAGE, N_, tr
 from climatoology.base.plugin_info import (
     AssetsFinal,
@@ -71,7 +70,6 @@ def default_plugin_info(default_input_model) -> PluginInfo:
         localisation_directory=FIXTURE_RESOURCES_DIR / 'locales',
         computation_shelf_life=timedelta(days=1),
         demo_input_parameters=default_input_model,
-        aoi_constraints=[[AreaConstraint(min_area=10)]],
     )
     info.version = Version(3, 1, 0)
     return info
