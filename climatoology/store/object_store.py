@@ -230,7 +230,7 @@ class S3Storage(Storage):
             url = self.client.generate_presigned_url(
                 'get_object',
                 Params={'Bucket': self.__bucket, 'Key': object_name},
-                ExpiresIn=expires,
+                ExpiresIn=int(expires.total_seconds()),
             )
         except ClientError as e:
             log.debug(f'Object {object_name} not found', exc_info=e)

@@ -1,4 +1,5 @@
 import tempfile
+from datetime import timedelta
 from unittest.mock import ANY, patch
 
 import pytest
@@ -54,12 +55,14 @@ def test_s3_save_all(mocked_object_store, general_uuid, default_artifact_enriche
     assert save_info_spy.call_count == 2
 
 
-def test_s3_get_artifact_url(mocked_object_store, general_uuid):
-    store_id = 'test_file.tiff'
-    result = mocked_object_store.get_artifact_url(general_uuid, store_id)
+def test_s3_get_artifact_url(mocked_object_store, general_uuid, default_artifact_enriched):
+    store_id = 'test_artifact_file.md'
+    result = mocked_object_store.get_artifact_url(general_uuid, store_id, expires=timedelta(hours=1))
     url, params = result.split('?')
-    assert url == f'https://test.host:1234/s3_test_bucket/{general_uuid}/test_file.tiff'
+
+    assert url == f'https://test.host:1234/s3_test_bucket/{general_uuid}/test_artifact_file.md'
     assert 'X-Amz-Signature=' in params
+    assert 'X-Amz-Expires=3600' in params
 
 
 def test_get_icon_url(mocked_object_store):

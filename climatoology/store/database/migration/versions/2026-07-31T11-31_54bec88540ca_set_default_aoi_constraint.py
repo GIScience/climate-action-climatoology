@@ -8,6 +8,7 @@ Create Date: 2026-07-31 11:31:57.917094
 
 from typing import Sequence, Union
 
+import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -20,8 +21,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     op.alter_column('plugin_info', 'aoi_constraints', nullable=True, schema='ca_base')
+    op.execute(sa.text("update ca_base.plugin_info set aoi_constraints=NULL where aoi_constraints::text='[]'"))
 
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.execute(sa.text("update ca_base.plugin_info set aoi_constraints='[]' where aoi_constraints is NULL"))
     op.alter_column('plugin_info', 'aoi_constraints', nullable=False, schema='ca_base')

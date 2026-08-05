@@ -5,14 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.3.0...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.3.1...main)
 
+## [7.3.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.3.1) - 2026-08-05
 
 ### Fixed
 
-- Typo in the settings so you can provide `S3_SECURE` in the settings
+- Presigned URLs generated in the object store now correctly set the `Expires` parameters in total seconds, so the
+  returned URL is valid ([#68](https://gitlab.heigit.org/climate-action/api-gateway/-/work_items/68))
 - Database migrations to make the new column `aoi_constraints` in the table `plugin_info` nullable and added better
   test to avoid non-breaking migrations ([#281](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/281))
+- Typo in the settings so you can provide `S3_SECURE` in the settings
 - moved `connection_to_string` function from `test.fixtures.database` to `test.utils` to prevent a pytest warning on
   rewriting already imported modules
 
