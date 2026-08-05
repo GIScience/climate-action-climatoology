@@ -4,7 +4,7 @@ from uuid import UUID
 
 import shapely
 from pydantic_extra_types.language_code import LanguageAlpha2
-from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc, func
+from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from climatoology.store.database.models import DbGeometry, DbUuidAsString
@@ -39,7 +39,7 @@ class ComputationTable(ClimatoologyTableBase):
     requested_params: Mapped[dict] = mapped_column(JSON)
     aoi_geom: Mapped[shapely.MultiPolygon] = mapped_column(DbGeometry('MultiPolygon', srid=4326))
     aoi_centroid: Mapped[shapely.Point] = mapped_column(
-        DbGeometry('Point', srid=4326), Computed(func.st_pointonsurface(aoi_geom), persisted=True)
+        DbGeometry('Point', srid=4326), Computed('ST_PointOnSurface(aoi_geom)', persisted=True)
     )
     artifacts: Mapped[List[ArtifactTable]] = relationship(order_by=asc(ArtifactTable.rank))
     plugin_key: Mapped[str] = mapped_column(ForeignKey(f'{CLIMATOOLOGY_SCHEMA_NAME}.plugin_info.key'), index=True)
