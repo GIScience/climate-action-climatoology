@@ -7,7 +7,7 @@ from pytest_alembic import Config
 
 from climatoology.base.computation import ComputationState
 from climatoology.store.database import migration
-from climatoology.test.fixtures.database import connection_to_string
+from climatoology.test.utils import connection_to_string
 
 
 @pytest.fixture

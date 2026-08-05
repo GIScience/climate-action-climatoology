@@ -23,6 +23,7 @@ from climatoology.store.database.models.views import (
     ValidComputationsView,
     create_view_tracking_object,
 )
+from climatoology.test.utils import connection_to_string
 
 
 def load_basics(**kwargs) -> None:
@@ -149,15 +150,3 @@ def backend_with_computation_successful(
     ).get(timeout=5)
 
     return backend_with_computation_registered
-
-
-def connection_to_string(connection: Connection) -> str:
-    user = connection.info.user
-    password = connection.info.password
-    host = connection.info.host
-    port = connection.info.port
-    dbname = connection.info.dbname
-
-    connection_str = f'postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}'
-
-    return connection_str

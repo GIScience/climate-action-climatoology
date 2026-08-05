@@ -17,8 +17,8 @@ from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import ComputationResources
 from climatoology.base.i18n import tr
 from climatoology.base.plugin_info import PluginInfo
-from climatoology.test.fixtures.database import connection_to_string
 from climatoology.test.models import TestModel
+from climatoology.test.utils import connection_to_string
 
 
 @pytest.fixture

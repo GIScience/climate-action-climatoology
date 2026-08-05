@@ -13,6 +13,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - Typo in the settings so you can provide `S3_SECURE` in the settings
 - Database migrations to make the new column `aoi_constraints` in the table `plugin_info` nullable and added better
   test to avoid non-breaking migrations ([#281](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/281))
+- moved `connection_to_string` function from `test.fixtures.database` to `test.utils` to prevent a pytest warning on
+  rewriting already imported modules
 
 ## [7.3.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.3.0) - 2026-07-29
 
