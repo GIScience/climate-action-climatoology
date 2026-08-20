@@ -7,12 +7,20 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.3.1...main)
 
+## [7.4.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.0) - 2026-08-20
+
 ### Fixed
 
 - AOI constraints now set `constraint_type` as an attribute (instead of using a cached property) to simplify the correct
   matching of constraint types when creating pydantic objects from a dict. Also use a discriminator to help pydantic
   choose which constraint type to construct from individual dict entries.
   Closes ([#316](https://gitlab.heigit.org/climate-action/api-gateway/-/work_items/316))
+
+### Changed
+
+- `CoveredByGeomConstraint` now includes a `description`, which should provide some information to help the user know
+  broadly where the geometry constraint
+  is ([#317](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/317))
 
 ## [7.3.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.3.1) - 2026-08-05
 

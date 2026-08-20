@@ -1,11 +1,13 @@
 import uuid
+import warnings
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import Annotated, Literal, Optional, Union, get_args, get_origin
 
 import geojson_pydantic
+import shapely
 from geopandas import GeoSeries
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from shapely import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 from shapely.io import from_geojson
@@ -95,8 +97,20 @@ class AreaConstraint(AoiBaseConstraint):
 
 class CoveredByGeomConstraint(AoiBaseConstraint):
     constraint_type: Literal['CoveredByGeomConstraint'] = 'CoveredByGeomConstraint'
+    description: Annotated[
+        str,
+        StringConstraints(min_length=4, max_length=150, pattern='^[A-Z].*'),
+        Field(
+            description="A short description of the plugin's valid region."
+            'The description must be between 4 and 150 characters long, start with an upper case letter.',
+            examples=['Germany', 'Cities in Germany with more than 100,000 people'],
+            default=None,
+        ),
+    ]
     geom: geojson_pydantic.Polygon | geojson_pydantic.MultiPolygon = Field(
-        description='The AOI must be covered by/within this geometry (i.e., no points of the AOI may be outside the points of this geometry).',
+        description='The AOI must be covered by/within this geometry '
+        '(i.e., no points of the AOI may be outside the points of this geometry).'
+        "It is recommended to 'simplify' the geometries to reduce the size of the data.",
         examples=[
             geojson_pydantic.MultiPolygon.create(
                 coordinates=[
@@ -117,6 +131,16 @@ class CoveredByGeomConstraint(AoiBaseConstraint):
     @cached_property
     def shapely_geom(self) -> Polygon | MultiPolygon:
         return from_geojson(self.geom.model_dump_json())
+
+    @model_validator(mode='after')
+    def set_default_geom_name(self) -> 'CoveredByGeomConstraint':
+        if self.description is None:
+            warnings.warn(
+                'It is highly recommended to provide a description with CoveredByGeomConstraint instead of relying on the default'
+            )
+            bounds = shapely.from_geojson(self.geom.model_dump_json()).bounds
+            self.description = f'An area within coordinates {bounds}'
+        return self
 
     def check(self, aoi_geometry: MultiPolygon, aoi_properties: AoiProperties) -> bool:
         return aoi_geometry.covered_by(self.shapely_geom)

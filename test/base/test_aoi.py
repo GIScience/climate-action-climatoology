@@ -36,7 +36,7 @@ def test_area_constraint_check(edge_length, passes_check):
 
 def test_aoi_constraint_covered_by_polygon_or_multipolygon():
     """covered_by accepts polygons or multipolygons, but not other geometry types."""
-    cbgc = CoveredByGeomConstraint(geom=geojson_pydantic.Polygon.from_bounds(-2, -2, 2, 2))
+    cbgc = CoveredByGeomConstraint(description='Test Region', geom=geojson_pydantic.Polygon.from_bounds(-2, -2, 2, 2))
     assert cbgc.check(
         aoi_geometry=MultiPolygon([shapely.box(0, 0, 1, 1)]),
         aoi_properties=AoiProperties(name='a', id='b'),
@@ -45,6 +45,12 @@ def test_aoi_constraint_covered_by_polygon_or_multipolygon():
         aoi_geometry=MultiPolygon([shapely.box(-3, -3, 1, 1)]),
         aoi_properties=AoiProperties(name='a', id='b'),
     )
+
+
+def test_covered_by_geom_default_description():
+    cbgc = CoveredByGeomConstraint(geom=geojson_pydantic.Polygon.from_bounds(-2, -2, 2, 2))
+
+    assert cbgc.description == 'An area within coordinates (-2.0, -2.0, 2.0, 2.0)'
 
 
 def test_plugin_info_from_dict_correctly_sets_aoi_constraints(default_plugin_info_final):
