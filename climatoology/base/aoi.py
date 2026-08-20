@@ -1,11 +1,11 @@
 import uuid
 from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import Annotated, Optional, Union
+from typing import Annotated, Literal, Optional, Union, get_args, get_origin
 
 import geojson_pydantic
 from geopandas import GeoSeries
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from shapely import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 from shapely.io import from_geojson
@@ -43,10 +43,16 @@ AoiFeatureModel = geojson_pydantic.Feature[geojson_pydantic.MultiPolygon, AoiPro
 
 
 class AoiBaseConstraint(BaseModel, ABC):
-    @computed_field
-    @property
-    def constraint_type(self) -> str:
-        return type(self).__name__
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Make sure that each subclass set the attribute `constraint_type` as a Literal with only one option
+        ct_annotation = cls.__annotations__.get('constraint_type')
+        ct_type = get_origin(ct_annotation)
+        ct_options = get_args(ct_annotation)
+        if ct_type != Literal or len(ct_options) > 1:
+            raise TypeError(f'{cls.__name__} does not define the `constraint_type` as a Literal with only one option')
 
     @abstractmethod
     def check(self, aoi_geometry: MultiPolygon, aoi_properties: AoiProperties) -> bool:
@@ -58,6 +64,7 @@ class AreaConstraint(AoiBaseConstraint):
     The area of the AOI (in km2) must be within this range.
     """
 
+    constraint_type: Literal['AreaConstraint'] = 'AreaConstraint'
     min_area: Annotated[
         float,
         Field(strict=True, ge=0, default=0),
@@ -87,6 +94,7 @@ class AreaConstraint(AoiBaseConstraint):
 
 
 class CoveredByGeomConstraint(AoiBaseConstraint):
+    constraint_type: Literal['CoveredByGeomConstraint'] = 'CoveredByGeomConstraint'
     geom: geojson_pydantic.Polygon | geojson_pydantic.MultiPolygon = Field(
         description='The AOI must be covered by/within this geometry (i.e., no points of the AOI may be outside the points of this geometry).',
         examples=[
@@ -115,6 +123,7 @@ class CoveredByGeomConstraint(AoiBaseConstraint):
 
 
 class CoveredByBoundaryConstraint(AoiBaseConstraint):
+    constraint_type: Literal['CoveredByBoundaryConstraint'] = 'CoveredByBoundaryConstraint'
     osm_ids: OsmIdSelectionType = Field(
         description='The AOI must be covered by/within an OSM relation with one of these IDs in our database.',
         examples=[[-7444], [-62422, -285864]],
@@ -126,6 +135,7 @@ class CoveredByBoundaryConstraint(AoiBaseConstraint):
 
 
 class BoundarySelectionConstraint(AoiBaseConstraint):
+    constraint_type: Literal['BoundarySelectionConstraint'] = 'BoundarySelectionConstraint'
     osm_ids: OsmIdSelectionType = Field(
         description='The AOI must be an OSM relation with one of these IDs in our database.',
         examples=[[-7444], [-62422, -285864]],
@@ -136,8 +146,14 @@ class BoundarySelectionConstraint(AoiBaseConstraint):
         raise NotImplementedError('Checking against osm ids is not yet implemented.')
 
 
-type AoiConstraint = Union[
-    AreaConstraint, CoveredByGeomConstraint, CoveredByBoundaryConstraint, BoundarySelectionConstraint
+type AoiConstraint = Annotated[
+    Union[
+        AreaConstraint,
+        CoveredByGeomConstraint,
+        CoveredByBoundaryConstraint,
+        BoundarySelectionConstraint,
+    ],
+    Field(discriminator='constraint_type'),  # pydantic will choose which constraint based on this value
 ]
 
 type AoiConstraintSets = list[list[AoiConstraint]]
