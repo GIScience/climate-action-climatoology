@@ -32,11 +32,14 @@ def load_basics(**kwargs) -> None:
             cur.execute('CREATE EXTENSION IF NOT EXISTS postgis;')
 
 
-def load_tables(host: str, port: int, dbname: str, user: str, password: str) -> None:
+def load_tables(host: str, port: int, dbname: str, user: str, password: str, autocommit: bool) -> None:
     connection_str = f'postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}'
-    engine = create_engine(connection_str, echo=False, poolclass=NullPool)
+    isolation_level = 'AUTOCOMMIT' if autocommit else None
+    engine = create_engine(connection_str, echo=False, poolclass=NullPool, isolation_level=isolation_level)
 
-    with psycopg.connect(host=host, port=port, dbname=dbname, user=user, password=password) as conn:
+    with psycopg.connect(
+        host=host, port=port, dbname=dbname, user=user, password=password, autocommit=autocommit
+    ) as conn:
         with conn.cursor() as cur:
             cur.execute('CREATE SCHEMA ca_base;')
 

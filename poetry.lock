@@ -2857,6 +2857,9 @@ files = [
     {file = "pyproj-3.8.0-cp315-cp315t-musllinux_1_2_aarch64.whl", hash = "sha256:c6da4fedc9b86970cca828b871b3fcbf8f9ad2da353b0669445fd8c03c89a9f7"},
     {file = "pyproj-3.8.0-cp315-cp315t-musllinux_1_2_x86_64.whl", hash = "sha256:79e222f6f8486d0af3ebc5544edecebf396492e38f46500f668c6c389a20e4df"},
     {file = "pyproj-3.8.0-cp315-cp315t-win32.whl", hash = "sha256:0ff22ad49d1f59e18a57384926aabcb0ee8bbe9213e5abe375fd18b1b6ace194"},
+    {file = "pyproj-3.8.0-cp315-cp315t-win_amd64.whl", hash = "sha256:d5a408b215ef98c9ae19e58ec512360b8ad9b25f8792138f983a58d159ac7157"},
+    {file = "pyproj-3.8.0-cp315-cp315t-win_arm64.whl", hash = "sha256:bbf8a786ebfa9a904802dfde0e95e1325df8efbb573a19686c1937499a8f04e8"},
+    {file = "pyproj-3.8.0.tar.gz", hash = "sha256:efa59725bba68bf97fa808b61302df32934acdceb6a5c92a8dd0e71dc266a876"},
 ]
 
 [package.dependencies]
@@ -2944,15 +2947,15 @@ dev = ["pre-commit", "pytest-asyncio", "tox"]
 
 [[package]]
 name = "pytest-postgresql"
-version = "8.1.0"
+version = "9.1.0"
 description = "Postgresql fixtures and fixture factories for Pytest."
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"fixtures\""
 files = [
-    {file = "pytest_postgresql-8.1.0-py3-none-any.whl", hash = "sha256:0868bb3374fa4f454efd73ac1d7b23d2da623782044371b84d39f83a0893f56f"},
-    {file = "pytest_postgresql-8.1.0.tar.gz", hash = "sha256:ffd24027a28aba3d05a909fb03ee87d1d474574c3504f332d6047e8699170adc"},
+    {file = "pytest_postgresql-9.1.0-py3-none-any.whl", hash = "sha256:78d5b04e321c1d9b2ac86c837aa536f833f4141bd297196d54b6755a3aeba008"},
+    {file = "pytest_postgresql-9.1.0.tar.gz", hash = "sha256:d340789d6f43cac901fc14f52b15723279bd66db4db7a6506d969417c36cdf04"},
 ]
 
 [package.dependencies]
@@ -2961,6 +2964,9 @@ packaging = "*"
 port-for = ">=0.7.3"
 psycopg = ">=3.0.0"
 pytest = ">=8.2"
+
+[package.extras]
+async = ["aiofiles (>=23.0)", "pytest-asyncio (>=1.4)"]
 
 [[package]]
 name = "python-dateutil"
@@ -3978,4 +3984,4 @@ fixtures = ["freezegun", "moto", "pytest", "pytest-alembic", "pytest-mock", "pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13.5,<3.14"
-content-hash = "4c77e782df15a4484ea8d6c2ac9cb0ecb96b31ea537a85b1409f1ae278474b39"
+content-hash = "30912169707d4046b9e0432ab6110d57e64a66d866051075a2b534e1bdb6b0e6"
