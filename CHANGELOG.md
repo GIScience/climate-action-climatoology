@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.3.1...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.1...main)
+
+## [7.4.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.1) - 2026-09-07
+
+### Fixed
+
+- The `RasterInfo` pydantic model now uses a serialisable object as example after the previous implementation broke
+  during a dependency update
 
 ## [7.4.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.0) - 2026-08-20
 

@@ -347,7 +347,7 @@ class RasterInfo(BaseModel, arbitrary_types_allowed=True):
         title='Transformation',
         description='An affine transformation. This is best read from an existing image or '
         'using https://github.com/rasterio/affine',
-        examples=[Affine.identity()],
+        examples=[Affine.identity().to_shapely()],
     )
     colormap: Optional[Colormap] = Field(
         title='Colormap',
