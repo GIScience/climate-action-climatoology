@@ -496,8 +496,14 @@ def _convert_icon_to_thumbnail(icon: Path) -> BytesIO:
 def _convert_bib(sources: Optional[Path] = None) -> dict[str, dict[str, str]]:
     if sources is None:
         return dict()
-    with open(sources, mode='r') as file:
-        return bibtexparser.load(file).get_entry_dict()
+    library = bibtexparser.parse_file(str(sources))
+    entries_dict = dict()
+    for entry_key, entry_val in library.entries_dict.items():
+        entry = dict()
+        for field_key, field_val in entry_val.items():
+            entry[field_key] = field_val
+        entries_dict[entry_key] = entry
+    return entries_dict
 
 
 def filter_sources(sources_library: dict[str, Source], source_keys: Optional[set[str]]) -> list[Source]:

@@ -139,17 +139,22 @@ dev = ["backports.zoneinfo ; python_version < \"3.9\"", "freezegun (>=1.0,<2.0)"
 
 [[package]]
 name = "bibtexparser"
-version = "1.4.4"
+version = "2.0.1"
 description = "Bibtex parser for python 3"
 optional = false
-python-versions = "*"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "bibtexparser-1.4.4.tar.gz", hash = "sha256:093b6c824f7a71d3a748867c4057b71f77c55b8dbc07efc993b781771520d8fb"},
+    {file = "bibtexparser-2.0.1-py3-none-any.whl", hash = "sha256:aa263e252f4340c0fc50f9f7e5d63a9799b31b01a5aa460a261db3f2a01c6c38"},
+    {file = "bibtexparser-2.0.1.tar.gz", hash = "sha256:672a59f4ba431c4e9a6647cc7c42a267b22e257bcd2cfdb661863f3756c9ab14"},
 ]
 
 [package.dependencies]
-pyparsing = ">=2.0.3"
+pylatexenc = ">=2.10,<3.0"
+
+[package.extras]
+docs = ["sphinx"]
+test = ["jupyter", "pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
 name = "billiard"
@@ -2822,6 +2827,18 @@ markers = {main = "extra == \"fixtures\""}
 windows-terminal = ["colorama (>=0.4.6)"]
 
 [[package]]
+name = "pylatexenc"
+version = "2.11"
+description = "Simple LaTeX parser providing latex-to-unicode and unicode-to-latex conversion"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pylatexenc-2.11-py2.py3-none-any.whl", hash = "sha256:e78e7391d6c104f1ed150e21cfaa58016cdb50aa54406a2eecb793649ffdfdd0"},
+    {file = "pylatexenc-2.11.tar.gz", hash = "sha256:305a072a99ce736246049c9da05841b9d718c0f7ea8888f5f596cf15cb621053"},
+]
+
+[[package]]
 name = "pyogrio"
 version = "0.13.0"
 description = "Vectorized spatial vector file format I/O using GDAL/OGR"
@@ -4058,4 +4075,4 @@ fixtures = ["freezegun", "moto", "pytest", "pytest-alembic", "pytest-mock", "pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13.5,<3.14"
-content-hash = "0abfd9d8de891ed080df767732decb96a79eb5dd69470a1da5864939ba51249b"
+content-hash = "55d0ad0e8fe41f1a8cc16a0995d7a01562e386167aab5d9ffa68571daefee4dc"
