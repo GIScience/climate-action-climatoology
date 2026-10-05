@@ -497,12 +497,7 @@ def _convert_bib(sources: Optional[Path] = None) -> dict[str, dict[str, str]]:
     if sources is None:
         return dict()
     library = bibtexparser.parse_file(str(sources))
-    entries_dict = dict()
-    for entry_key, entry_val in library.entries_dict.items():
-        entry = dict()
-        for field_key, field_val in entry_val.items():
-            entry[field_key] = field_val
-        entries_dict[entry_key] = entry
+    entries_dict = {entry['ID']: dict(entry) for entry in library.entries}
     return entries_dict
 
 
