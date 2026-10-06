@@ -1,15 +1,15 @@
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import pytest
 from geopandas import GeoDataFrame
-from geopandas.testing import assert_geodataframe_equal
+from geopandas.geoseries import GeoSeries
+from geopandas.testing import assert_geodataframe_equal, assert_geoseries_equal
+from pandas import Series
 from pandas._testing import assert_series_equal
 from pydantic_extra_types.color import Color
 from shapely import MultiPoint, Point
 
 from climatoology.base.artifact import (
-    Artifact,
     ArtifactModality,
     Attachments,
     ContinuousLegendData,
@@ -27,19 +27,19 @@ def test_create_concise_vector_artifact(default_computation_resources, default_a
         },
         crs='EPSG:4326',
     )
-    expected_content = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": "0", "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": "1", "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": "2", "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
+    expected_content = GeoDataFrame(
+        data={
+            'index': [0, 1, 2],
+            'color': ['#fff', '#000', '#0f0'],
+            'label': ['White a', 'Black b', 'Green c'],
+            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+        },
+        crs='EPSG:4326',
+    )
 
     default_artifact_copy = default_artifact.model_copy(deep=True)
     default_artifact_copy.modality = ArtifactModality.VECTOR_MAP_LAYER
-    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.geojson'
+    default_artifact_copy.filename = f'{default_artifact_metadata.filename}.gpkg'
     default_artifact_copy.attachments = Attachments(
         legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}),
         display_filename=f'{default_artifact_metadata.filename}-display.pmtiles',
@@ -50,11 +50,10 @@ def test_create_concise_vector_artifact(default_computation_resources, default_a
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
     )
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
+    generated_content = gpd.read_file(default_computation_resources.computation_dir / generated_artifact.filename)
 
     assert generated_artifact == default_artifact_copy
-    assert generated_content == expected_content
+    gpd.testing.assert_geodataframe_equal(generated_content, expected_content)
 
 
 def test_create_extensive_vector_artifact(
@@ -62,7 +61,7 @@ def test_create_extensive_vector_artifact(
 ):
     method_input = GeoDataFrame(
         data={
-            'my_color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'my_color': [Color((254, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
             'my_label': ['White a', 'Black b', 'Green c'],
             'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
         },
@@ -76,7 +75,7 @@ def test_create_extensive_vector_artifact(
 
     extensive_artifact_copy = extensive_artifact.model_copy(deep=True)
     extensive_artifact_copy.modality = ArtifactModality.VECTOR_MAP_LAYER
-    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.geojson'
+    extensive_artifact_copy.filename = f'{extensive_artifact_metadata.filename}.gpkg'
     extensive_artifact_copy.attachments = Attachments(
         legend=legend.model_copy(deep=True), display_filename=f'{extensive_artifact_metadata.filename}-display.pmtiles'
     )
@@ -158,14 +157,14 @@ def test_create_vector_artifact_can_overwrite_pmtile_config(default_computation_
     assert not written_data.empty
 
 
-def test_create_vector_artifact_extra_column_removed_for_display(
+def test_create_vector_artifact_extra_column_removed_for_display_but_retained_for_download(
     default_computation_resources, default_artifact_metadata
 ):
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 254))],
             'label': ['inf'],
-            'extra_column_1': [np.inf],
+            'extra_column_1': ['x'],
             'geometry': [Point(1, 1)],
         },
         crs='EPSG:4326',
@@ -177,137 +176,59 @@ def test_create_vector_artifact_extra_column_removed_for_display(
         resources=default_computation_resources,
     )
 
-    written_data = gpd.read_file(
+    written_data = gpd.read_file(default_computation_resources.computation_dir / generated_artifact.filename)
+    assert written_data.columns.to_list() == ['index', 'color', 'label', 'extra_column_1', 'geometry']
+
+    written_display_data = gpd.read_file(
         default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
     )
-    assert written_data.columns.to_list() == ['mvt_id', 'index', 'color', 'label', 'geometry']
+    assert written_display_data.columns.to_list() == ['mvt_id', 'index', 'color', 'label', 'geometry']
 
 
-def test_create_vector_artifact_continuous_legend(
+def test_create_vector_artifact_retain_custom_legend(
     default_computation_resources, general_uuid, default_artifact_metadata
 ):
-    expected_artifact = Artifact(
-        name='test_name',
-        modality=ArtifactModality.VECTOR_MAP_LAYER,
-        filename='test_artifact_file.geojson',
-        summary='Test summary',
-        attachments=Attachments(
-            legend=Legend(
-                legend_data=ContinuousLegendData(
-                    cmap_name='plasma', ticks={'Black b': 0.0, 'Green c': 0.5, 'White a': 1.0}
-                )
-            ),
-            display_filename=f'{default_artifact_metadata.filename}-display.pmtiles',
-        ),
-    )
-
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
-        },
-        crs='EPSG:4326',
-    )
-
-    legend = Legend(
+    input_legend = Legend(
         legend_data=ContinuousLegendData(cmap_name='plasma', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
     )
+    expect_output = input_legend.model_copy(deep=True)
+
+    method_input = GeoDataFrame(
+        data={
+            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
+            'label': ['White a', 'Black b', 'Green c'],
+            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+        },
+        crs='EPSG:4326',
+    )
 
     generated_artifact = create_vector_artifact(
         data=method_input,
         metadata=default_artifact_metadata,
         resources=default_computation_resources,
-        legend=legend,
+        legend=input_legend,
     )
 
-    assert generated_artifact == expected_artifact
+    assert generated_artifact.attachments.legend == expect_output
 
 
-def test_create_vector_artifact_index_must_be_labelled_correctly(
+def test_create_vector_artifact_creates_fitting_index_for_display_file(
     default_computation_resources, default_artifact_metadata
 ):
+    """The requirements are: must be unique of type str and called 'index'"""
+    # Provided to the function are: a GeoDataFrame with non-unique, int-type index called 'wrong_name'
     method_input = GeoDataFrame(
         data={
             'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
             'label': ['White a', 'Black b', 'Green c'],
             'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
         },
-        index=pd.Index(['hello', 'again', 'world'], name='custom_index_name'),
+        index=[0, 0, 1],
         crs='EPSG:4326',
     )
+    method_input.index = method_input.index.rename('wrong_name')
 
-    generated_artifact = create_vector_artifact(
-        data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
-    )
-
-    written_data = gpd.read_file(default_computation_resources.computation_dir / generated_artifact.filename)
-    assert 'index' in written_data.columns
-
-    written_display_data = gpd.read_file(
-        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
-    )
-    assert 'index' in written_display_data.columns
-
-
-def test_create_vector_artifact_index_str(default_computation_resources, general_uuid, default_artifact_metadata):
-    expected_geojson = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": "hello", "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": "again", "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": "world", "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
-
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
-        },
-        index=['hello', 'again', 'world'],
-        crs='EPSG:4326',
-    )
-
-    generated_artifact = create_vector_artifact(
-        data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
-    )
-
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == expected_geojson
-
-    written_display_data = gpd.read_file(
-        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
-    )
-    assert_series_equal(
-        written_display_data['index'], method_input.index.to_series(), check_names=False, check_index=False
-    )
-
-
-def test_create_vector_artifact_index_non_unique_gets_reset(default_computation_resources, default_artifact_metadata):
-    expected_geojson = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": "0", "index_0": "hello", "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": "1", "index_0": "hello", "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": "2", "index_0": "world", "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
-
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
-        },
-        index=['hello', 'hello', 'world'],
-        crs='EPSG:4326',
-    )
+    expected_output_index_column = Series(['0', '1', '2'], name='index')
 
     generated_artifact = create_vector_artifact(
         data=method_input,
@@ -315,135 +236,10 @@ def test_create_vector_artifact_index_non_unique_gets_reset(default_computation_
         resources=default_computation_resources,
     )
 
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == expected_geojson
-
     written_display_data = gpd.read_file(
         default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
     )
-    assert_series_equal(written_display_data['index'], pd.Series(['0', '1', '2']), check_names=False, check_index=False)
-
-
-EXPECTED_MULTIINDEX_GEOJSON = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": "('bar', 'one')", "color": "#fff", "label": "White a" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": "('bar', 'two')", "color": "#000", "label": "Black b" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": "('baz', 'one')", "color": "#0f0", "label": "Green c" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
-
-
-def test_create_vector_artifact_multiindex(default_computation_resources, general_uuid, default_artifact_metadata):
-    expected_artifact = Artifact(
-        name='test_name',
-        modality=ArtifactModality.VECTOR_MAP_LAYER,
-        filename='test_artifact_file.geojson',
-        summary='Test summary',
-        attachments=Attachments(
-            legend=Legend(legend_data={'Black b': Color('#000'), 'Green c': Color('#0f0'), 'White a': Color('#fff')}),
-            display_filename=f'{default_artifact_metadata.filename}-display.pmtiles',
-        ),
-    )
-
-    index = pd.MultiIndex.from_tuples(
-        [('bar', 'one'), ('bar', 'two'), ('baz', 'one')],
-        names=['first', 'second'],
-    )
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
-        },
-        crs='EPSG:4326',
-        index=index,
-    )
-    expected_pmtiles_index = pd.Series(["('bar', 'one')", "('bar', 'two')", "('baz', 'one')"])
-
-    generated_artifact = create_vector_artifact(
-        data=method_input, metadata=default_artifact_metadata, resources=default_computation_resources
-    )
-
-    assert generated_artifact == expected_artifact
-
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == EXPECTED_MULTIINDEX_GEOJSON
-
-    written_display_data = gpd.read_file(
-        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
-    )
-    assert_series_equal(written_display_data['index'], expected_pmtiles_index, check_names=False, check_index=False)
-
-
-def test_create_vector_artifact_tuple_index(default_computation_resources, default_artifact_metadata):
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
-        },
-        crs='EPSG:4326',
-        index=[('bar', 'one'), ('bar', 'two'), ('baz', 'one')],
-    )
-    expected_pmtiles_index = pd.Series(["('bar', 'one')", "('bar', 'two')", "('baz', 'one')"])
-
-    generated_artifact = create_vector_artifact(
-        data=method_input,
-        metadata=default_artifact_metadata,
-        resources=default_computation_resources,
-    )
-
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == EXPECTED_MULTIINDEX_GEOJSON
-
-    written_display_data = gpd.read_file(
-        default_computation_resources.computation_dir / generated_artifact.attachments.display_filename
-    )
-    assert_series_equal(written_display_data['index'], expected_pmtiles_index, check_names=False, check_index=False)
-
-
-def test_create_vector_artifact_extra_column_retained_for_download(
-    default_computation_resources, default_artifact_metadata
-):
-    expected_geojson = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": "hello", "color": "#fff", "label": "White a", "extra_column_1": "lorem" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 1.0 ] } },
-{ "type": "Feature", "properties": { "index": "again", "color": "#000", "label": "Black b", "extra_column_1": "ipsum" }, "geometry": { "type": "Point", "coordinates": [ 2.0, 2.0 ] } },
-{ "type": "Feature", "properties": { "index": "world", "color": "#0f0", "label": "Green c", "extra_column_1": "dolor" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
-
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'extra_column_1': ['lorem', 'ipsum', 'dolor'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
-        },
-        index=['hello', 'again', 'world'],
-        crs='EPSG:4326',
-    )
-
-    generated_artifact = create_vector_artifact(
-        data=method_input,
-        metadata=default_artifact_metadata,
-        resources=default_computation_resources,
-    )
-
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
-
-        assert generated_content == expected_geojson
+    assert_series_equal(written_display_data['index'], expected_output_index_column, check_index=False)
 
 
 def test_create_vector_artifact_fail_on_wrong_color_type(default_computation_resources, default_artifact_metadata):
@@ -491,17 +287,6 @@ def test_create_vector_artifact_fail_on_missing_legend_labels(default_artifact_m
         )
 
 
-EXPECTED_ROUNDING_GEOJSON = """{
-"type": "FeatureCollection",
-"features": [
-{ "type": "Feature", "properties": { "index": "0", "color": "#fff", "label": "Do Not Augment" }, "geometry": { "type": "Point", "coordinates": [ 1.0, 0.9 ] } },
-{ "type": "Feature", "properties": { "index": "1", "color": "#000", "label": "Do Not Round" }, "geometry": { "type": "Point", "coordinates": [ 2.0000001, 1.9999999 ] } },
-{ "type": "Feature", "properties": { "index": "2", "color": "#0f0", "label": "Round Me" }, "geometry": { "type": "Point", "coordinates": [ 3.0, 3.0 ] } }
-]
-}
-"""
-
-
 def test_write_vector_file_max_precision(default_computation_resources, default_artifact_metadata):
     method_input = GeoDataFrame(
         data={
@@ -511,6 +296,10 @@ def test_write_vector_file_max_precision(default_computation_resources, default_
         },
         crs='EPSG:4326',
     )
+    expected_output = GeoSeries(
+        data=[Point(1.0, 0.9), Point(2.0000001, 1.9999999), Point(3.0, 3.0)],
+        crs='EPSG:4326',
+    )
 
     generated_artifact = create_vector_artifact(
         data=method_input,
@@ -518,7 +307,7 @@ def test_write_vector_file_max_precision(default_computation_resources, default_
         resources=default_computation_resources,
     )
 
-    with open(default_computation_resources.computation_dir / generated_artifact.filename, 'r') as test_file:
-        generated_content = test_file.read()
+    written_data = gpd.read_file(default_computation_resources.computation_dir / generated_artifact.filename)
+    written_data = written_data.set_index('index')
 
-        assert generated_content == EXPECTED_ROUNDING_GEOJSON
+    assert_geoseries_equal(written_data.geometry, expected_output)

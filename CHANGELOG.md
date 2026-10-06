@@ -7,6 +7,10 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.1...main)
 
+### Changed
+
+- vector artifacts now store GeoPackage instead of GeoJSON files for download
+
 ## [7.4.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.1) - 2026-09-07
 
 ### Fixed

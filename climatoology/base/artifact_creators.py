@@ -8,7 +8,7 @@ import rasterio
 import shapely
 from geopandas import GeoDataFrame
 from numpy.ma import MaskedArray
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame
 from PIL.Image import Image
 from plotly import express as px
 from plotly.graph_objs import Figure
@@ -263,30 +263,34 @@ def create_vector_artifact(
     """
     data = data.copy(deep=True)
 
-    file_path = resources.computation_dir / f'{metadata.filename}.geojson'
+    file_path = resources.computation_dir / f'{metadata.filename}.gpkg'
     display_file_path = resources.computation_dir / f'{metadata.filename}{DISPLAY_FILENAME_SUFFIX}.pmtiles'
 
     check_vector_data(
         input_data=data, color_column_name=color, label_column_name=label, legend=legend, output_file_path=file_path
     )
 
-    data, legend = transform_vector_data(
-        input_data=data, color_column_name=color, label_column_name=label, legend=legend
-    )
+    data = transform_vector_data(input_data=data, color_column_name=color)
 
     log.debug(f'Writing download vector dataset {file_path}.')
     data.to_file(
         file_path,
+        layer=metadata.name,
         index=True,
-        driver='GeoJSON',
+        driver='GPKG',
         engine='pyogrio',
-        layer_options={'SIGNIFICANT_FIGURES': 7, 'RFC7946': 'YES', 'WRITE_NAME': 'NO'},
+        metadata={'License': 'CC-BY-SA HeiGIT gGmbH'},
         use_arrow=True,
     )
+
+    data = transform_vector_display_data(input_data=data, color_column_name=color, label_column_name=label)
 
     create_vector_display_file(
         data=data, display_file_path=display_file_path, metadata=metadata, pmtiles_lco=pmtiles_lco
     )
+
+    if not legend:
+        legend = create_vector_legend(input_data=data)
 
     result = Artifact(
         **metadata.model_dump(exclude=ARTIFACT_OVERWRITE_FIELDS),
@@ -312,11 +316,9 @@ def create_vector_display_file(
     lco.update(pmtiles_lco or {})
     dsco = deepcopy(lco)
     dsco['TYPE'] = 'overlay'
-    display_cols = ['color', 'label', data.active_geometry_name]
-    display_data = data[display_cols]
 
     log.debug(f'Writing display vector dataset {display_file_path}.')
-    display_data.to_file(
+    data.to_file(
         display_file_path,
         driver='PMTiles',
         engine='pyogrio',
@@ -326,28 +328,33 @@ def create_vector_display_file(
     )
 
 
-def transform_vector_data(
-    input_data: GeoDataFrame, color_column_name: str, label_column_name: str, legend: Legend | None
-) -> tuple[GeoDataFrame, Legend | None]:
+def transform_vector_data(input_data: GeoDataFrame, color_column_name: str) -> GeoDataFrame:
     input_data[color_column_name] = input_data[color_column_name].apply(lambda color_value: color_value.as_hex())
-    input_data = input_data.rename(columns={color_column_name: 'color', label_column_name: 'label'})
-
-    if not legend:
-        legend_df = input_data.groupby(['color', 'label']).size().index.to_frame(index=False)
-        legend_df = legend_df.set_index('label')
-        legend_data = legend_df.to_dict()['color']
-        legend = Legend(legend_data=legend_data)
-
-    if isinstance(input_data.index, MultiIndex):
-        input_data.index = input_data.index.to_flat_index()
-    if (input_data.index.name and input_data.index.name != 'index') or not input_data.index.is_unique:
-        input_data = input_data.reset_index(names=input_data.index.name or 'index_0')
-    input_data.index = input_data.index.astype(str)
-
-    input_data = input_data.to_crs(4326)
     input_data.geometry = shapely.set_precision(input_data.geometry, grid_size=0.0000001)
 
-    return input_data, legend
+    return input_data
+
+
+def transform_vector_display_data(
+    input_data: GeoDataFrame, color_column_name: str, label_column_name: str
+) -> GeoDataFrame:
+    input_data = input_data.rename(columns={color_column_name: 'color', label_column_name: 'label'})
+
+    input_data = input_data.reset_index()
+    input_data.index = input_data.index.astype(str)
+
+    display_cols = ['color', 'label', input_data.active_geometry_name]
+    display_data = input_data[display_cols]
+
+    return display_data
+
+
+def create_vector_legend(input_data: GeoDataFrame) -> Legend:
+    legend_df = input_data.groupby(['color', 'label']).size().index.to_frame(index=False)
+    legend_df = legend_df.set_index('label')
+    legend_data = legend_df.to_dict()['color']
+    legend = Legend(legend_data=legend_data)
+    return legend
 
 
 def check_vector_data(
