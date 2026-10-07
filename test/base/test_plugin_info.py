@@ -168,6 +168,38 @@ def test_sources_are_optional(default_input_model):
     assert info.assets.sources_library == dict()
 
 
+def test_uppercase_sources_keys(default_input_model):
+    """Keys in the .bib file are case-insesitive"""
+    info = PluginInfo(
+        name='Test Plugin',
+        icon=FIXTURE_RESOURCES_DIR / 'test_icon.png',
+        authors=[
+            PluginAuthor(
+                name='John Doe',
+                affiliation='HeiGIT gGmbH',
+                website=HttpUrl('https://heigit.org/heigit-team/'),
+            )
+        ],
+        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        teaser='Test teaser that is meant to do nothing.',
+        purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
+        methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
+        demo_input_parameters=default_input_model,
+        sources_library=TEST_RESOURCES_DIR / 'cased.bib',
+    )
+    assert info.assets.sources_library == {
+        'CitekeyMisc': MiscSource(
+            ID='CitekeyMisc',
+            title="Pluto: The 'Other' Red Planet",
+            author='{NASA}',
+            year='2015',
+            note='Accessed: 2018-12-06',
+            ENTRYTYPE='misc',
+            url='https://www.nasa.gov/nh/pluto-the-other-red-planet',
+        )
+    }
+
+
 def test_filter_sources_with_invalid_key():
     test_sources_library = {}
     invalid_source_key = {'test_source'}
