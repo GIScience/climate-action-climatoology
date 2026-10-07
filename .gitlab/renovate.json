@@ -6,6 +6,7 @@
   "lockFileMaintenance": {
     "enabled": true
   },
+  "rangeStrategy": "replace",
   "packageRules": [
     {
       "matchUpdateTypes": [
@@ -32,7 +33,7 @@
         "major",
         "minor"
       ],
-      "minimumReleaseAge": "12 months"
+      "minimumReleaseAge": "6 months"
     }
   ]
 }
