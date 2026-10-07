@@ -5,14 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.1...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.2...main)
+
+## [7.4.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.2) - 2026-10-07
 
 ### Changed
 
 - vector artifacts now store GeoPackage instead of GeoJSON files for download
   ([#251](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/251))
 
-### Added
+### Fixed
 
 - S3 presigned URLs now set a response-`ContentDisposion`-headere to the browser to influence download behaviour
   ([#282](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/282))
