@@ -37,12 +37,18 @@ def test_s3_save_display_file(mocked_object_store, general_uuid, default_artifac
         assert fetched_file.read_text() == 'A default artifact alternative meant for display only.'
 
 
-def test_s3_save_content_type(mocked_object_store, default_artifact_enriched, mocker):
+def test_s3_save_headers(mocked_object_store, default_artifact_enriched, mocker):
     save_info_spy = mocker.spy(mocked_object_store.client, 'upload_file')
     mocked_object_store.save(default_artifact_enriched, file_dir=TEST_RESOURCES_DIR)
 
     save_info_spy.assert_called_once_with(
-        Bucket=ANY, ExtraArgs={'ContentType': 'text/markdown', 'Metadata': ANY}, Filename=ANY, Key=ANY
+        Bucket=ANY,
+        ExtraArgs={
+            'ContentType': 'text/markdown',
+            'Metadata': ANY,
+        },
+        Filename=ANY,
+        Key=ANY,
     )
 
 
@@ -63,6 +69,7 @@ def test_s3_get_artifact_url(mocked_object_store, general_uuid, default_artifact
     assert url == f'https://test.host:1234/s3_test_bucket/{general_uuid}/test_artifact_file.md'
     assert 'X-Amz-Signature=' in params
     assert 'X-Amz-Expires=3600' in params
+    assert 'response-content-disposition=attachment' in params
 
 
 def test_get_icon_url(mocked_object_store):

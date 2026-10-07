@@ -10,6 +10,12 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Changed
 
 - vector artifacts now store GeoPackage instead of GeoJSON files for download
+  ([#251](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/251))
+
+### Added
+
+- S3 presigned URLs now set a response-`ContentDisposion`-headere to the browser to influence download behaviour
+  ([#282](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/282))
 
 ## [7.4.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.1) - 2026-09-07
 

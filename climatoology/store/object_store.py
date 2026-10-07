@@ -149,17 +149,14 @@ class S3Storage(Storage):
         log.debug(f'Save artifact {artifact.correlation_uuid}: {artifact.name} from {file_dir}/{artifact.filename}')
 
         object_name = Storage.generate_object_name(artifact.correlation_uuid, store_id=artifact.filename)
-        content_type = mimetypes.guess_type(artifact.filename)[0] or 'application/octet-stream'
-        object_type = (
-            DataGroup.METADATA.value if artifact.modality == ArtifactModality.COMPUTATION_INFO else DataGroup.DATA.value
-        )
-        metadata = {'Type': object_type}
+
+        extra_args = construct_extra_args(artifact.filename, artifact.modality)
 
         self.client.upload_file(
             Bucket=self.__bucket,
             Key=object_name,
             Filename=str(file_dir / artifact.filename),
-            ExtraArgs={'Metadata': metadata, 'ContentType': content_type},
+            ExtraArgs=extra_args,
         )
         store_ids = [artifact.filename]
 
@@ -167,14 +164,14 @@ class S3Storage(Storage):
             display_object_name = Storage.generate_object_name(
                 artifact.correlation_uuid, store_id=artifact.attachments.display_filename
             )
-            display_content_type = (
-                mimetypes.guess_type(artifact.attachments.display_filename)[0] or 'application/octet-stream'
-            )
+
+            extra_args = construct_extra_args(artifact.attachments.display_filename, artifact.modality)
+
             self.client.upload_file(
                 Bucket=self.__bucket,
                 Key=display_object_name,
                 Filename=str(file_dir / artifact.attachments.display_filename),
-                ExtraArgs={'Metadata': metadata, 'ContentType': display_content_type},
+                ExtraArgs=extra_args,
             )
             store_ids.append(artifact.attachments.display_filename)
 
@@ -229,7 +226,11 @@ class S3Storage(Storage):
         try:
             url = self.client.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': self.__bucket, 'Key': object_name},
+                Params={
+                    'Bucket': self.__bucket,
+                    'Key': object_name,
+                    'ResponseContentDisposition': 'attachment',
+                },
                 ExpiresIn=int(expires.total_seconds()),
             )
         except ClientError as e:
@@ -260,3 +261,19 @@ class S3Storage(Storage):
             ContentType=content_type,
         )
         return object_name
+
+
+def construct_extra_args(filename: str, modality: ArtifactModality) -> dict[str, str | dict[str, str]]:
+    match modality:
+        case ArtifactModality.COMPUTATION_INFO:
+            object_type = DataGroup.METADATA.value
+        case _:
+            object_type = DataGroup.DATA.value
+    metadata = {'Metadata': {'Type': object_type}}
+
+    content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    headers = {'ContentType': content_type}
+
+    extra_args = headers | metadata
+
+    return extra_args
