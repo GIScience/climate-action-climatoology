@@ -12,6 +12,7 @@ from typing import Annotated, Any, List, Literal, Optional, Set, Union
 import bibtexparser
 import geojson_pydantic
 import pycountry
+from bibtexparser.middlewares import NormalizeFieldKeys
 from PIL import Image
 from pydantic import (
     BaseModel,
@@ -496,7 +497,7 @@ def _convert_icon_to_thumbnail(icon: Path) -> BytesIO:
 def _convert_bib(sources: Optional[Path] = None) -> dict[str, dict[str, str]]:
     if sources is None:
         return dict()
-    library = bibtexparser.parse_file(str(sources))
+    library = bibtexparser.parse_file(str(sources), append_middleware=[NormalizeFieldKeys()])
     entries_dict = {entry['ID']: dict(entry) for entry in library.entries}
     return entries_dict
 
