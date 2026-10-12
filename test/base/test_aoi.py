@@ -48,7 +48,11 @@ def test_aoi_constraint_covered_by_polygon_or_multipolygon():
 
 
 def test_covered_by_geom_default_description():
-    cbgc = CoveredByGeomConstraint(geom=geojson_pydantic.Polygon.from_bounds(-2, -2, 2, 2))
+    with pytest.warns(
+        UserWarning,
+        match='It is highly recommended to provide a description with CoveredByGeomConstraint instead of relying on the default',
+    ):
+        cbgc = CoveredByGeomConstraint(geom=geojson_pydantic.Polygon.from_bounds(-2, -2, 2, 2))
 
     assert cbgc.description == 'An area within coordinates (-2.0, -2.0, 2.0, 2.0)'
 
@@ -64,7 +68,7 @@ def test_plugin_info_from_dict_correctly_sets_aoi_constraints(default_plugin_inf
     geom_constraint = geojson_pydantic.Polygon.from_bounds(-2, -2, 2, 2)
     test_aoi_constraints = [
         AreaConstraint(min_area=10),
-        CoveredByGeomConstraint(geom=geom_constraint),
+        CoveredByGeomConstraint(geom=geom_constraint, description='Test CoveredByGeomConstraint'),
         CoveredByBoundaryConstraint(osm_ids=[-123]),
     ]
     info.aoi_constraints = [test_aoi_constraints]
