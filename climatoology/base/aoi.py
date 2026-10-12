@@ -98,7 +98,7 @@ class AreaConstraint(AoiBaseConstraint):
 class CoveredByGeomConstraint(AoiBaseConstraint):
     constraint_type: Literal['CoveredByGeomConstraint'] = 'CoveredByGeomConstraint'
     description: Annotated[
-        str,
+        Optional[str],
         StringConstraints(min_length=4, max_length=150, pattern='^[A-Z].*'),
         Field(
             description="A short description of the plugin's valid region."
