@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.2...main)
 
+### Fixed
+
+- the user agent for the S3 fixtures is now correctly set to prevent warnings
+  ([#332](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/332))
+
 ## [7.4.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.2) - 2026-10-07
 
 ### Changed

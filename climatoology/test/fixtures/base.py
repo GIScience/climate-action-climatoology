@@ -18,6 +18,7 @@ def set_basic_envs(monkeypatch):
     monkeypatch.setenv('s3_access_key', 's3_test_key')
     monkeypatch.setenv('s3_secret_key', 's3_test_secret')
     monkeypatch.setenv('s3_bucket', 's3_test_bucket')
+    monkeypatch.setenv('s3_user_agent', 's3_test_user_agent')
 
     monkeypatch.setenv('rabbitmq_host', 'test.host')
     monkeypatch.setenv('rabbitmq_port', '1234')
@@ -63,5 +64,6 @@ def mocked_object_store(default_settings, monkeypatch) -> Generator[S3Storage]:
             secret_key=default_settings.s3_secret_key,
             secure=True,
             bucket=default_settings.s3_bucket,
+            user_agent=default_settings.s3_user_agent,
         )
         yield s3_storage
