@@ -68,6 +68,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery |
         'The plugin version comparison failed.'
     )
 
+    s3_user_agent = settings.s3_user_agent or f'{operator.info_enriched.id}-plugin'
     storage = S3Storage(
         host=settings.s3_host,
         port=settings.s3_port,
@@ -75,7 +76,7 @@ def _create_plugin(operator: BaseOperator, settings: CABaseSettings) -> Celery |
         secret_key=settings.s3_secret_key,
         bucket=settings.s3_bucket,
         secure=settings.s3_secure,
-        user_agent=settings.s3_user_agent,
+        user_agent=s3_user_agent,
     )
 
     _ = synch_info(info=operator.info_enriched, db=backend_database, storage=storage)

@@ -5,11 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.2...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.3...main)
+
+## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 
 ### Fixed
 
-- the user agent for the S3 fixtures is now correctly set to prevent warnings
+- the user agent for the S3 can now be set and has a reasonable default, also in the test-fixtures, to prevent warnings
   ([#332](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/332))
 
 ## [7.4.2](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.2) - 2026-10-07
