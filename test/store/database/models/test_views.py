@@ -254,7 +254,7 @@ def test_usage_view_first_plugin_day_division_by_zero(
         'plugin_id': 'test_plugin',
         'no_of_requested_computations': 1,
         'avg_computations_per_day': 1.0,
-        'since': datetime.now(UTC).date(),
+        'since': datetime.now(tz=UTC).date(),
     }
 
     default_backend_db.write_info(info=default_plugin_info_final)

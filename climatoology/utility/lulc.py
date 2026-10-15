@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from enum import Enum
 from io import BytesIO
 from typing import Dict, Generator, List, Optional, Tuple
@@ -120,7 +120,7 @@ class LulcWorkUnit(RasterWorkUnit):
         'In case `fusion_mode` has been declared to value different than `only_model`'
         'the `end_date` will also be used to acquire OSM data',
         examples=['2023-06-01'],
-        default=datetime.now(timezone.utc).date(),
+        default=datetime.now(tz=UTC).date(),
     )
     threshold: float = Field(
         title='Threshold',

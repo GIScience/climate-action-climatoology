@@ -1,7 +1,7 @@
 import json
 import sys
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import NoReturn, Optional
 from uuid import UUID
@@ -231,7 +231,8 @@ def run_standalone_computation(
         aoi_properties = aoi_feature.properties
 
     if output_dir is None:
-        output_dir = Path(f'results/{datetime.now()}-{aoi_properties.name}-{computation_id}')
+        local_now = datetime.now(tz=UTC).astimezone()
+        output_dir = Path(f'results/{local_now}-{aoi_properties.name}-{computation_id}')
     output_dir.mkdir(parents=True)
 
     computation_info = run_standalone(

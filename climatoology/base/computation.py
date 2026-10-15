@@ -1,7 +1,7 @@
 import shutil
 import tempfile
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, List, Optional
@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 from semver import Version
 
-from climatoology.base import PydanticSemver
+from climatoology.base import PydanticSemver, UtcDateTime
 from climatoology.base.aoi import (
     AoiFeatureModel,
     AoiProperties,  # noqa: F401 (to continue supporting importing from this file, where it was originally defined)
@@ -82,8 +82,8 @@ class ComputationInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     correlation_uuid: UUID = Field(description='The unique identifier of the computation.', examples=[uuid.uuid4()])
-    request_ts: datetime = Field(
-        description='The timestamp at which the computation was requested.', examples=[datetime.now()]
+    request_ts: UtcDateTime = Field(
+        description='The timestamp at which the computation was requested.', examples=[datetime.now(tz=UTC)]
     )
     deduplication_key: UUID = Field(
         description='A key identifying unique contributions in terms of content. It is a combination of multiple '
@@ -102,7 +102,9 @@ class ComputationInfo(BaseModel):
         'valid. It can be used in combination with the `deduplication_key` to deduplicate non-expired computations. ',
         examples=[1234],
     )
-    valid_until: datetime = Field(description='The human readable form of the `cache_epoch`', examples=[datetime.now()])
+    valid_until: UtcDateTime = Field(
+        description='The human readable form of the `cache_epoch`', examples=[datetime.now(tz=UTC)]
+    )
     params: Optional[dict] = Field(
         description='The final parameters used for the computation.',
         examples=[{'param_a': 1, 'optional_param_b': 'b'}],

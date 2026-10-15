@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.4.3...main)
 
+### Changed
+
+- all internal timestamps are now aware (and still UTC)
+  ([#315](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/315))
+
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 
 ### Fixed

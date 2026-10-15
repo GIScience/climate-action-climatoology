@@ -168,7 +168,7 @@ class BackendDatabase:
         is_demo: bool = False,
     ) -> UUID:
         with Session(self.engine) as session:
-            request_ts = datetime.now(UTC).replace(tzinfo=None)
+            request_ts = datetime.now(tz=UTC)
             if computation_shelf_life is None:  # cache forever
                 cache_epoch = 0
                 valid_until = datetime.max
@@ -176,7 +176,7 @@ class BackendDatabase:
                 cache_epoch = None
                 valid_until = request_ts
             else:
-                unix_time_zero = datetime.fromtimestamp(0, tz=UTC).replace(tzinfo=None)
+                unix_time_zero = datetime.fromtimestamp(0, tz=UTC)
                 cache_epoch = (request_ts - unix_time_zero) // computation_shelf_life
                 valid_until = unix_time_zero + (cache_epoch + 1) * computation_shelf_life
 
@@ -301,7 +301,7 @@ class BackendDatabase:
             session.commit()
 
     def update_failed_computation(self, correlation_uuid: UUID, failure_message: Optional[str], cache: bool) -> None:
-        timestamp = datetime.now(UTC).replace(tzinfo=None)
+        timestamp = datetime.now(tz=UTC)
         computation_update_stmt = (
             update(ComputationTable)
             .where(ComputationTable.correlation_uuid == correlation_uuid)

@@ -1,6 +1,7 @@
-from typing import Any, TypeVar
+from datetime import UTC
+from typing import Annotated, Any, TypeVar
 
-from pydantic import BaseModel, GetCoreSchemaHandler, GetJsonSchemaHandler
+from pydantic import AfterValidator, AwareDatetime, BaseModel, GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 from semver import Version
@@ -42,3 +43,10 @@ class PydanticSemver(Version):
         cls, _core_schema: core_schema.CoreSchema, handler: GetJsonSchemaHandler
     ) -> JsonSchemaValue:
         return handler(core_schema.str_schema())
+
+
+def to_utc(value: AwareDatetime) -> AwareDatetime:
+    return value.astimezone(tz=UTC)
+
+
+type UtcDateTime = Annotated[AwareDatetime, AfterValidator(to_utc)]

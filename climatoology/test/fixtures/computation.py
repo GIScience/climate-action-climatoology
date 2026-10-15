@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Generator
 
 import pytest
@@ -29,10 +29,10 @@ def default_computation_info(
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid,
-        request_ts=datetime(2018, 1, 1, 12),
+        request_ts=datetime(2018, 1, 1, 12, tzinfo=UTC),
         deduplication_key=uuid.UUID('412bef28-577e-2aa1-5163-77ec18d1acc6'),
         cache_epoch=17532,
-        valid_until=datetime(2018, 1, 2),
+        valid_until=datetime(2018, 1, 2, tzinfo=UTC),
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0, 'option': 'OPT1', 'mapping': {'key': 'value'}},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,
@@ -51,11 +51,11 @@ def default_computation_info_de(
 ) -> ComputationInfo:
     return ComputationInfo(
         correlation_uuid=general_uuid_de,
-        request_ts=datetime(2018, 1, 1, 12),
+        request_ts=datetime(2018, 1, 1, 12, tzinfo=UTC),
         language=LanguageAlpha2('de'),
         deduplication_key=uuid.UUID('c7e7c6e5-af43-9ca3-e02d-de41280fcd0b'),
         cache_epoch=17532,
-        valid_until=datetime(2018, 1, 2),
+        valid_until=datetime(2018, 1, 2, tzinfo=UTC),
         params={'id': 1, 'name': 'John Doe', 'execution_time': 0.0, 'option': 'OPT1', 'mapping': {'key': 'value'}},
         requested_params={'id': 1},
         aoi=default_aoi_feature_geojson_pydantic,

@@ -1,6 +1,6 @@
 import re
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import List
 from unittest.mock import ANY, patch
@@ -59,7 +59,7 @@ def test_run_standalone_computation(
         expected_computation_info.requested_params = ANY
         expected_computation_info.deduplication_key = ANY
         expected_computation_info.cache_epoch = None
-        expected_computation_info.valid_until = datetime.now()
+        expected_computation_info.valid_until = datetime.now(tz=UTC)
 
         computation_info = run_standalone_computation(
             operator=default_operator,

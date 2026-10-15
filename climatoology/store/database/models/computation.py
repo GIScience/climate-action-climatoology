@@ -7,7 +7,7 @@ from pydantic_extra_types.language_code import LanguageAlpha2
 from sqlalchemy import JSON, Computed, ForeignKey, String, UniqueConstraint, asc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from climatoology.store.database.models import DbGeometry, DbUuidAsString
+from climatoology.store.database.models import DbGeometry, DbUtcDateTime, DbUuidAsString
 from climatoology.store.database.models.artifact import ArtifactTable
 from climatoology.store.database.models.base import CLIMATOOLOGY_SCHEMA_NAME, ClimatoologyTableBase
 from climatoology.store.database.models.plugin_info import PluginInfoTable
@@ -34,7 +34,7 @@ class ComputationTable(ClimatoologyTableBase):
     )
     language: Mapped[LanguageAlpha2] = mapped_column(String(2))
     cache_epoch: Mapped[Optional[int]]
-    valid_until: Mapped[datetime] = mapped_column(index=True)
+    valid_until: Mapped[datetime] = mapped_column(DbUtcDateTime, index=True)
     params: Mapped[Optional[dict]] = mapped_column(JSON)
     requested_params: Mapped[dict] = mapped_column(JSON)
     aoi_geom: Mapped[shapely.MultiPolygon] = mapped_column(DbGeometry('MultiPolygon', srid=4326))
@@ -53,7 +53,7 @@ class ComputationLookupTable(ClimatoologyTableBase):
     __table_args__ = {'schema': CLIMATOOLOGY_SCHEMA_NAME}
 
     user_correlation_uuid: Mapped[UUID] = mapped_column(primary_key=True)
-    request_ts: Mapped[datetime]
+    request_ts: Mapped[datetime] = mapped_column(DbUtcDateTime)
     aoi_name: Mapped[str]
     aoi_id: Mapped[str]
     aoi_properties: Mapped[Optional[dict]] = mapped_column(JSON)

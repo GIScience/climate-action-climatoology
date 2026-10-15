@@ -1,7 +1,7 @@
 import sys
 import tempfile
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -160,11 +160,11 @@ def run_standalone(
     )
     computation_info = StandAloneComputationInfo(
         correlation_uuid=computation_id,
-        request_ts=datetime.now(),
+        request_ts=datetime.now(tz=UTC),
         deduplication_key=uuid.uuid4(),
         cache_epoch=None,
         language=language,
-        valid_until=datetime.now(),
+        valid_until=datetime.now(tz=UTC),
         params=validated_params.model_dump(mode='json'),
         requested_params=params.model_dump(mode='json'),
         aoi=aoi_feature,

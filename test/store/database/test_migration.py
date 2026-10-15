@@ -1,5 +1,5 @@
 import subprocess
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 import shapely
@@ -125,7 +125,7 @@ def test_database_migrations_non_breaking(alembic_runner, alembic_engine):
     )
     computation_item = {
         'correlation_uuid': computation_uuid,
-        'valid_until': datetime.now(),
+        'valid_until': datetime.now(tz=UTC),
         'requested_params': {},
         'aoi_geom': aoi_geom,
         'plugin_key': 'plugin_v7-1.2.3-en',  # the plugin_key changed since v7.0.0 to include language and use `-` instead of `;` as a separator, but this is a computed field, so it is non-breaking
@@ -134,7 +134,7 @@ def test_database_migrations_non_breaking(alembic_runner, alembic_engine):
     }
     computation_lookup_item = {
         'user_correlation_uuid': computation_uuid,
-        'request_ts': datetime.now(),
+        'request_ts': datetime.now(tz=UTC),
         'aoi_name': 'Test AOI',
         'aoi_id': '123',
         'is_demo': False,
