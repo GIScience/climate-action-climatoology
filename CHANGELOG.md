@@ -11,6 +11,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 - all internal timestamps are now aware (and still UTC)
   ([#315](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/315))
+- **breaking** pandas >=3.0.0 is now required (previously >=2.0.0 was allowed)
+  ([#335](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/335))
 
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 

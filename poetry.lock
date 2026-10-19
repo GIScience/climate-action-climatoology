@@ -4227,4 +4227,4 @@ fixtures = ["freezegun", "moto", "pytest", "pytest-alembic", "pytest-mock", "pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<3.14"
-content-hash = "15c50fb524123e1b95969c16f6f2c5031a96d8e87be7848bde5a95987e42fe44"
+content-hash = "816d01933583c4bdf71e0a248fe5afaf4d1b2bbed0a5a738ab04c4b227403a89"
