@@ -13,6 +13,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   ([#315](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/315))
 - **breaking** pandas >=3.0.0 is now required (previously >=2.0.0 was allowed)
   ([#335](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/335))
+- all printing to stdout and stderr is removed and logging is improved
+  ([#336](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/336))
 
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 

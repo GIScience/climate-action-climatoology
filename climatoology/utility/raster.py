@@ -1,5 +1,4 @@
 import math
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from typing import Annotated, Callable, Generator, List, Optional, Union
 
@@ -13,8 +12,6 @@ from rasterio.features import geometry_mask
 from rasterio.merge import merge
 from sentinelhub import CRS, BBox, BBoxSplitter, bbox_to_dimensions, get_utm_crs
 from shapely import MultiPolygon, Polygon, geometry
-from tqdm import tqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 
 from climatoology.base.logging import get_climatoology_logger
 
@@ -48,61 +45,55 @@ def compute_raster(
     units: List[RasterWorkUnit],
     fetch_data: Callable[[RasterWorkUnit], rasterio.DatasetReader],
     has_color_map: bool,
-    max_workers: int,
 ) -> Generator[rasterio.DatasetReader]:
     """Generate an in-memory, masked raster dataset as a mosaic of applying the fetch_data function to the units.
 
     :param units: Areas of interest
     :param fetch_data: A user defined function to fetch data using each of the supplied AOI units
     :param has_color_map: Does the output have a colormap that should be retained
-    :param max_workers: How many workers should be used to fetch data simultaneously
     :return: An opened geo-tiff file within a generator. Use it as `with compute_raster(units) as my_raster_data:`
     """
     assert len(units) > 0
 
-    with logging_redirect_tqdm():
-        with tqdm(total=len(units)) as pbar:
-            slices = []
+    log.debug(f'Computing {len(units)} units')
+    slices = []
+    for i, unit in enumerate(units, start=1):
+        log.debug(f'Collecting raster for unit {i}/{len(units)}')
+        dataset = fetch_data(unit)
+        slices.append(dataset)
 
-            with ThreadPoolExecutor(max_workers) as pool:
-                for dataset in pool.map(fetch_data, units):
-                    pbar.update()
-                    pbar.set_description(f'Collecting rasters: {dataset.shape}')
-                    slices.append(dataset)
+    log.debug(f'Merging {len(slices)} raster slices')
+    mosaic, transform = merge(slices, masked=True)
+    mosaic_width, mosaic_height = mosaic.shape[1:3]
+    mask = geometry_mask(
+        [unit.aoi for unit in units], (mosaic_width, mosaic_height), transform=transform, all_touched=True
+    )
+    mosaic.mask = mask
 
-                pbar.set_description(f'Merging {len(slices)} slices')
+    if has_color_map:
+        first_colormap = slices[0].colormap(1)
 
-                mosaic, transform = merge(slices, masked=True)
-                mosaic_width, mosaic_height = mosaic.shape[1:3]
-                mask = geometry_mask(
-                    [unit.aoi for unit in units], (mosaic_width, mosaic_height), transform=transform, all_touched=True
-                )
-                mosaic.mask = mask
+    with rasterio.MemoryFile() as memfile:
+        log.debug('Creating raster file')
 
-                if has_color_map:
-                    first_colormap = slices[0].colormap(1)
+        write_profile = slices[0].profile
+        write_profile['transform'] = transform
+        write_profile['height'] = mosaic.shape[1]
+        write_profile['width'] = mosaic.shape[2]
 
-            with rasterio.MemoryFile() as memfile:
-                log.debug('Creating raster file')
+        with memfile.open(**write_profile) as m:
+            log.debug(f'Writing coplete mosaic of size {mosaic.shape}')
 
-                write_profile = slices[0].profile
-                write_profile['transform'] = transform
-                write_profile['height'] = mosaic.shape[1]
-                write_profile['width'] = mosaic.shape[2]
+            if has_color_map:
+                m.write_colormap(1, first_colormap)
+            m.write(mosaic)
 
-                with memfile.open(**write_profile) as m:
-                    pbar.set_description(f'Writing mosaic {mosaic.shape}')
+            del mosaic
+            del slices
 
-                    if has_color_map:
-                        m.write_colormap(1, first_colormap)
-                    m.write(mosaic)
-
-                    del mosaic
-                    del slices
-
-                with memfile.open() as dataset:
-                    log.debug('Serving raster file')
-                    yield dataset
+        with memfile.open() as dataset:
+            log.debug('Serving raster file')
+            yield dataset
 
 
 def _make_bound_dimensions_valid(bounds: BBox, resolution: float) -> BBox:

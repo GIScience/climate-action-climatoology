@@ -55,7 +55,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
         :param base_url: The base URL of the Naturalness API, including any path it may be deployed under
             (e.g. https://staging.climate-action.org/api/v1/naturalness).
-        :param max_workers: maximum number of threads to spawn for parallel requests
+        :param max_workers: maximum number of threads to spawn for parallel requests, currently unused
         :param max_retries: number of retires before giving up during connection startup
         """
         super().__init__(base_url=base_url, max_retries=max_retries)
@@ -81,9 +81,7 @@ class NaturalnessUtility(PlatformHttpUtility):
 
         fetch_raster = partial(self.__fetch_raster_data, index)
 
-        with compute_raster(
-            units=units, max_workers=self.max_workers, fetch_data=fetch_raster, has_color_map=False
-        ) as naturalness:
+        with compute_raster(units=units, fetch_data=fetch_raster, has_color_map=False) as naturalness:
             yield naturalness
 
     def compute_vector(

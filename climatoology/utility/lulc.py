@@ -158,14 +158,14 @@ class LulcUtility(PlatformHttpUtility):
     def __init__(
         self,
         base_url: str,
-        max_workers: int = 2,
+        max_workers: int = 1,
         max_retries: int = 5,
     ):
         """A wrapper class around the LULC Utility API.
 
         :param base_url: The base URL of the LULC API, including any path it may be deployed under
             (e.g. https://staging.climate-action.org/api/v1/lulc).
-        :param max_workers: maximum number of threads to spawn for parallel requests
+        :param max_workers: maximum number of threads to spawn for parallel requests, currently unused
         :param max_retries: number of retires before giving up during connection startup
         """
         super().__init__(base_url=base_url, max_retries=max_retries)
@@ -205,9 +205,7 @@ class LulcUtility(PlatformHttpUtility):
           The file provides a mask outside the area of interest.
         """
         units = LulcUtility.adjust_work_units(units, max_unit_size=max_unit_size, max_unit_area=max_unit_area)
-        with compute_raster(
-            units, max_workers=self.max_workers, fetch_data=self.__fetch_data, has_color_map=True
-        ) as lulc:
+        with compute_raster(units, fetch_data=self.__fetch_data, has_color_map=True) as lulc:
             yield lulc
 
     def get_class_legend(self) -> LabelResponse:

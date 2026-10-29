@@ -135,7 +135,7 @@ def test_compute_raster_masks_output():
         def fetch_data(unit: RasterWorkUnit) -> rasterio.DatasetReader:
             return memfile.open()
 
-        with compute_raster(units=[test_unit], fetch_data=fetch_data, has_color_map=False, max_workers=1) as raster:
+        with compute_raster(units=[test_unit], fetch_data=fetch_data, has_color_map=False) as raster:
             data = raster.read(1, masked=True)
             assert_array_equal(data, np.ones([h, w]))
             assert_array_equal(
