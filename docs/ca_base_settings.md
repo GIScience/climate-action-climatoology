@@ -8,9 +8,11 @@ local infrastructure setup.
 
 ## Logging
 
-| Variable    | Description                                                                   | Required | Default |
-|-------------|-------------------------------------------------------------------------------|----------|---------|
-| `LOG_LEVEL` | Controlls the log level of the application. One of `INFO`, `WARNING`, `DEBUG` | False    | `INFO`  |
+| Variable              | Description                                                                                                                                                                                | Required | Default                                                  |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|----------------------------------------------------------|
+| `LOG_LEVEL`           | Controlls the log level of the application. One of `INFO`, `WARNING`, `DEBUG`                                                                                                              | False    | `INFO`                                                   |
+| `LOG_FORMAT`          | The (base) format for log output                                                                                                                                                           | False    | `%(levelname)s - %(threadName)s - %(name)s: %(message)s` |
+| `LOG_TRACE_TYPE_LOGS` | Some of the used libraries are extremely verbose in their logging. We decided to categorise some of those logs as below `DEBUG` level (i.e. `TRACE`). Should they be included in the logs? | False    | `False`                                                  |
 
 ## S3
 

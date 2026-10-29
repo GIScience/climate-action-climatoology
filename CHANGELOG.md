@@ -17,6 +17,9 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   ([#336](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/336))
 - raster utilities don't use (previously unused) multithreading any more, to gather raster data from the REST utility
 - logging format overhauled ([#14](https://gitlab.heigit.org/climate-action/plugins/plugin-blueprint/-/work_items/14))
+- trace-like logs from rasterio (i.e. printing the written Colormap) are now filtered by default but can be re-enabled
+  using the `log_trace_level_logs` base setting
+  ([#242](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/242))
 
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 
@@ -113,8 +116,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Added
 
 - Documentation on the options in `CABaseSettings`
-  in [docs/ca_base_settings.md](docs/ca_base_settings.md).
-  ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303))
+  in [docs/ca_base_settings.md](docs/ca_base_settings.md)
+  ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303)).
 - a planned state for plugins that will only register the plugin in the infrastructure and then shut
   down ([#305](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/305)).
 

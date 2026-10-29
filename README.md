@@ -69,7 +69,8 @@ To make sure the database is up to date, run `poetry run alembic upgrade head`.
 Then run `poetry run alembic revision --autogenerate -m "<headline of your change>"`.
 You should then review the generated file in detail before committing it.
 
-Other useful commands, such as `alembic downgrade <rev>`, `alembic check` and `alembic history` can be found in the [alembic documentation](https://alembic.sqlalchemy.org/en/latest/api/commands.html).
+Other useful commands, such as `alembic downgrade <rev>`, `alembic check` and `alembic history` can be found in
+the [alembic documentation](https://alembic.sqlalchemy.org/en/latest/api/commands.html).
 
 ## Install
 
@@ -77,8 +78,8 @@ To install with poetry, run
 `poetry add git+https://gitlab.heigit.org/climate-action/climatoology.git@{version/release/tag or branch}`.
 
 This library provides some common fixtures available for testing.
-To install the dependencies for these fixtures, include their optional dependencies, by adding `[fixtures]` to the command above.
-
+To install the dependencies for these fixtures, include their optional dependencies, by adding `[fixtures]` to the
+command above.
 
 ## Contributing
 

@@ -22,7 +22,7 @@ from climatoology.base.aoi import AoiFeatureModel, AoiProperties
 from climatoology.base.baseoperator import BaseOperator
 from climatoology.base.computation import StandAloneComputationInfo
 from climatoology.base.i18n import DEFAULT_LANGUAGE, deep_translate_dict, set_language, tr
-from climatoology.base.logging import get_climatoology_logger
+from climatoology.base.logging import filter_trace_level_logs, get_climatoology_logger
 from climatoology.base.plugin_info import PluginInfoEnriched, PluginInfoFinal, PluginState
 from climatoology.base.utils import shapely_from_geojson_pydantic
 from climatoology.store.database.database import BackendDatabase
@@ -41,6 +41,10 @@ def start_plugin(operator: BaseOperator) -> NoReturn:
     # we require the user to set the settings via a .env file or via env variables
     # noinspection PyArgumentList
     settings = CABaseSettings()
+
+    if not settings.log_trace_level_logs:
+        filter_trace_level_logs()
+
     plugin = _create_plugin(operator, settings)
 
     worker_config = WorkerSettings()

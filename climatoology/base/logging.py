@@ -18,6 +18,12 @@ def get_climatoology_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
+def filter_trace_level_logs():
+    logging.getLogger('rasterio._base').addFilter(
+        lambda record: not record.levelno == logging.DEBUG and record.getMessage().startswith('Color: (')
+    )
+
+
 class ClimatoologyFormatter(logging.Formatter):
     def __init__(
         self,
