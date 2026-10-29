@@ -9,6 +9,7 @@ EXCHANGE_NAME = 'climatoology'
 
 class CABaseSettings(BaseSettings):
     log_level: str = 'INFO'
+    log_format: str = '%(levelname)s - %(threadName)s - %(name)s: %(message)s'
 
     s3_host: str = Field(validation_alias=AliasChoices('s3_host', 'minio_host'))
     s3_port: int = Field(validation_alias=AliasChoices('s3_port', 'minio_port'))

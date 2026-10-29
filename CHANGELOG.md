@@ -15,6 +15,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
   ([#335](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/335))
 - all printing to stdout and stderr is removed and logging is improved
   ([#336](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/336))
+- raster utilities don't use (previously unused) multithreading any more, to gather raster data from the REST utility
+- logging format overhauled ([#14](https://gitlab.heigit.org/climate-action/plugins/plugin-blueprint/-/work_items/14))
 
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 
@@ -111,7 +113,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 ### Added
 
 - Documentation on the options in `CABaseSettings`
-  in [docs/ca_base_settings.md](docs/ca_base_settings.md). ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303))
+  in [docs/ca_base_settings.md](docs/ca_base_settings.md).
+  ([#303](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/303))
 - a planned state for plugins that will only register the plugin in the infrastructure and then shut
   down ([#305](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/305)).
 
@@ -263,8 +266,8 @@ The changelog contains subsections for changes that affect a dedicated domain, w
   title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 
 
-- de-deprecated basic chart artifact creation and use plotly for it
-  (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
+- de-deprecated basic chart artifact creation and use plotly for it (`create_chart_artifact`)
+  ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
 - `teaser` and `demo_config` are now required for the plugin info
 - `generate_plugin_info` now accepts a `DemoConfig` object and includes `name` so a descriptive demo name can be
   used ([#218](https://gitlab.heigit.org/climate-action/climatoology/-/issues/218))
@@ -285,7 +288,8 @@ The changelog contains subsections for changes that affect a dedicated domain, w
 #### API
 
 - allowed PNG icons and made PNG the default for
-  icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
+  icons
+  ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
 - the `_Artifact.store_id` field was removed in favour of the `_Artifact.filename` which in turn replaces
   `_Artifact.file_path`.
 - The `timestamp` attribute of a computation is no longer stored in the database, in favour of directly using
@@ -512,8 +516,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
   of `legend_data: Union[ContinuousLegendData, Dict[str, Color]]` to enable users to provide a custom
   title ([#217](https://gitlab.heigit.org/climate-action/climatoology/-/issues/217))
 
-- de-deprecated basic chart artifact creation and use plotly for it
-  (`create_chart_artifact`) ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
+- de-deprecated basic chart artifact creation and use plotly for it (`create_chart_artifact`)
+  ([#164](https://gitlab.heigit.org/climate-action/climatoology/-/issues/164))
 - `teaser` and `demo_config` are now required for the plugin info
 - `generate_plugin_info` now accepts a `DemoConfig` object and includes `name` so a descriptive demo name can be
   used ([#218](https://gitlab.heigit.org/climate-action/climatoology/-/issues/218))
@@ -526,7 +530,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
 #### API
 
 - allowed PNG icons and made PNG the default for
-  icons ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
+  icons
+  ([#114](https://gitlab.heigit.org/climate-action/climatoology/-/issues/114), [#179](https://gitlab.heigit.org/climate-action/climatoology/-/issues/179))
 - the `_Artifact.store_id` field was removed in favour of the `_Artifact.filename` which in turn replaces
   `_Artifact.file_path`.
 - The `timestamp` attribute of a computation is no longer stored in the database, in favour of directly using
@@ -779,8 +784,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
 
 - Reduce the max raster size for the naturalness utility to handle SentinelHub errors
 - Batch the inputs properly in Naturalness compute_vector in case multiple API requests are required
-- Set the return index dtype from Naturalness compute_vector to match the input index dtype (
-  Closes [#145](https://gitlab.heigit.org/climate-action/climatoology/-/issues/145))
+- Set the return index dtype from Naturalness compute_vector to match the input index dtype
+  (Closes [#145](https://gitlab.heigit.org/climate-action/climatoology/-/issues/145))
 
 ## [6.1.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/6.1.0) - 2025-01-29
 
@@ -836,12 +841,13 @@ The changelog contains subsections for changes that affect a dedicated domain.
 
 
 - made the `Info` object private (`_Info`) and introduced a generator method `generate_plugin_info`.
-  This should be used instead of instantiating `_Info` directly (
-  see [#31](https://gitlab.heigit.org/climate-action/climatoology/-/issues/31))
+  This should be used instead of instantiating `_Info` directly
+  (see [#31](https://gitlab.heigit.org/climate-action/climatoology/-/issues/31))
 - operators now get two additional input variables `aoi` and `aoi_properties`.
   They replace the soft contract that was in place until now, to have these properties in the input model.
   They are now no longer allowed to be part of the input
-  model ([#107](https://gitlab.heigit.org/climate-action/climatoology/-/issues/107),[#125](https://gitlab.heigit.org/climate-action/climatoology/-/issues/125))
+  model
+  ([#107](https://gitlab.heigit.org/climate-action/climatoology/-/issues/107),[#125](https://gitlab.heigit.org/climate-action/climatoology/-/issues/125))
 - the base class for operators is now called `BaseOperator` (formerly `Operator`).
   This allows plugin devs to generically call their Operator
   `Operator` ([#71](https://gitlab.heigit.org/climate-action/climatoology/-/issues/71))
@@ -853,7 +859,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
 
 - require `purpose` and `methodology` for the plugin-info to be provided as markdown files
 - write compact (geo)json instead of bloated, indented one (it's not meant to be
-  human-readable) ([#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102), [#76](https://gitlab.heigit.org/climate-action/climatoology/-/issues/76))
+  human-readable)
+  ([#102](https://gitlab.heigit.org/climate-action/climatoology/-/issues/102), [#76](https://gitlab.heigit.org/climate-action/climatoology/-/issues/76))
 - updated and cleaned all dependencies.
   This includes breaking updates such as geopandas to v1.0.1.
   In case you use ohsome-py, make sure to update it to v0.4.0 for compatibility.
@@ -869,8 +876,8 @@ The changelog contains subsections for changes that affect a dedicated domain.
 
 ### Fixed
 
-- the geotiff artifact is now a proper Cloud Optimised Geotiff (
-  COG) ([#104](https://gitlab.heigit.org/climate-action/climatoology/-/issues/104))
+- the geotiff artifact is now a proper Cloud Optimised Geotiff (COG)
+  ([#104](https://gitlab.heigit.org/climate-action/climatoology/-/issues/104))
 - error message on version mismatch when registering a new plugin.
   It now states the offending plugin library version instead of the APIs library version.
 - timestamps used for reporting are now UTC ([#89](https://gitlab.heigit.org/climate-action/climatoology/-/issues/89))
