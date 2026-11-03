@@ -1,6 +1,6 @@
 from abc import ABC
 from datetime import date, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 import requests
 from pydantic import BaseModel, Field, model_validator
@@ -8,6 +8,7 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 from climatoology.base.logging import get_climatoology_logger
+from climatoology.utility.exception import PlatformUtilityError
 
 log = get_climatoology_logger(__name__)
 
@@ -75,3 +76,15 @@ class PlatformHttpUtility(ABC):
             log.error(f'{self.__class__.__name__} API not reachable', exc_info=e)
             return False
         return True
+
+    def post_request(self, url: str, request_body: dict[str, Any]) -> requests.Response:
+        log.debug(f'Requesting from {url} for {request_body}')
+        try:
+            response = self.session.post(url=url, json=request_body)
+            response.raise_for_status()
+        except requests.exceptions.ConnectionError as e:
+            raise PlatformUtilityError('Connection to utility cannot be established') from e
+        except requests.exceptions.HTTPError as e:
+            raise PlatformUtilityError(f'Query failed due to: {e}') from e
+        else:
+            return response

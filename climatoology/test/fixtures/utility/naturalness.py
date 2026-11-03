@@ -6,7 +6,7 @@ from test.conftest import TEST_RESOURCES_DIR
 
 
 @pytest.fixture
-def default_naturalness_utility():
+def default_naturalness_utility(mocked_utility_response):
     yield NaturalnessUtility(base_url='http://localhost')
 
 
@@ -17,6 +17,12 @@ def mock_naturalness_raster_a(mocked_utility_response):
         'resolution': 90.0,
         'bbox': [8.67, 49.41, 8.69, 49.43],
     }
+
+    mocked_utility_response.post(
+        'http://localhost/NDVI/raster/estimate_pus',
+        match=[matchers.json_params_matcher(request_body)],
+        json={'estimated_pus': 0.84, 'pu_quota_per_minute': 500},
+    )
 
     with open(TEST_RESOURCES_DIR / 'rasters/test_raster_0-1_a_res90.tiff', 'rb') as raster:
         mocked_utility_response.post(
@@ -48,6 +54,13 @@ def mock_naturalness_raster_small(mocked_utility_response):
         'resolution': 90.0,
         'bbox': expected_bounds,
     }
+
+    mocked_utility_response.post(
+        'http://localhost/NDVI/raster/estimate_pus',
+        match=[matchers.json_params_matcher(request_body_small)],
+        json={'estimated_pus': 0.74, 'pu_quota_per_minute': 500},
+    )
+
     with open(TEST_RESOURCES_DIR / 'rasters/test_raster_small_res90.tiff', 'rb') as raster_small:
         mocked_utility_response.post(
             'http://localhost/NDVI/raster',

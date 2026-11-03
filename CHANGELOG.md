@@ -20,6 +20,8 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - trace-like logs from rasterio (i.e. printing the written Colormap) are now filtered by default but can be re-enabled
   using the `log_trace_level_logs` base setting
   ([#242](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/242))
+- naturalness utility queries now automatically split up work units if they are estimated to exceed the available
+  quota ([naturalness-utility#47](https://gitlab.heigit.org/climate-action/utilities/naturalness-utility/-/work_items/47))
 
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 

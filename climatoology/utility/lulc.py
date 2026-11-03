@@ -6,13 +6,11 @@ from typing import Dict, Generator, List, Optional, Tuple
 
 import rasterio
 import rasterio as rio
-import requests
 from geopandas import GeoSeries
 from pydantic import BaseModel, Field, model_validator
 
 from climatoology.base.logging import get_climatoology_logger
 from climatoology.utility.api import PlatformHttpUtility
-from climatoology.utility.exception import PlatformUtilityError
 from climatoology.utility.raster import RasterWorkUnit, compute_raster, generate_bounds
 
 log = get_climatoology_logger(__name__)
@@ -173,20 +171,13 @@ class LulcUtility(PlatformHttpUtility):
         self.max_workers = max_workers
 
     def __fetch_data(self, unit: LulcWorkUnit) -> rio.DatasetReader:
-        try:
-            url = f'{self.base_url}/segment/'
-            request_body = unit.model_dump(mode='json', exclude={'aoi'})
-            request_body['area_coords'] = unit.aoi.bounds
+        url = f'{self.base_url}/segment/'
+        request_body = unit.model_dump(mode='json', exclude={'aoi'})
+        request_body['area_coords'] = unit.aoi.bounds
 
-            log.debug(f'Requesting classification from LULC Utility at {url} for region {unit.model_dump()}')
-            response = self.session.post(url=url, json=request_body)
-            response.raise_for_status()
-        except requests.exceptions.ConnectionError as e:
-            raise PlatformUtilityError('Connection to utility cannot be established') from e
-        except requests.exceptions.HTTPError as e:
-            raise PlatformUtilityError(f'Query failed due to: {e}') from e
-        else:
-            return rio.open(BytesIO(response.content), mode='r')
+        response = self.post_request(url=url, request_body=request_body)
+
+        return rio.open(BytesIO(response.content), mode='r')
 
     @contextmanager
     def compute_raster(
@@ -237,4 +228,5 @@ class LulcUtility(PlatformHttpUtility):
                 u.aoi = b.geometry
                 adjusted_units.append(u)
 
+        log.debug(f'Split {len(units)} units into {len(adjusted_units)} units to meet the requested {max_unit_size=}')
         return adjusted_units

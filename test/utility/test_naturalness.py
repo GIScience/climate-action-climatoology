@@ -265,7 +265,83 @@ def test_compute_vector_multiple_aggregation_stats(mock_naturalness_raster_a, de
     testing.assert_geodataframe_equal(response_gdf, expected_output, check_like=True)
 
 
-def test_adjust_work_units_model_validate(mocked_utility_response, default_naturalness_utility):
-    adjusted_units = default_naturalness_utility.adjust_work_units(units=[NATURALNESS_UNIT_A])
+def test_split_work_units_model_validate(mocked_utility_response, default_naturalness_utility):
+    split_units = default_naturalness_utility.split_work_units(units=[NATURALNESS_UNIT_A], max_unit_size=1000)
 
-    assert [NaturalnessWorkUnit.model_validate(dict(u), extra='forbid') for u in adjusted_units]
+    assert [NaturalnessWorkUnit.model_validate(dict(u), extra='forbid') for u in split_units]
+
+
+def test_adjust_work_units(mocked_utility_response, default_naturalness_utility, mocker):
+    """Assert that the input work unit gets split due to exceeded 'pu_quota_per_minute'."""
+    # We estimate the PUs of the first unit per set of 'split' units
+    estimated_pus = [818.5, 235.3]
+    request_bboxes = [
+        [8.6, 49.4, 8.7, 49.45],
+        [8.6, 49.4, 8.65, 49.45],
+    ]
+
+    test_unit = NaturalnessWorkUnit(
+        aoi=shapely.box(*request_bboxes[0]),
+        time_range=TimeRange(start_date=date(2021, 6, 1), end_date=date(2025, 6, 1)),
+        resolution=10,
+    )
+
+    base_request_body = test_unit.model_dump(mode='json', exclude='aoi')
+    for est_pu, bbox in zip(estimated_pus, request_bboxes):
+        request_body = base_request_body | {'bbox': bbox}
+        mocked_utility_response.post(
+            'http://localhost/NDVI/raster/estimate_pus',
+            match=[matchers.json_params_matcher(request_body)],
+            json={'estimated_pus': est_pu, 'pu_quota_per_minute': 500},
+        )
+
+    adjusted_units = default_naturalness_utility.adjust_work_units(index='NDVI', units=[test_unit], max_unit_size=1200)
+
+    assert len(adjusted_units) == 2
+
+
+def test_adjust_work_units_fails_if_quota_unachievable(mocked_utility_response, default_naturalness_utility):
+    """Assert exception is raised if the quota can't be achieved within a reasonable max_unit_size."""
+    estimated_pus = 4.67
+    request_bbox = [8.67, 49.41, 8.68, 49.415]
+
+    test_unit = NaturalnessWorkUnit(
+        aoi=shapely.box(*request_bbox),
+        time_range=TimeRange(start_date=date(2021, 6, 1), end_date=date(2025, 6, 1)),
+        resolution=10,
+    )
+
+    base_request_body = test_unit.model_dump(mode='json', exclude='aoi')
+    request_body = base_request_body | {'bbox': request_bbox}
+    mocked_utility_response.post(
+        'http://localhost/NDVI/raster/estimate_pus',
+        match=[matchers.json_params_matcher(request_body)],
+        json={'estimated_pus': estimated_pus, 'pu_quota_per_minute': 1},
+    )
+
+    with pytest.raises(PlatformUtilityError, match='Cancelled request because it is too large'):
+        default_naturalness_utility.adjust_work_units(index='NDVI', units=[test_unit], max_unit_size=80)
+
+
+def test_get_one_unit_per_group(default_naturalness_utility):
+    small_bbox = shapely.box(8.6, 49.4, 8.65, 49.45)
+    big_bbox = shapely.box(8.6, 49.4, 8.7, 49.45)
+
+    time_range = {'time_range': {'end_date': '2025-06-01'}}
+
+    # 2 groups of work units, with order of small & big differing
+    bigger_unit_10 = NaturalnessWorkUnit(aoi=big_bbox, time_range=time_range, resolution=10)
+    smaller_unit_10 = NaturalnessWorkUnit(aoi=small_bbox, time_range=time_range, resolution=10)
+    smaller_unit_20 = NaturalnessWorkUnit(aoi=small_bbox, time_range=time_range, resolution=20)
+    bigger_unit_20 = NaturalnessWorkUnit(aoi=big_bbox, time_range=time_range, resolution=20)
+    units_in = [
+        bigger_unit_10,
+        smaller_unit_10,
+        smaller_unit_20,
+        bigger_unit_20,
+    ]
+    expected_units_out = [bigger_unit_10, smaller_unit_20]
+
+    units_out = default_naturalness_utility._get_one_unit_per_group(units_in)
+
+    assert units_out == expected_units_out

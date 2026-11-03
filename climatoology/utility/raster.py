@@ -55,7 +55,7 @@ def compute_raster(
     """
     assert len(units) > 0
 
-    log.debug(f'Computing {len(units)} units')
+    log.info(f'Computing {len(units)} units')
     slices = []
     for i, unit in enumerate(units, start=1):
         log.debug(f'Collecting raster for unit {i}/{len(units)}')
@@ -157,7 +157,9 @@ def generate_bounds(
     split_bounds = BBoxSplitter(shape_list=[bounds], crs=CRS.WGS84, split_shape=(w_splits, h_splits)).bbox_list
 
     intersecting_bounds = [b for b in split_bounds if any(target_geometries.intersects(b.geometry))]
-    log.debug(f'Removed {len(split_bounds) - len(intersecting_bounds)} non-overlapping bounding boxes')
-    log.info(f'The geometry space was split into {len(intersecting_bounds)} bounding boxes')
+
+    removed_bboxes = len(split_bounds) - len(intersecting_bounds)
+    if removed_bboxes > 0:
+        log.debug(f'Removed {len(split_bounds) - len(intersecting_bounds)} non-overlapping bounding boxes')
 
     return [b.apply(lambda x, y: (round(x, 7), round(y, 7))) for b in intersecting_bounds]
