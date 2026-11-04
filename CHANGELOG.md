@@ -7,6 +7,11 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.5.0...main)
 
+### Changed
+
+- allow legends of vector artifacts to exclude labels that exist in the data
+  ([#331](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/331))
+
 ## [7.5.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.5.0) - 2026-11-03
 
 ### Added

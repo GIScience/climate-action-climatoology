@@ -12,7 +12,6 @@ from shapely import MultiPoint, Point
 from climatoology.base.artifact import (
     ArtifactModality,
     Attachments,
-    ContinuousLegendData,
     Legend,
 )
 from climatoology.base.artifact_creators import create_vector_artifact
@@ -185,19 +184,18 @@ def test_create_vector_artifact_extra_column_removed_for_display_but_retained_fo
     assert written_display_data.columns.to_list() == ['mvt_id', 'index', 'color', 'label', 'geometry']
 
 
-def test_create_vector_artifact_retain_custom_legend(
-    default_computation_resources, general_uuid, default_artifact_metadata
-):
+def test_create_vector_artifact_retain_custom_legend(default_computation_resources, default_artifact_metadata):
     input_legend = Legend(
-        legend_data=ContinuousLegendData(cmap_name='plasma', ticks={'Black b': 0, 'Green c': 0.5, 'White a': 1})
+        legend_data={'White a': Color('#fff'), 'Green c': Color('#0f0')},
+        title='Custom Legend Title',
     )
     expect_output = input_legend.model_copy(deep=True)
 
     method_input = GeoDataFrame(
         data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0)), Color((0, 255, 0))],
-            'label': ['White a', 'Black b', 'Green c'],
-            'geometry': [Point(1, 1), Point(2, 2), Point(3, 3)],
+            'color': [Color((255, 255, 255)), Color((0, 0, 0))],
+            'label': ['White a', 'Black b'],
+            'geometry': [Point(1, 1), Point(2, 2)],
         },
         crs='EPSG:4326',
     )
@@ -258,32 +256,6 @@ def test_create_vector_artifact_fail_on_wrong_color_type(default_computation_res
             data=method_input,
             metadata=default_artifact_metadata,
             resources=default_computation_resources,
-        )
-
-
-def test_create_vector_artifact_fail_on_missing_legend_labels(default_artifact_metadata, default_computation_resources):
-    method_input = GeoDataFrame(
-        data={
-            'color': [Color((255, 255, 255)), Color((0, 0, 0))],
-            'label': ['White a', 'Black b'],
-            'geometry': [Point(1, 1), Point(2, 2)],
-        },
-        crs='EPSG:4326',
-    )
-
-    legend = Legend(
-        legend_data={'White a': Color('#fff'), 'Green c': Color('#0f0')},
-        title='Custom Legend Title',
-    )
-
-    with pytest.raises(
-        AssertionError, match=r"The following labels are included in the data, but not in the legend: {'Black b'}"
-    ):
-        create_vector_artifact(
-            data=method_input,
-            metadata=default_artifact_metadata,
-            resources=default_computation_resources,
-            legend=legend,
         )
 
 

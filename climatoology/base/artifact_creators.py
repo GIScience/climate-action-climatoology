@@ -252,9 +252,8 @@ def create_vector_artifact(
     :param color: Column name for the color values, defaults to `'color'`. Column must contain
       instances of `pydantic_extra_types.color.Color` only.
     :param label: Column name for the labels of the features, defaults to `'label'`. Column must contain strings.
-    :param legend: Can be used to display a custom legend. The keys of the legend data must include all observations in
-      the `label` column in `data`. If not provided, a distinct legend will be created from the unique combinations of
-      labels and colors.
+    :param legend: Can be used to display a custom legend. If not provided, a distinct legend will be created from the
+    unique combinations of labels and colors.
     :param pmtiles_lco: Layer creation options forwarded to the PMTile creation, see
       https://gdal.org/en/stable/drivers/vector/pmtiles.html
     :param metadata: Standard Artifact attributes
@@ -387,9 +386,8 @@ def check_vector_data(
 
     if legend and isinstance(legend.legend_data, dict):
         missing_legend_labels = set(input_data[label_column_name]).difference(set(legend.legend_data.keys()))
-        assert len(missing_legend_labels) < 1, (
-            f'The following labels are included in the data, but not in the legend: {missing_legend_labels}'
-        )
+        if len(missing_legend_labels) > 0:
+            log.debug(f'The following labels are included in the data, but not in the legend: {missing_legend_labels}')
 
 
 def create_raster_artifact(
