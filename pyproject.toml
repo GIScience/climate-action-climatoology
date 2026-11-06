@@ -1,6 +1,6 @@
 [project]
 name = "climatoology"
-version = "7.5.0"
+version = "7.6.0"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
     { name = "Moritz Schott", email = "moritz.schott@heigit.org" },
@@ -60,7 +60,7 @@ fixtures = [
 ]
 
 [project.scripts]
-alembic-config-location = 'climatoology.store.database.migration.alembic_config_discovery:discover'
+alembic-config-location = 'climatoology.store.database.migration.alembic_config_discovery:main'
 
 [project.urls]
 repository = "https://gitlab.heigit.org/climate-action/climatoology"

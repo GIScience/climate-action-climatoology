@@ -5,24 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project mostly adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.5.0...main)
+## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.6.0...main)
+
+## [7.6.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.6.0) - 2026-11-06
 
 ### Changed
 
-- allow legends of vector artifacts to exclude labels that exist in the data
+- allow legends of vector artefacts to exclude labels that exist in the data
   ([#331](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/331))
+
+### Deprecated
+
+- all previous concerns have been deprecated and the list of available concerns overhauled (see `Added`).
+  Please migrate ([#338](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/338))
+
+### Added
+
+- the list of plugin concerns has been consolidated to three values only
+  ([#338](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/338))
+
+### Fixed
+
+- the alembic config discovery script now prints the paths and returns nothing (i.e. successful) instead of returning
+  the path which lead to being interpreted as failure (because !=0)
 
 ## [7.5.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.5.0) - 2026-11-03
 
 ### Added
 
-- naturalness utility queries now automatically split up work units if they are estimated to exceed the available
-  quota ([naturalness-utility#47](https://gitlab.heigit.org/climate-action/utilities/naturalness-utility/-/work_items/47))
-
-### Deprecated
-
-- All previous concerns have been deprecated and the list of available concerns overhauled (see `Added`).
-  Please migrate ([#338](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/338))
+- naturalness utility queries now automatically split up work units if they are estimated to exceed the available quota
+  ([naturalness-utility#47](https://gitlab.heigit.org/climate-action/utilities/naturalness-utility/-/work_items/47))
 
 ### Changed
 
@@ -37,11 +49,6 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 - trace-like logs from rasterio (i.e. printing the written Colormap) are now filtered by default but can be re-enabled
   using the `log_trace_level_logs` base setting
   ([#242](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/242))
-
-### Added
-
-- the list of plugin concerns has been consolidated to three values only
-  ([#338](https://gitlab.heigit.org/climate-action/climatoology/-/work_items/338))
 
 ## [7.4.3](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.4.3) - 2026-10-13
 
