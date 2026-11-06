@@ -54,7 +54,7 @@ def test_generate_plugin_info_function_no_localisation(default_plugin_info: Plug
             )
         ],
         icon=FIXTURE_RESOURCES_DIR / 'test_icon.png',
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -159,7 +159,7 @@ def test_sources_are_optional(default_input_model):
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -180,7 +180,7 @@ def test_uppercase_sources_keys(default_input_model):
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -224,7 +224,7 @@ def test_invalid_sources(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='Test teaser that is meant to do nothing.',
             purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -245,7 +245,7 @@ def test_short_teaser(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='This.',
             purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -265,7 +265,7 @@ def test_long_teaser(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='This Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin non feugiat felis. In pretium malesuada nisl non gravida. Sed tincidunt felis quis ipsum convallis venenatis. Vivamus vitae pulvinar magna.',
             purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -285,7 +285,7 @@ def test_small_start_teaser(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='this plugin does nothing.',
             purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -305,7 +305,7 @@ def test_no_fullstop_teaser(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='This plugin does nothing',
             purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -324,7 +324,7 @@ def test_default_plugin_state(default_input_model):
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -344,7 +344,7 @@ def test_plugin_state(default_input_model):
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -365,7 +365,7 @@ def test_shelf_life(default_input_model):
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -386,7 +386,7 @@ def test_repository_url(default_input_model):
                 website=HttpUrl('https://heigit.org/heigit-team/'),
             )
         ],
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser='Test teaser that is meant to do nothing.',
         purpose={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
         methodology={LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -407,7 +407,7 @@ def test_english_enforced(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='Test teaser that is meant to do nothing.',
             purpose={LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},
@@ -430,7 +430,7 @@ def test_language_set_equal(default_input_model):
                     website=HttpUrl('https://heigit.org/heigit-team/'),
                 )
             ],
-            concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+            concerns={Concern.MOBILITY},
             teaser='Test teaser that is meant to do nothing.',
             purpose={LanguageAlpha2('de'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md'},
             methodology={LanguageAlpha2('fr'): FIXTURE_RESOURCES_DIR / 'locales/en/methodology.md'},

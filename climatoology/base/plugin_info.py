@@ -46,6 +46,7 @@ DEMO_AOI_PATH = RESOURCES_DIR / 'Heidelberg_AOI.geojson'
 class Concern(StrEnum):
     """Keywords that group plugins by topic."""
 
+    # Deprecated
     CLIMATE_ACTION__GHG_EMISSION = 'ghg_emission'
     CLIMATE_ACTION__MITIGATION = 'mitigation'
     CLIMATE_ACTION__ADAPTION = 'adaption'
@@ -54,6 +55,11 @@ class Concern(StrEnum):
     MOBILITY_CYCLING = 'cycling'
 
     SUSTAINABILITY__WASTE = 'waste'
+
+    # New values
+    MOBILITY = 'MOBILITY'
+    EMISSIONS_AND_ENERGY = 'EMISSIONS_AND_ENERGY'
+    LAND_AND_NATURE = 'LAND_AND_NATURE'
 
 
 class PluginState(StrEnum):
@@ -204,7 +210,7 @@ class _PluginBaseInfo(BaseModel):
     concerns: Set[Concern] = Field(
         description='The domains or topics the plugin is tackling. It can be used as a set of keywords that '
         'group multiple plugins.',
-        examples=[{Concern.CLIMATE_ACTION__GHG_EMISSION, Concern.CLIMATE_ACTION__MITIGATION}],
+        examples=[{Concern.MOBILITY, Concern.LAND_AND_NATURE}],
     )
     teaser: Annotated[
         str,
@@ -243,6 +249,25 @@ class _PluginBaseInfo(BaseModel):
             if len(constraint_set) > 1 and any(is_boundary_selection):
                 raise ValueError('Checkers of type "BoundarySelection" cannot be combined with other checkers.')
         return constraint_sets
+
+    @field_validator('concerns', mode='after')
+    @classmethod
+    def deprecate_concerns(cls, concerns: list[Concern]) -> list[Concern]:
+        deprecation_list = [
+            Concern.CLIMATE_ACTION__GHG_EMISSION,
+            Concern.CLIMATE_ACTION__MITIGATION,
+            Concern.CLIMATE_ACTION__ADAPTION,
+            Concern.MOBILITY_PEDESTRIAN,
+            Concern.MOBILITY_CYCLING,
+            Concern.SUSTAINABILITY__WASTE,
+        ]
+        for concern in concerns:
+            if concern in deprecation_list:
+                warnings.warn(
+                    f'Concern {concern} has been deprecated. Please choose one of the new values.',
+                    category=DeprecationWarning,
+                )
+        return concerns
 
 
 class PluginInfo(_PluginBaseInfo):

@@ -56,7 +56,7 @@ def default_plugin_info(default_input_model) -> PluginInfo:
             )
         ],
         icon=FIXTURE_RESOURCES_DIR / 'test_icon.png',
-        concerns={Concern.CLIMATE_ACTION__GHG_EMISSION},
+        concerns={Concern.MOBILITY},
         teaser=N_('Test teaser that is meant to do nothing.'),
         purpose={
             LanguageAlpha2('en'): FIXTURE_RESOURCES_DIR / 'locales/en/purpose.md',
