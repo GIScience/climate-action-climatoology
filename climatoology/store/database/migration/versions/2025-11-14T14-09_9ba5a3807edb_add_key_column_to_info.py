@@ -25,7 +25,11 @@ def upgrade() -> None:
     op.add_column(
         'info',
         sa.Column(
-            'key', sa.String(), sa.Computed("id::text || ';'::text || version::text"), nullable=False, primary_key=True
+            'key',
+            sa.String(),
+            sa.Computed("id::text || ';'::text || version::text", persisted=True),
+            nullable=False,
+            primary_key=True,
         ),
         schema='ca_base',
     )
@@ -129,7 +133,7 @@ ON
         sa.Column(
             'deduplication_key',
             sa.Uuid(),
-            sa.Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid'),
+            sa.Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid', persisted=True),
             nullable=False,
         ),
         schema='ca_base',
@@ -222,7 +226,8 @@ def downgrade() -> None:
             'deduplication_key',
             sa.Uuid(),
             sa.Computed(
-                'md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid'
+                'md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid',
+                persisted=True,
             ),
             nullable=False,
         ),

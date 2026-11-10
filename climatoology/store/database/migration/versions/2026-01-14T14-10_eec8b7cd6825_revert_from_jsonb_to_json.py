@@ -120,7 +120,7 @@ def upgrade() -> None:
         sa.Column(
             'deduplication_key',
             sa.Uuid(),
-            sa.Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid'),
+            sa.Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid', persisted=True),
             nullable=False,
         ),
         schema='ca_base',
@@ -287,7 +287,7 @@ def downgrade() -> None:
         sa.Column(
             'deduplication_key',
             sa.Uuid(),
-            sa.Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid'),
+            sa.Computed('md5(requested_params::text||st_astext(aoi_geom))::uuid', persisted=True),
             nullable=False,
         ),
         schema='ca_base',

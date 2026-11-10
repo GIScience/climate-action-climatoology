@@ -7,6 +7,12 @@ and this project mostly adheres to [Semantic Versioning](https://semver.org/spec
 
 ## [Unreleased](https://gitlab.heigit.org/climate-action/climatoology/-/compare/7.6.0...main)
 
+## [7.6.1](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.6.1) - 2026-11-10
+
+### Fixed
+
+- make climatoology compatible with the latest versions of celery and sqlalchemy
+
 ## [7.6.0](https://gitlab.heigit.org/climate-action/climatoology/-/releases/7.6.0) - 2026-11-06
 
 ### Changed

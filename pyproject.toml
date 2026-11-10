@@ -1,6 +1,6 @@
 [project]
 name = "climatoology"
-version = "7.6.0"
+version = "7.6.1"
 description = "This package provides the underlying functionality to implement Climate Action Operators and Plugins and to interact with the backend."
 authors = [
     { name = "Moritz Schott", email = "moritz.schott@heigit.org" },
@@ -33,11 +33,11 @@ dependencies = [
     "geopandas (>=1.0.0,<2.0.0)",
     "numpy (>=2.0.0,<3.0.0)",
     "pyarrow (>=26.0.0,<27.0.0)",
-    "celery[sqlalchemy] (>=5.0.0,<6.0.0)",
+    "celery[sqlalchemy] (>=5.0.0,<5.8.0)",
     "kombu (>=5.0.0,<6.0.0)",
     "sqlalchemy[postgresql-psycopgbinary] (>=2.0.0,<3.0.0)",
     "sqlalchemy-utils (>=0.43.0,<0.44.0)",
-    "geoalchemy2 (>=0.20.0,<0.21.0)",
+    "geoalchemy2 (>=0.21.0,<0.22.0)",
     "alembic (>=1.0.0,<2.0.0)",
     "alembic-utils (>=0.8.0,<0.9.0)",
     "alembic-postgresql-enum (>=1.0.0,<2.0.0)",

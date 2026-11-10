@@ -33,7 +33,7 @@ def upgrade() -> None:
         sa.Column(
             'key',
             sa.String(),
-            sa.Computed("id::text || '-'::text || version::text || '-'::text || language::text"),
+            sa.Computed("id::text || '-'::text || version::text || '-'::text || language::text", persisted=True),
             nullable=False,
             primary_key=True,
         ),
@@ -104,7 +104,7 @@ def downgrade() -> None:
         sa.Column(
             'key',
             sa.String(),
-            sa.Computed("id::text || ';'::text || version::text"),
+            sa.Computed("id::text || ';'::text || version::text", persisted=True),
             nullable=False,
             primary_key=True,
         ),

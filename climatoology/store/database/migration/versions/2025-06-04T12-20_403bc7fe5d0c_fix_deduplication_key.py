@@ -27,6 +27,7 @@ def upgrade() -> None:
             sa.Uuid(),
             sa.Computed(
                 'md5(requested_params::text||st_astext(aoi_geom)||plugin_id::text||plugin_version::text)::uuid',
+                persisted=True,
             ),
             nullable=False,
         ),
